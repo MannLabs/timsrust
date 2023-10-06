@@ -1,0 +1,6 @@
+# rustfmt.toml
+
+# Set the maximum line width to 100 characters
+match_block_trailing_comma = true
+max_width = 80
+newline_style = "Unix"

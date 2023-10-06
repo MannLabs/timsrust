@@ -1,0 +1,15 @@
+[package]
+name = "timsrust"
+version = "0.1.5"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1.4.3"
+zstd = "0.12.3"
+rusqlite = { version = "0.29.0", features = ["bundled"] }
+rayon = "1.5"
+linreg = "0.2.0"
+bytemuck = "1.13.1"
+parquet = "42.0.0"
