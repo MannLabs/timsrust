@@ -8,4 +8,4 @@ Add this crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-timsrust = "0.1.5"
+timsrust = "x.x.x"
