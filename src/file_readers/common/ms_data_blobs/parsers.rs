@@ -1,17 +1,21 @@
 use crate::vec_utils::counts_to_indptr;
 
 pub fn parse_frame(data: Vec<u32>) -> (Vec<u64>, Vec<u32>, Vec<u32>) {
-    let scan_count: usize = read_scan_count(&data);
-    let scan_counts: Vec<u32> = read_scan_counts(scan_count, &data);
-    let tof_indices: Vec<u32> =
-        read_tof_indices(scan_count, &data, &scan_counts);
-    let intensities: Vec<u32> = read_intensities(scan_count, &data);
-    let scan_offsets = counts_to_indptr(scan_counts);
+    let mut tof_indices: Vec<u32> = vec![];
+    let mut intensities: Vec<u32> = vec![];
+    let mut scan_offsets: Vec<u64> = vec![];
+    if data.len() != 0 {
+        let scan_count: usize = read_scan_count(&data);
+        let scan_counts: Vec<u32> = read_scan_counts(scan_count, &data);
+        tof_indices = read_tof_indices(scan_count, &data, &scan_counts);
+        intensities = read_intensities(scan_count, &data);
+        scan_offsets = counts_to_indptr(scan_counts);
+    }
     (scan_offsets, tof_indices, intensities)
 }
 
 fn read_scan_count(data: &Vec<u32>) -> usize {
-    let scan_count: usize = data[0] as usize;
+    let scan_count = data[0] as usize;
     scan_count
 }
 

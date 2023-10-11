@@ -15,14 +15,16 @@ impl MSDataBlobProcessor {
     }
 
     fn decompress(mut self) -> Self {
-        let reader: &[u8] = &self.ms_data_blob.data;
-        let mut decoder: Decoder<BufReader<&[u8]>> = Decoder::new(reader)
-            .expect("Cannot set decoder. Are the bytes correct?");
-        let mut buf: Vec<u8> = Vec::new();
-        decoder
-            .read_to_end(&mut buf)
-            .expect("Cannot decompress bytes. Are they zstd compressed?");
-        self.ms_data_blob.data = buf;
+        if self.ms_data_blob.data.len() != 0 {
+            let reader: &[u8] = &self.ms_data_blob.data;
+            let mut decoder: Decoder<BufReader<&[u8]>> = Decoder::new(reader)
+                .expect("Cannot set decoder. Are the bytes correct?");
+            let mut buf: Vec<u8> = Vec::new();
+            decoder
+                .read_to_end(&mut buf)
+                .expect("Cannot decompress bytes. Are they zstd compressed?");
+            self.ms_data_blob.data = buf;
+        }
         self.ms_data_blob.state = MSDataBlobState::Decompressed;
         self
     }
