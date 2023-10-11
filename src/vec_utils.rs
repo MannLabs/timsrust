@@ -8,6 +8,9 @@ pub fn group_and_sum<T: Ord + Copy, U: std::ops::Add<Output = U> + Copy>(
     groups: Vec<T>,
     values: Vec<U>,
 ) -> (Vec<T>, Vec<U>) {
+    if groups.len() == 0 {
+        return (vec![], vec![]);
+    }
     let order: Vec<usize> = argsort(&groups);
     let mut new_groups: Vec<T> = vec![];
     let mut new_values: Vec<U> = vec![];
