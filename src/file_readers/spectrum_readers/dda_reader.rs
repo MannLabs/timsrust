@@ -53,6 +53,9 @@ impl DDASpectrumReader {
         for &index in selection.iter() {
             let frame: usize =
                 self.precursor_reader.pasef_frames.frame[index] - 1;
+            if self.frames[frame].intensities.len() == 0 {
+                continue;
+            }
             let scan_start: usize =
                 self.precursor_reader.pasef_frames.scan_start[index];
             let scan_end: usize =
