@@ -1,3 +1,5 @@
+use crate::converters::{ConvertableIndex, Tof2MzConverter};
+
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
@@ -19,5 +21,11 @@ pub enum FrameType {
 impl Default for FrameType {
     fn default() -> Self {
         Self::Unknown
+    }
+}
+
+impl Frame {
+    pub fn resolve_mz_values(&self, mz_reader: &Tof2MzConverter) -> Vec<f64> {
+        self.tof_indices.iter().map(|&x| mz_reader.convert(x)).collect()
     }
 }
