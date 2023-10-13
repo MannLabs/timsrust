@@ -7,7 +7,7 @@ use {
         file_readers::{
             common::{
                 ms_data_blobs::{BinFileReader, ReadableFromBinFile},
-                sql_reader::{FrameTable, DiaFramesInfoTable, ReadableFromSql, SqlReader},
+                sql_reader::{FrameTable, DiaFramesInfoTable, DiaFramesMsMsTable, ReadableFromSql, SqlReader},
             },
             ReadableFrames,
         },
@@ -27,6 +27,7 @@ pub struct TDFReader {
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
     pub dia_frame_table: DiaFramesInfoTable,
+    pub dia_frame_msms_table: DiaFramesMsMsTable,
 }
 
 impl TDFReader {
@@ -44,6 +45,7 @@ impl TDFReader {
             frame_table.offsets.clone(),
         );
         let dia_frames_table: DiaFramesInfoTable = DiaFramesInfoTable::from_sql(&tdf_sql_reader);
+        let dia_frames_msms_table: DiaFramesMsMsTable = DiaFramesMsMsTable::from_sql(&tdf_sql_reader);
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -53,6 +55,7 @@ impl TDFReader {
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
             dia_frame_table: dia_frames_table,
+            dia_frame_msms_table: dia_frames_msms_table,
         }
     }
 
@@ -80,6 +83,18 @@ impl ReadableFrames for TDFReader {
 
     fn read_all_frames(&self) -> Vec<Frame> {
         (0..self.tdf_bin_reader.size())
+            .into_par_iter()
+            .map(|index| self.read_single_frame(index))
+            .collect()
+    }
+
+    fn read_all_dia_frames(&self) -> Vec<Frame> {
+        let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
+        let dia_frame_ids: Vec<usize> = dia_frame_ids
+            .into_iter()
+            .filter(|&x| x < self.frame_table.id.len())
+            .collect();
+        dia_frame_ids
             .into_par_iter()
             .map(|index| self.read_single_frame(index))
             .collect()
