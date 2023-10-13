@@ -5,11 +5,11 @@ mod file_formats;
 mod frame_readers;
 mod spectrum_readers;
 
+pub use self::frame_readers::tdf_reader::TDFReader;
+pub use self::frame_readers::ReadableFrames;
+
 use {
-    self::{
-        file_formats::FileFormat, frame_readers::ReadableFrames,
-        spectrum_readers::ReadableSpectra,
-    },
+    self::{file_formats::FileFormat, spectrum_readers::ReadableSpectra},
     crate::{Frame, Spectrum},
 };
 

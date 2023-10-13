@@ -8,7 +8,9 @@ use {
         file_readers::{
             common::{
                 ms_data_blobs::{BinFileReader, ReadableFromBinFile},
-                sql_reader::{FrameTable, ReadableFromSql, SqlReader},
+                sql_reader::{
+                    DiaFramesInfoTable, FrameTable, ReadableFromSql, SqlReader,
+                },
             },
             ReadableFrames,
         },
@@ -27,7 +29,8 @@ pub struct TDFReader {
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
-    frame_types: Vec<FrameType>,
+    pub frame_types: Vec<FrameType>,
+    pub dia_frame_table: DiaFramesInfoTable,
 }
 
 impl TDFReader {
@@ -54,6 +57,8 @@ impl TDFReader {
                 _ => FrameType::Unknown,
             })
             .collect();
+        let dia_frames_table: DiaFramesInfoTable =
+            DiaFramesInfoTable::from_sql(&tdf_sql_reader);
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -63,6 +68,7 @@ impl TDFReader {
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
             frame_types: frame_types,
+            dia_frame_table: dia_frames_table,
         }
     }
 

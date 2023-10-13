@@ -27,18 +27,36 @@ impl SqlReader {
             "SELECT {} FROM {} ORDER BY {}",
             column_name, table_name, order_by
         );
-        let mut stmt: Statement = connection.prepare(&query).unwrap();
-        let rows = stmt
-            .query_map(
-                [],
-                // |row| row.get::<usize, T>(0)
-                |row| match row.get::<usize, T>(0) {
-                    Ok(value) => Ok(value),
-                    _ => Ok(T::default()),
-                },
-            )
-            .unwrap();
-        rows.collect::<Result<Vec<T>>>().unwrap()
+        let stmt: Result<Statement> = connection.prepare(&query);
+        let rows = match stmt {
+            Ok(mut statement) => {
+                let rows = statement
+                    .query_map(
+                        [],
+                        // |row| row.get::<usize, T>(0)
+                        |row| match row.get::<usize, T>(0) {
+                            Ok(value) => Ok(value),
+                            _ => Ok(T::default()),
+                        },
+                    )
+                    .unwrap()
+                    .collect::<Result<Vec<T>>>()
+                    .unwrap();
+                rows
+            },
+            // Note: This error happens mainly on the testing data, where
+            // some of the dia info tables are missing.
+            Err(error) => {
+                println!(
+                    "Error Reading sql `{}.{}`: {}",
+                    table_name, column_name, error
+                );
+                println!("Defaulting to empty vector");
+                let rows = Vec::new();
+                rows
+            },
+        };
+        rows
     }
 
     fn get_table_columns(&self, table_name: &str) -> Result<Vec<String>> {
