@@ -1,3 +1,4 @@
+
 use {
     crate::{
         acquisition::AcquisitionType,
@@ -12,7 +13,7 @@ use {
             },
             ReadableFrames,
         },
-        Frame, FrameType,
+        Frame, FrameType, FrameMSMSWindow,
     },
     rayon::prelude::*,
     std::path::Path,
@@ -120,5 +121,39 @@ impl ReadableFrames for TDFReader {
             .into_par_iter()
             .map(|index| self.read_single_frame(index - 1))
             .collect()
+    }
+
+}
+
+
+impl TDFReader{
+    /// Read all DIA frames from a TDF file and split along the isolation windows.
+    pub fn read_all_dia_isolation_windows(&self) -> Vec<FrameMSMSWindow> {
+        let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
+        let dia_frame_window_groups: Vec<usize> = self.dia_frame_msms_table.group.clone();
+        let window_hashmap = self.dia_frame_msms_table.as_hashmap();
+        
+        let mut out: Vec<FrameMSMSWindow> = vec![];
+        for i in 0..dia_frame_ids.len() {
+            let frame_id = dia_frame_ids[i];
+            let frame_window_group = dia_frame_window_groups[i];
+            let frame = self.read_single_frame(frame_id - 1);
+            let iws = window_hashmap.get(&frame_window_group).unwrap();
+
+            for iw in iws.into_iter() {
+                let frame_msms_window = FrameMSMSWindow {
+                    scan_offsets: (frame.scan_offsets[iw.scan_start..iw.scan_end]).to_vec(),
+                    tof_indices: (frame.tof_indices[iw.scan_start..iw.scan_end]).to_vec(),
+                    intensities: (frame.intensities[iw.scan_start..iw.scan_end]).to_vec(),
+                    frame_index: frame.index,
+                    rt: frame.rt,
+                    window_group: frame_window_group,
+                    scan_start: iw.scan_start,
+                };
+                out.push(frame_msms_window);
+            }
+        }
+
+        out
     }
 }

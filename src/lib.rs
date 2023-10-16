@@ -38,7 +38,7 @@ pub use crate::{
     acquisition::AcquisitionType,
     errors::*,
     file_readers::{FileReader, TDFReader},
-    frames::{Frame, FrameType},
+    frames::{Frame, FrameType, FrameMSMSWindow},
     precursors::{Precursor, PrecursorType},
     spectra::Spectrum,
 };

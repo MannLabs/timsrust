@@ -13,6 +13,16 @@ pub struct Frame {
     pub frame_type: FrameType,
 }
 
+pub struct FrameMSMSWindow {
+    pub scan_offsets: Vec<u64>,
+    pub tof_indices: Vec<u32>,
+    pub intensities: Vec<u32>,
+    pub frame_index: usize,
+    pub rt: f64,
+    pub window_group: usize,
+    pub scan_start: usize,
+}
+
 /// The kind of frame, determined by acquisition.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
