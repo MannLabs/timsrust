@@ -116,13 +116,9 @@ impl ReadableFrames for TDFReader {
             })
     fn read_all_dia_frames(&self) -> Vec<Frame> {
         let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
-        let dia_frame_ids: Vec<usize> = dia_frame_ids
-            .into_iter()
-            .filter(|&x| x < self.frame_table.id.len())
-            .collect();
         dia_frame_ids
             .into_par_iter()
-            .map(|index| self.read_single_frame(index))
+            .map(|index| self.read_single_frame(index - 1))
             .collect()
     }
 }
