@@ -34,7 +34,7 @@ pub use crate::converters::{
 
 pub use crate::{
     file_readers::{FileReader, TDFReader},
-    frames::{Frame, FrameType},
+    frames::{Frame, FrameType, FrameMSMSWindow},
     precursors::{Precursor, PrecursorType},
     spectra::{RawSpectrum, Spectrum},
 };
