@@ -12,7 +12,7 @@ pub trait ReadableFrames {
     fn read_all_frames(&self) -> Vec<Frame>;
 
     fn read_all_ms2_frames(&self) -> Vec<Frame>;
-    
+
     fn read_all_ms1_frames(&self) -> Vec<Frame> {
         // I am assuming this can be over-written if there is a more
         // performant way to do this for a specific file format.
@@ -30,7 +30,10 @@ pub trait ReadableFrames {
         let frames: Vec<Frame> = self.read_all_frames();
         let dia_frames: Vec<Frame> = frames
             .into_iter()
-            .filter(|frame| frame.frame_type == FrameType::MS2DIA)
+            .filter(|frame| {
+                frame.frame_type
+                    == FrameType::MS2(crate::AcquisitionType::DIAPASEF)
+            })
             .collect();
         dia_frames
     }
