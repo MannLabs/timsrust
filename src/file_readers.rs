@@ -16,9 +16,8 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Self {
-        let format: FileFormat = FileFormat::parse(path_name);
-        Self { format }
+    pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, crate::Error> {
+        FileFormat::parse(path_name).map(|format| Self { format })
     }
 
     pub fn read_all_frames(&self) -> Vec<Frame> {

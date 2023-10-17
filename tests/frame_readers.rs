@@ -15,7 +15,7 @@ fn tdf_reader_frames() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> = FileReader::new(file_path).read_all_frames();
+    let frames: Vec<Frame> = FileReader::new(file_path).unwrap().read_all_frames();
     let expected: Vec<Frame> = vec![
         Frame {
             scan_offsets: vec![0, 1, 3, 6, 10],

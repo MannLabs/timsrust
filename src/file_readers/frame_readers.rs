@@ -22,10 +22,6 @@ impl FileFormat {
                 "Folder {:} is not frame readable",
                 path.to_str().unwrap_or_default().to_string()
             ),
-            Self::Unknown(path) => panic!(
-                "Folder {:} is not frame readable",
-                path.to_str().unwrap_or_default().to_string()
-            ),
         };
         result
     }
