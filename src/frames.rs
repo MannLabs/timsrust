@@ -1,5 +1,33 @@
+use std::fmt::Display;
+
 use crate::converters::{ConvertableIndex, Tof2MzConverter};
 
+
+/// A Frame is a group of scans (subset of frame along IMS).
+/// That are associated to the same collection of ions in the
+/// tims funnel.
+/// 
+/// * `scan_offsets` - The scan offsets for the frame.
+///     This is a vec of length N, where N is the number
+///     of scans in the frame.
+/// * `tof_indices` - The TOF indices for the frame.
+///     These values are related to the m/z values of the peaks.
+///     This is a vec of length P, where P is the number of peaks
+///     in the frame.
+/// * `intensities` - The intensities for the frame.
+///     This is a vec of the same size as the tof_indices, therefore
+///     each peak is defined by a combination of the tof_index and
+///     the intensity.
+/// * `index` - The index of the frame. This is the index of the
+///     frame in the "parent" tdf file.
+/// * `rt` - The retention time of the frame, in seconds.
+/// * `frame_type` - The type of frame. This is an enum with the
+///     following possible values:
+///     * `MS1` - The frame is an MS1 frame.
+///     * `MS2DDA` - The frame is an MS2 DDA frame.
+///     * `MS2DIA` - The frame is an MS2 DIA frame.
+///     * `Unknown` - The frame type is unknown.
+/// 
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
@@ -10,6 +38,11 @@ pub struct Frame {
     pub frame_type: FrameType,
 }
 
+impl Display for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(Frame: {})", self.index)
+    }
+}
 
 /// A Frame window is a group of scans (subset of frame along IMS)
 /// that are associated with a single isolation window.
@@ -29,6 +62,7 @@ pub struct Frame {
 ///     values from the scan offsets (this number should converted
 ///     to mobility and all other mobility values within this frame window
 ///     should have that added).
+#[derive(Debug, PartialEq)]
 pub struct FrameMSMSWindow {
     pub scan_offsets: Vec<u64>,
     pub tof_indices: Vec<u32>,
@@ -39,7 +73,13 @@ pub struct FrameMSMSWindow {
     pub scan_start: usize,
 }
 
-#[derive(Debug, PartialEq)]
+impl Display for FrameMSMSWindow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(Frame: {}, Window: {})", self.frame_index, self.window_group)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
     MS1,
     MS2DDA,
