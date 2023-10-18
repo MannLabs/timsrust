@@ -32,3 +32,18 @@ pub use crate::{
     precursors::{Precursor, PrecursorType},
     spectra::{RawSpectrum, Spectrum},
 };
+
+#[derive(Debug)]
+pub enum Error {
+    UnknownFileFormat
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::UnknownFileFormat => f.write_str("unknown file format"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
