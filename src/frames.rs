@@ -2,11 +2,10 @@ use std::fmt::Display;
 
 use crate::converters::{ConvertableIndex, Tof2MzConverter};
 
-
 /// A Frame is a group of scans (subset of frame along IMS).
 /// That are associated to the same collection of ions in the
 /// tims funnel.
-/// 
+///
 /// * `scan_offsets` - The scan offsets for the frame.
 ///     This is a vec of length N, where N is the number
 ///     of scans in the frame.
@@ -27,7 +26,7 @@ use crate::converters::{ConvertableIndex, Tof2MzConverter};
 ///     * `MS2DDA` - The frame is an MS2 DDA frame.
 ///     * `MS2DIA` - The frame is an MS2 DIA frame.
 ///     * `Unknown` - The frame type is unknown.
-/// 
+///
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
@@ -40,13 +39,19 @@ pub struct Frame {
 
 impl Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(Frame: {})", self.index)
+        write!(
+            f,
+            "(Frame: {}, RT: {}, n_peaks={})",
+            self.index,
+            self.rt,
+            self.tof_indices.len(),
+        )
     }
 }
 
 /// A Frame window is a group of scans (subset of frame along IMS)
 /// that are associated with a single isolation window.
-/// 
+///
 /// * `scan_offsets` - The scan offsets for the frame window.
 /// * `tof_indices` - The TOF indices for the frame window.
 ///     These values are correlated with the m/z values of the peaks
@@ -75,7 +80,14 @@ pub struct FrameMSMSWindow {
 
 impl Display for FrameMSMSWindow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(Frame: {}, Window: {})", self.frame_index, self.window_group)
+        write!(
+            f,
+            "(Frame: {}, Window: {}, RT:{}, npeaks={})",
+            self.frame_index,
+            self.window_group,
+            self.rt,
+            self.tof_indices.len(),
+        )
     }
 }
 
@@ -95,12 +107,15 @@ impl Default for FrameType {
 
 impl Frame {
     /// Resolves the m/z values for the frame.
-    /// 
+    ///
     /// * `mz_reader` - The TOF to m/z converter.
-    /// 
+    ///
     /// # Returns
     /// A vec with the m/z values for the frame (as f64).
     pub fn resolve_mz_values(&self, mz_reader: &Tof2MzConverter) -> Vec<f64> {
-        self.tof_indices.iter().map(|&x| mz_reader.convert(x)).collect()
+        self.tof_indices
+            .iter()
+            .map(|&x| mz_reader.convert(x))
+            .collect()
     }
 }
