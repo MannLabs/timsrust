@@ -88,4 +88,24 @@ impl ReadableFrames for TDFReader {
             .map(|index| self.read_single_frame(index))
             .collect()
     }
+
+    fn read_ms1_frames(&self) -> Vec<Frame> {
+        (0..self.tdf_bin_reader.size())
+            .into_par_iter()
+            .map(|index| match self.frame_types[index] {
+                FrameType::MS1 => self.read_single_frame(index),
+                _ => Frame::default(),
+            })
+            .collect()
+    }
+
+    fn read_ms2_frames(&self) -> Vec<Frame> {
+        (0..self.tdf_bin_reader.size())
+            .into_par_iter()
+            .map(|index| match self.frame_types[index] {
+                FrameType::MS2(_) => self.read_single_frame(index),
+                _ => Frame::default(),
+            })
+            .collect()
+    }
 }
