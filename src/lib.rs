@@ -34,5 +34,5 @@ pub use crate::{
     file_readers::FileReader,
     frames::{Frame, FrameType},
     precursors::{Precursor, PrecursorType},
-    spectra::{RawSpectrum, Spectrum},
+    spectra::Spectrum,
 };
