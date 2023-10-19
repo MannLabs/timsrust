@@ -1,5 +1,6 @@
 use {
     crate::{
+        acquisition::AcquisitionType,
         converters::{
             ConvertableIndex, Frame2RtConverter, Scan2ImConverter,
             Tof2MzConverter,
@@ -26,6 +27,7 @@ pub struct TDFReader {
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
+    frame_types: Vec<FrameType>,
 }
 
 impl TDFReader {
@@ -42,6 +44,16 @@ impl TDFReader {
             String::from(&file_name),
             frame_table.offsets.clone(),
         );
+        let frame_types: Vec<FrameType> = frame_table
+            .msms_type
+            .iter()
+            .map(|msms_type| match msms_type {
+                0 => FrameType::MS1,
+                8 => FrameType::MS2(AcquisitionType::DDAPASEF),
+                9 => FrameType::MS2(AcquisitionType::DIAPASEF),
+                _ => FrameType::Unknown,
+            })
+            .collect();
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -50,6 +62,7 @@ impl TDFReader {
             mz_converter: Tof2MzConverter::from_sql(&tdf_sql_reader),
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
+            frame_types: frame_types,
         }
     }
 
@@ -65,13 +78,7 @@ impl ReadableFrames for TDFReader {
             Frame::read_from_file(&self.tdf_bin_reader, index);
         frame.rt = self.rt_converter.convert(index as u32);
         frame.index = self.frame_table.id[index];
-        let msms_type = self.frame_table.msms_type[index];
-        frame.frame_type = match msms_type {
-            0 => FrameType::MS1,
-            8 => FrameType::MS2DDA,
-            9 => FrameType::MS2DIA,
-            _ => FrameType::Unknown,
-        };
+        frame.frame_type = self.frame_types[index];
         frame
     }
 
