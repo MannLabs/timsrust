@@ -4,7 +4,7 @@ use timsrust::{FileReader, Spectrum};
 fn main() {
     let args: Vec<String> = env::args().collect();
     let d_folder_name: &str = &args[1];
-    let x = FileReader::new(d_folder_name.to_string());
+    let x = FileReader::new(d_folder_name.to_string()).unwrap();
     let dda_spectra: Vec<Spectrum> = x.read_all_spectra();
     let precursor_index: usize;
     if args.len() >= 3 {

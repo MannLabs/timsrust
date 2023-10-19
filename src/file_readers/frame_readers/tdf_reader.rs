@@ -1,6 +1,7 @@
 
 use {
     crate::{
+        acquisition::AcquisitionType,
         converters::{
             ConvertableIndex, Frame2RtConverter, Scan2ImConverter,
             Tof2MzConverter,
@@ -27,6 +28,7 @@ pub struct TDFReader {
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
+    pub frame_types: Vec<FrameType>,
     pub dia_frame_table: DiaFramesInfoTable,
     pub dia_frame_msms_table: DiaFramesMsMsTable,
 }
@@ -45,6 +47,16 @@ impl TDFReader {
             String::from(&file_name),
             frame_table.offsets.clone(),
         );
+        let frame_types: Vec<FrameType> = frame_table
+            .msms_type
+            .iter()
+            .map(|msms_type| match msms_type {
+                0 => FrameType::MS1,
+                8 => FrameType::MS2(AcquisitionType::DDAPASEF),
+                9 => FrameType::MS2(AcquisitionType::DIAPASEF),
+                _ => FrameType::Unknown,
+            })
+            .collect();
         let dia_frames_table: DiaFramesInfoTable = DiaFramesInfoTable::from_sql(&tdf_sql_reader);
         let dia_frames_msms_table: DiaFramesMsMsTable = DiaFramesMsMsTable::from_sql(&tdf_sql_reader);
         Self {
@@ -55,6 +67,7 @@ impl TDFReader {
             mz_converter: Tof2MzConverter::from_sql(&tdf_sql_reader),
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
+            frame_types: frame_types,
             dia_frame_table: dia_frames_table,
             dia_frame_msms_table: dia_frames_msms_table,
         }
@@ -72,13 +85,7 @@ impl ReadableFrames for TDFReader {
             Frame::read_from_file(&self.tdf_bin_reader, index);
         frame.rt = self.rt_converter.convert(index as u32);
         frame.index = self.frame_table.id[index];
-        let msms_type = self.frame_table.msms_type[index];
-        frame.frame_type = match msms_type {
-            0 => FrameType::MS1,
-            8 => FrameType::MS2DDA,
-            9 => FrameType::MS2DIA,
-            _ => FrameType::Unknown,
-        };
+        frame.frame_type = self.frame_types[index];
         frame
     }
 
@@ -89,6 +96,28 @@ impl ReadableFrames for TDFReader {
             .collect()
     }
 
+    fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        // TODO add a filter here
+        (0..self.tdf_bin_reader.size())
+            .into_par_iter()
+            .map(|index| match self.frame_types[index] {
+                FrameType::MS1 => self.read_single_frame(index),
+                _ => Frame::default(),
+            })
+            .collect()
+    }
+
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        // TODO add a filter here
+        (0..self.tdf_bin_reader.size())
+            .into_par_iter()
+            .map(|index| match self.frame_types[index] {
+                FrameType::MS2(_) => self.read_single_frame(index),
+                _ => Frame::default(),
+            })
+            .collect()
+    }
+
     fn read_all_dia_frames(&self) -> Vec<Frame> {
         let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
         dia_frame_ids
@@ -96,7 +125,6 @@ impl ReadableFrames for TDFReader {
             .map(|index| self.read_single_frame(index - 1))
             .collect()
     }
-
 }
 
 

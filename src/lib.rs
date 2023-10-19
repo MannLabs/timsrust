@@ -4,8 +4,8 @@
 //!
 //! Two primary data types are exposed:
 //!
-//! * Spectra: A traditional representation that expresses intensitites in function of mz values for a given precursor.
-//! * Frames: All recorded data from a single TIMS elution (i.e. at one specific retention_time).
+//! * [Spectra](crate::Spectrum): A traditional representation that expresses intensitites in function of mz values for a given precursor.
+//! * [Frames](crate::Frame): All recorded data from a single TIMS elution (i.e. at one specific retention_time).
 //!
 //! ## File formats
 //!
@@ -18,8 +18,10 @@
 //!     * analysis.tdf
 //!     * analysis.tdf_bin
 
+mod acquisition;
 mod calibration;
 mod converters;
+mod errors;
 pub mod file_readers;
 mod frames;
 mod precursors;
@@ -33,8 +35,10 @@ pub use crate::converters::{
 };
 
 pub use crate::{
+    acquisition::AcquisitionType,
+    errors::*,
     file_readers::{FileReader, TDFReader},
     frames::{Frame, FrameType, FrameMSMSWindow},
     precursors::{Precursor, PrecursorType},
-    spectra::{RawSpectrum, Spectrum},
+    spectra::Spectrum,
 };
