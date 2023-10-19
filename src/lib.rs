@@ -4,8 +4,8 @@
 //!
 //! Two primary data types are exposed:
 //!
-//! * Spectra: A traditional representation that expresses intensitites in function of mz values for a given precursor.
-//! * Frames: All recorded data from a single TIMS elution (i.e. at one specific retention_time).
+//! * [Spectra](crate::Spectrum): A traditional representation that expresses intensitites in function of mz values for a given precursor.
+//! * [Frames](crate::Frame): All recorded data from a single TIMS elution (i.e. at one specific retention_time).
 //!
 //! ## File formats
 //!
@@ -34,5 +34,5 @@ pub use crate::{
     file_readers::FileReader,
     frames::{Frame, FrameType},
     precursors::{Precursor, PrecursorType},
-    spectra::{RawSpectrum, Spectrum},
+    spectra::Spectrum,
 };

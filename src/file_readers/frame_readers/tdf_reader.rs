@@ -89,7 +89,7 @@ impl ReadableFrames for TDFReader {
             .collect()
     }
 
-    fn read_ms1_frames(&self) -> Vec<Frame> {
+    fn read_all_ms1_frames(&self) -> Vec<Frame> {
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
             .map(|index| match self.frame_types[index] {
@@ -99,7 +99,7 @@ impl ReadableFrames for TDFReader {
             .collect()
     }
 
-    fn read_ms2_frames(&self) -> Vec<Frame> {
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
             .map(|index| match self.frame_types[index] {

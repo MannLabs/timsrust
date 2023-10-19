@@ -1,6 +1,7 @@
 use crate::{
     converters::{ConvertableIndex, Tof2MzConverter},
-    Precursor, RawSpectrum,
+    spectra::RawSpectrum,
+    Precursor,
 };
 
 pub struct Tof2MzCalibrator;
