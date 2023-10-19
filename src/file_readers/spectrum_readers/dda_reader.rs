@@ -26,21 +26,21 @@ pub struct DDASpectrumReader {
     pub path_name: String,
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
-    frames: Vec<Frame>,
+    ms2_frames: Vec<Frame>,
 }
 
 impl DDASpectrumReader {
     pub fn new(path_name: String) -> Self {
         let tdf_reader: TDFReader = TDFReader::new(&path_name.to_string());
         let mz_reader: Tof2MzConverter = tdf_reader.mz_converter;
-        let frames: Vec<Frame> = tdf_reader.read_all_frames();
+        let ms2_frames: Vec<Frame> = tdf_reader.read_ms2_frames();
         let precursor_reader: PrecursorReader =
             PrecursorReader::new(&tdf_reader);
         Self {
             path_name,
             precursor_reader,
             mz_reader,
-            frames,
+            ms2_frames,
         }
     }
 
@@ -53,7 +53,7 @@ impl DDASpectrumReader {
         for &index in selection.iter() {
             let frame: usize =
                 self.precursor_reader.pasef_frames.frame[index] - 1;
-            if self.frames[frame].intensities.len() == 0 {
+            if self.ms2_frames[frame].intensities.len() == 0 {
                 continue;
             }
             let scan_start: usize =
@@ -61,13 +61,13 @@ impl DDASpectrumReader {
             let scan_end: usize =
                 self.precursor_reader.pasef_frames.scan_end[index];
             let offset_start: usize =
-                self.frames[frame].scan_offsets[scan_start] as usize;
+                self.ms2_frames[frame].scan_offsets[scan_start] as usize;
             let offset_end: usize =
-                self.frames[frame].scan_offsets[scan_end] as usize;
+                self.ms2_frames[frame].scan_offsets[scan_end] as usize;
             let tof_selection: &[u32] =
-                &self.frames[frame].tof_indices[offset_start..offset_end];
+                &self.ms2_frames[frame].tof_indices[offset_start..offset_end];
             let intensity_selection: &[u32] =
-                &self.frames[frame].intensities[offset_start..offset_end];
+                &self.ms2_frames[frame].intensities[offset_start..offset_end];
             tof_indices.extend(tof_selection);
             intensities.extend(intensity_selection);
         }
