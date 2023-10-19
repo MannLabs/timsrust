@@ -38,7 +38,7 @@ impl ReadableFromSql for DiaFramesMsMsTable {
 
 impl DiaFramesMsMsTable {
     /// Returns a HashMap of MsmsIsolationWindow objects, grouped by group number.
-    /// 
+    ///
     /// # Example
     /// let tbl = DiaFramesMsMsTable{
     ///     group: vec![1, 1, 2, 2, 2, 3, 3, 3],
@@ -72,20 +72,21 @@ impl DiaFramesMsMsTable {
             }
         }
         hashmap
-
     }
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn hashmap_works(){
+    fn hashmap_works() {
         use crate::file_readers::common::sql_reader::DiaFramesMsMsTable;
-        let tbl = DiaFramesMsMsTable{
+        let tbl = DiaFramesMsMsTable {
             group: vec![1, 1, 2, 2, 2, 3, 3, 3],
             scan_start: vec![1, 20, 15, 30, 45, 1, 20, 30],
             scan_end: vec![10, 30, 25, 40, 55, 19, 29, 40],
-            mz_center: vec![100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0],
+            mz_center: vec![
+                100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0,
+            ],
             mz_width: vec![40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
         };
         let hashmap = tbl.as_hashmap();
