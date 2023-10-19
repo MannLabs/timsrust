@@ -1,15 +1,18 @@
 use std::{fs, path::PathBuf};
 
-use crate::Error;
-
 pub enum FileFormat {
     DFolder(PathBuf),
-    MS2Folder(PathBuf)
+    MS2Folder(PathBuf),
 }
 
 impl FileFormat {
-    pub fn parse(input: impl AsRef<std::path::Path>) -> Result<Self, Error> {
+    pub fn parse(
+        input: impl AsRef<std::path::Path>,
+    ) -> Result<Self, FileFormatError> {
         let path: PathBuf = input.as_ref().to_path_buf();
+        if !path.exists() {
+            return Err(FileFormatError::DirectoryDoesNotExist);
+        }
         let extension: &str = path
             .extension()
             .unwrap_or_default()
@@ -22,24 +25,36 @@ impl FileFormat {
                 if let Some(path) = path.parent() {
                     // Only recurse if there is a valid parent section,
                     // otherwise we'll get a stack overflow
-                    return Self::parse(path)
+                    return Self::parse(path);
                 }
-                return Err(Error::UnknownFileFormat)
+                return Err(FileFormatError::NoParentWithBrukerExtension);
             },
         };
-        if !format.is_valid() {
-            Err(Error::UnknownFileFormat)
-        } else {
-            Ok(format)
-        }
+        format.is_valid()?;
+        Ok(format)
     }
 
     /// FileFormat is guaranteed to be `valid` if it is constructed
-    fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> Result<(), FileFormatError> {
         match &self {
-            Self::DFolder(path) => folder_contains_extension(path, "tdf"),
-            Self::MS2Folder(path) => folder_contains_extension(path, "parquet"),
+            Self::DFolder(path) => {
+                if !folder_contains_extension(path, "tdf_bin") {
+                    return Err(FileFormatError::BinaryFilesAreMissing);
+                }
+                if !folder_contains_extension(path, "tdf") {
+                    return Err(FileFormatError::MetadataFilesAreMissing);
+                }
+            },
+            Self::MS2Folder(path) => {
+                if !folder_contains_extension(path, "bin") {
+                    return Err(FileFormatError::BinaryFilesAreMissing);
+                }
+                if !folder_contains_extension(path, "parquet") {
+                    return Err(FileFormatError::MetadataFilesAreMissing);
+                }
+            },
         }
+        Ok(())
     }
 }
 
@@ -63,4 +78,16 @@ fn folder_contains_extension(
         }
     }
     false
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum FileFormatError {
+    #[error("DirectoryDoesNotExist")]
+    DirectoryDoesNotExist,
+    #[error("NoParentWithBrukerExtension")]
+    NoParentWithBrukerExtension,
+    #[error("BinaryFilesAreMissing")]
+    BinaryFilesAreMissing,
+    #[error("MetadataFilesAreMissing")]
+    MetadataFilesAreMissing,
 }
