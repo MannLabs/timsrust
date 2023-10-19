@@ -2,8 +2,8 @@ use crate::{Frame, FrameType};
 
 use self::tdf_reader::TDFReader;
 
-use crate::acquisition::AcquisitionType;
 use super::file_formats::FileFormat;
+use crate::acquisition::AcquisitionType;
 
 pub mod tdf_reader;
 
