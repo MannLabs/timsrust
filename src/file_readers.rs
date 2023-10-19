@@ -27,6 +27,14 @@ impl FileReader {
         self.format.read_all_frames()
     }
 
+    pub fn read_ms1_frames(&self) -> Vec<Frame> {
+        self.format.read_ms1_frames()
+    }
+
+    pub fn read_ms2_frames(&self) -> Vec<Frame> {
+        self.format.read_ms2_frames()
+    }
+
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.format.read_all_spectra()
     }
