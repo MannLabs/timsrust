@@ -27,7 +27,7 @@ use crate::converters::{ConvertableIndex, Tof2MzConverter};
 ///     * `MS2DIA` - The frame is an MS2 DIA frame.
 ///     * `Unknown` - The frame type is unknown.
 ///
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
     pub tof_indices: Vec<u32>,
@@ -67,7 +67,7 @@ impl Display for Frame {
 ///     values from the scan offsets (this number should converted
 ///     to mobility and all other mobility values within this frame window
 ///     should have that added).
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FrameMSMSWindow {
     pub scan_offsets: Vec<u64>,
     pub tof_indices: Vec<u32>,
