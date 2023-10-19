@@ -26,6 +26,10 @@ impl FileReader {
         Ok(Self { format })
     }
 
+    pub fn read_single_frame(&self, index: usize) -> Frame {
+        self.format.read_single_frame(index)
+    }
+
     pub fn read_all_frames(&self) -> Vec<Frame> {
         self.format.read_all_frames()
     }
@@ -38,6 +42,14 @@ impl FileReader {
         self.format.read_all_ms2_frames()
     }
 
+    pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
+        self.format.read_single_spectrum(index)
+    }
+
+    ///NOTE: ddaPASEF MS2 spectra are automatically calibrated with
+    /// all unfragmented precursor signals.
+    /// Hence, reading spectra individually through `read_single_spectrum`
+    /// might yield slightly different mz values.
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.format.read_all_spectra()
     }
