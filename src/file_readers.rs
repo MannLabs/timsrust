@@ -1,14 +1,19 @@
+use crate::Error;
+
 mod common;
 mod file_formats;
 mod frame_readers;
 mod spectrum_readers;
 
 use {
-    self::{frame_readers::ReadableFrames, spectrum_readers::ReadableSpectra},
+    self::{
+        file_formats::FileFormat, frame_readers::ReadableFrames,
+        spectrum_readers::ReadableSpectra,
+    },
     crate::{Frame, Spectrum},
 };
 
-pub use file_formats::FileFormat;
+pub use file_formats::FileFormatError;
 
 /// A reader to read [frames](crate::Frame) and [spectra](crate::Spectrum).
 pub struct FileReader {
@@ -19,9 +24,7 @@ pub struct FileReader {
 /// In case many frames or spectra are required, it is best to use
 /// any of the functions that directly return a `Vec`.
 impl FileReader {
-    pub fn new<T: AsRef<std::path::Path>>(
-        path_name: T,
-    ) -> Result<Self, FileReaderError> {
+    pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
         Ok(Self { format })
     }
@@ -53,10 +56,4 @@ impl FileReader {
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.format.read_all_spectra()
     }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum FileReaderError {
-    #[error("FileFormatError: {0}")]
-    FileFormatError(#[from] file_formats::FileFormatError),
 }
