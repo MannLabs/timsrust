@@ -1,4 +1,3 @@
-
 use {
     crate::{
         acquisition::AcquisitionType,
@@ -9,11 +8,14 @@ use {
         file_readers::{
             common::{
                 ms_data_blobs::{BinFileReader, ReadableFromBinFile},
-                sql_reader::{FrameTable, DiaFramesInfoTable, DiaFramesMsMsTable, ReadableFromSql, SqlReader},
+                sql_reader::{
+                    DiaFramesInfoTable, DiaFramesMsMsTable, FrameTable,
+                    ReadableFromSql, SqlReader,
+                },
             },
             ReadableFrames,
         },
-        Frame, FrameType, FrameMSMSWindow,
+        Frame, FrameMSMSWindow, FrameType,
     },
     rayon::prelude::*,
     std::path::Path,
@@ -57,8 +59,10 @@ impl TDFReader {
                 _ => FrameType::Unknown,
             })
             .collect();
-        let dia_frames_table: DiaFramesInfoTable = DiaFramesInfoTable::from_sql(&tdf_sql_reader);
-        let dia_frames_msms_table: DiaFramesMsMsTable = DiaFramesMsMsTable::from_sql(&tdf_sql_reader);
+        let dia_frames_table: DiaFramesInfoTable =
+            DiaFramesInfoTable::from_sql(&tdf_sql_reader);
+        let dia_frames_msms_table: DiaFramesMsMsTable =
+            DiaFramesMsMsTable::from_sql(&tdf_sql_reader);
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -127,14 +131,14 @@ impl ReadableFrames for TDFReader {
     }
 }
 
-
-impl TDFReader{
+impl TDFReader {
     /// Read all DIA frames from a TDF file and split along the isolation windows.
     pub fn read_all_dia_isolation_windows(&self) -> Vec<FrameMSMSWindow> {
         let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
-        let dia_frame_window_groups: Vec<usize> = self.dia_frame_msms_table.group.clone();
+        let dia_frame_window_groups: Vec<usize> =
+            self.dia_frame_msms_table.group.clone();
         let window_hashmap = self.dia_frame_msms_table.as_hashmap();
-        
+
         let mut out: Vec<FrameMSMSWindow> = vec![];
         for i in 0..dia_frame_ids.len() {
             let frame_id = dia_frame_ids[i];
@@ -144,9 +148,15 @@ impl TDFReader{
 
             for iw in iws.into_iter() {
                 let frame_msms_window = FrameMSMSWindow {
-                    scan_offsets: (frame.scan_offsets[iw.scan_start..iw.scan_end]).to_vec(),
-                    tof_indices: (frame.tof_indices[iw.scan_start..iw.scan_end]).to_vec(),
-                    intensities: (frame.intensities[iw.scan_start..iw.scan_end]).to_vec(),
+                    scan_offsets: (frame.scan_offsets
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
+                    tof_indices: (frame.tof_indices
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
+                    intensities: (frame.intensities
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
                     frame_index: frame.index,
                     rt: frame.rt,
                     window_group: frame_window_group,

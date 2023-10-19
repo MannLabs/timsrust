@@ -28,7 +28,9 @@ pub trait ReadableFrames {
         let frames: Vec<Frame> = self.read_all_frames();
         let dia_frames: Vec<Frame> = frames
             .into_iter()
-            .filter(|frame| frame.frame_type == FrameType::MS2(AcquisitionType::DDAPASEF))
+            .filter(|frame| {
+                frame.frame_type == FrameType::MS2(AcquisitionType::DDAPASEF)
+            })
             .collect();
         dia_frames
     }
@@ -39,7 +41,9 @@ pub trait ReadableFrames {
         let frames: Vec<Frame> = self.read_all_frames();
         let dia_frames: Vec<Frame> = frames
             .into_iter()
-            .filter(|frame| frame.frame_type == FrameType::MS2(AcquisitionType::DIAPASEF))
+            .filter(|frame| {
+                frame.frame_type == FrameType::MS2(AcquisitionType::DIAPASEF)
+            })
             .collect();
         dia_frames
     }
@@ -76,7 +80,7 @@ impl ReadableFrames for FileFormat {
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
         self.unwrap_frame_reader().read_all_ms2_frames()
     }
-    
+
     fn read_all_dia_frames(&self) -> Vec<Frame> {
         self.unwrap_frame_reader().read_all_dia_frames()
     }

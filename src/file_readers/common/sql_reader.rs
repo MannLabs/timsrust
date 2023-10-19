@@ -30,15 +30,18 @@ impl SqlReader {
         let stmt: Result<Statement> = connection.prepare(&query);
         let rows = match stmt {
             Ok(mut statement) => {
-                let rows = statement.query_map(
-                    [],
-                    // |row| row.get::<usize, T>(0)
-                    |row| match row.get::<usize, T>(0) {
-                        Ok(value) => Ok(value),
-                        _ => Ok(T::default()),
-                    },
-                )
-                .unwrap().collect::<Result<Vec<T>>>().unwrap();
+                let rows = statement
+                    .query_map(
+                        [],
+                        // |row| row.get::<usize, T>(0)
+                        |row| match row.get::<usize, T>(0) {
+                            Ok(value) => Ok(value),
+                            _ => Ok(T::default()),
+                        },
+                    )
+                    .unwrap()
+                    .collect::<Result<Vec<T>>>()
+                    .unwrap();
                 rows
             },
             Err(error) => {
@@ -46,7 +49,7 @@ impl SqlReader {
                 println!("Defaulting to empty vector");
                 let rows = Vec::new();
                 rows
-            }
+            },
         };
         rows
     }
