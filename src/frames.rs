@@ -1,5 +1,6 @@
 use crate::acquisition::AcquisitionType;
 
+/// A frame with all unprocessed data as it was acquired.
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
@@ -10,6 +11,7 @@ pub struct Frame {
     pub frame_type: FrameType,
 }
 
+/// The kind of frame, determined by acquisition.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
     MS1,

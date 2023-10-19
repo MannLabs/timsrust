@@ -1,3 +1,4 @@
+/// An MS1 precursor that got selected for fragmentation.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Precursor {
     pub mz: f64,
@@ -9,6 +10,7 @@ pub struct Precursor {
     pub frame_index: usize,
 }
 
+/// A type of quadrupole selection.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PrecursorType {
     Precursor(Precursor),

@@ -10,17 +10,14 @@ use {
 
 pub use file_formats::FileFormat;
 
-/// FileReaders are the main accession point for TimsRust.
-/// Bruker TimsTof data can be read by calling
-///
-/// let filereader = timsrust::FileReader::new(path_name).
-///
-/// Once a filereader object hase been made, it can be used to retrieve frames
-/// and spectra in a variety of manners.
+/// A reader to read [frames](crate::Frame) and [spectra](crate::Spectrum).
 pub struct FileReader {
     format: FileFormat,
 }
 
+///NOTE: The functions to read a single frame or spectrum are not optimized.
+/// In case many frames or spectra are required, it is best to use
+/// any of the functions that directly return a `Vec`.
 impl FileReader {
     pub fn new<T: AsRef<std::path::Path>>(
         path_name: T,

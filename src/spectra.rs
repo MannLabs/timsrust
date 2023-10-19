@@ -107,6 +107,7 @@ pub struct RawSpectrum {
     pub index: usize,
 }
 
+/// An MS2 spectrum with centroided mz values and summed intensities.
 #[derive(Debug, PartialEq, Default)]
 pub struct Spectrum {
     pub mz_values: Vec<f64>,
