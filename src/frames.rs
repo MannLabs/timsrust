@@ -1,3 +1,5 @@
+use crate::acquisition::AcquisitionType;
+
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
     pub scan_offsets: Vec<u64>,
@@ -8,11 +10,10 @@ pub struct Frame {
     pub frame_type: FrameType,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
     MS1,
-    MS2DDA,
-    MS2DIA,
+    MS2(AcquisitionType),
     Unknown,
 }
 
