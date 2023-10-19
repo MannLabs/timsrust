@@ -16,9 +16,11 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Self {
-        let format: FileFormat = FileFormat::parse(path_name);
-        Self { format }
+    pub fn new<T: AsRef<std::path::Path>>(
+        path_name: T,
+    ) -> Result<Self, FileReaderError> {
+        let format: FileFormat = FileFormat::parse(path_name)?;
+        Ok(Self { format })
     }
 
     pub fn read_all_frames(&self) -> Vec<Frame> {
@@ -28,4 +30,10 @@ impl FileReader {
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.format.read_all_spectra()
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum FileReaderError {
+    #[error("FileFormatError: {0}")]
+    FileFormatError(#[from] file_formats::FileFormatError),
 }

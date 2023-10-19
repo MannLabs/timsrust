@@ -20,6 +20,7 @@
 
 mod calibration;
 mod converters;
+mod errors;
 mod file_readers;
 mod frames;
 mod precursors;
@@ -27,6 +28,7 @@ mod spectra;
 mod vec_utils;
 
 pub use crate::{
+    errors::*,
     file_readers::FileReader,
     frames::{Frame, FrameType},
     precursors::{Precursor, PrecursorType},
