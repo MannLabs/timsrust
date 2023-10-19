@@ -1,3 +1,7 @@
+use crate::acquisition::AcquisitionType;
+
+/// A frame with all unprocessed data as it was acquired.
+
 use std::fmt::Display;
 
 use crate::converters::{ConvertableIndex, Tof2MzConverter};
@@ -36,6 +40,7 @@ pub struct Frame {
     pub rt: f64,
     pub frame_type: FrameType,
 }
+
 
 impl Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -91,11 +96,11 @@ impl Display for FrameMSMSWindow {
     }
 }
 
+/// The kind of frame, determined by acquisition.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
     MS1,
-    MS2DDA,
-    MS2DIA,
+    MS2(AcquisitionType),
     Unknown,
 }
 

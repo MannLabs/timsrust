@@ -22,13 +22,24 @@ pub trait ReadableFrames {
         ms1_frames
     }
 
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        // I am assuming this can be over-written if there is a more
+        // performant way to do this for a specific file format.
+        let frames: Vec<Frame> = self.read_all_frames();
+        let dia_frames: Vec<Frame> = frames
+            .into_iter()
+            .filter(|frame| frame.frame_type == FrameType::MS2(AcquisitionType::DDAPASEF))
+            .collect();
+        dia_frames
+    }
+
     fn read_all_dia_frames(&self) -> Vec<Frame> {
         // I am assuming this can be over-written if there is a more
         // performant way to do this for a specific file format.
         let frames: Vec<Frame> = self.read_all_frames();
         let dia_frames: Vec<Frame> = frames
             .into_iter()
-            .filter(|frame| frame.frame_type == FrameType::MS2DIA)
+            .filter(|frame| frame.frame_type == FrameType::MS2(AcquisitionType::DIAPASEF))
             .collect();
         dia_frames
     }
@@ -44,10 +55,6 @@ impl FileFormat {
                 "Folder {:} is not frame readable",
                 path.to_str().unwrap_or_default().to_string()
             ),
-            Self::Unknown(path) => panic!(
-                "Folder {:} is not frame readable",
-                path.to_str().unwrap_or_default().to_string()
-            ),
         };
         result
     }
@@ -60,5 +67,17 @@ impl ReadableFrames for FileFormat {
 
     fn read_all_frames(&self) -> Vec<Frame> {
         self.unwrap_frame_reader().read_all_frames()
+    }
+
+    fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_ms1_frames()
+    }
+
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_ms2_frames()
+    }
+    
+    fn read_all_dia_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_dia_frames()
     }
 }
