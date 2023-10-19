@@ -18,8 +18,10 @@
 //!     * analysis.tdf
 //!     * analysis.tdf_bin
 
+mod acquisition;
 mod calibration;
 mod converters;
+mod errors;
 mod file_readers;
 mod frames;
 mod precursors;
@@ -27,6 +29,8 @@ mod spectra;
 mod vec_utils;
 
 pub use crate::{
+    acquisition::AcquisitionType,
+    errors::*,
     file_readers::FileReader,
     frames::{Frame, FrameType},
     precursors::{Precursor, PrecursorType},

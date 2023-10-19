@@ -15,7 +15,7 @@ fn minitdf_reader() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> = FileReader::new(file_path).read_all_spectra();
+    let spectra: Vec<Spectrum> = FileReader::new(file_path).unwrap().read_all_spectra();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![100.0, 200.002, 300.03, 400.4],
@@ -59,7 +59,7 @@ fn tdf_reader_dda() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> = FileReader::new(file_path).read_all_spectra();
+    let spectra: Vec<Spectrum> = FileReader::new(file_path).unwrap().read_all_spectra();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![199.7633445943076],

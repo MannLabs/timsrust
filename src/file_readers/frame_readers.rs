@@ -10,6 +10,10 @@ pub trait ReadableFrames {
     fn read_single_frame(&self, index: usize) -> Frame;
 
     fn read_all_frames(&self) -> Vec<Frame>;
+
+    fn read_ms1_frames(&self) -> Vec<Frame>;
+
+    fn read_ms2_frames(&self) -> Vec<Frame>;
 }
 
 impl FileFormat {
@@ -19,10 +23,6 @@ impl FileFormat {
                 &path.to_str().unwrap_or_default().to_string(),
             )) as Box<dyn ReadableFrames>,
             Self::MS2Folder(path) => panic!(
-                "Folder {:} is not frame readable",
-                path.to_str().unwrap_or_default().to_string()
-            ),
-            Self::Unknown(path) => panic!(
                 "Folder {:} is not frame readable",
                 path.to_str().unwrap_or_default().to_string()
             ),
@@ -38,5 +38,13 @@ impl ReadableFrames for FileFormat {
 
     fn read_all_frames(&self) -> Vec<Frame> {
         self.unwrap_frame_reader().read_all_frames()
+    }
+
+    fn read_ms1_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_ms1_frames()
+    }
+
+    fn read_ms2_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_ms2_frames()
     }
 }

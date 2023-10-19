@@ -22,10 +22,6 @@ impl FileFormat {
             Self::MS2Folder(path) => Box::new(MiniTDFReader::new(
                 path.to_str().unwrap_or_default().to_string(),
             )) as Box<dyn ReadableSpectra>,
-            Self::Unknown(path) => panic!(
-                "Folder {:} is not spectrum readable",
-                path.to_str().unwrap_or_default().to_string()
-            ),
         };
         result
     }
