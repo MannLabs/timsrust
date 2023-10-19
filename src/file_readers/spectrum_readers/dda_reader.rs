@@ -33,7 +33,7 @@ impl DDASpectrumReader {
     pub fn new(path_name: String) -> Self {
         let tdf_reader: TDFReader = TDFReader::new(&path_name.to_string());
         let mz_reader: Tof2MzConverter = tdf_reader.mz_converter;
-        let ms2_frames: Vec<Frame> = tdf_reader.read_ms2_frames();
+        let ms2_frames: Vec<Frame> = tdf_reader.read_all_ms2_frames();
         let precursor_reader: PrecursorReader =
             PrecursorReader::new(&tdf_reader);
         Self {

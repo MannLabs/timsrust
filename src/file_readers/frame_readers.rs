@@ -11,9 +11,9 @@ pub trait ReadableFrames {
 
     fn read_all_frames(&self) -> Vec<Frame>;
 
-    fn read_ms1_frames(&self) -> Vec<Frame>;
+    fn read_all_ms1_frames(&self) -> Vec<Frame>;
 
-    fn read_ms2_frames(&self) -> Vec<Frame>;
+    fn read_all_ms2_frames(&self) -> Vec<Frame>;
 }
 
 impl FileFormat {
@@ -40,11 +40,11 @@ impl ReadableFrames for FileFormat {
         self.unwrap_frame_reader().read_all_frames()
     }
 
-    fn read_ms1_frames(&self) -> Vec<Frame> {
-        self.unwrap_frame_reader().read_ms1_frames()
+    fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_ms1_frames()
     }
 
-    fn read_ms2_frames(&self) -> Vec<Frame> {
-        self.unwrap_frame_reader().read_ms2_frames()
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_ms2_frames()
     }
 }
