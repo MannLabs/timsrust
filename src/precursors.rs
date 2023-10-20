@@ -12,23 +12,23 @@ pub struct Precursor {
 
 /// A type of quadrupole selection.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PrecursorType {
+pub enum QuadrupoleEvent {
     Precursor(Precursor),
     // Window(Window),
     // PrecursorList(Vec<Precursor>),
     None,
 }
 
-impl Default for PrecursorType {
+impl Default for QuadrupoleEvent {
     fn default() -> Self {
         Self::None
     }
 }
 
-impl PrecursorType {
+impl QuadrupoleEvent {
     pub fn unwrap_as_precursor(&self) -> Precursor {
         match self {
-            PrecursorType::Precursor(precursor) => *precursor,
+            QuadrupoleEvent::Precursor(precursor) => *precursor,
             _ => {
                 panic!("Not a precursor");
             },

@@ -1,6 +1,6 @@
 use crate::{
     converters::{ConvertableIndex, Tof2MzConverter},
-    precursors::PrecursorType,
+    precursors::QuadrupoleEvent,
     vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
     Precursor,
 };
@@ -78,7 +78,7 @@ impl RawSpectrumProcessor {
                 .iter()
                 .map(|x| *x as f64)
                 .collect(),
-            precursor: PrecursorType::Precursor(precursor),
+            precursor: QuadrupoleEvent::Precursor(precursor),
             index: index,
         };
         spectrum
@@ -112,6 +112,6 @@ pub struct RawSpectrum {
 pub struct Spectrum {
     pub mz_values: Vec<f64>,
     pub intensities: Vec<f64>,
-    pub precursor: PrecursorType,
+    pub precursor: QuadrupoleEvent,
     pub index: usize,
 }
