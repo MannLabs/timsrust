@@ -1,3 +1,7 @@
+
+![Crates.io](https://img.shields.io/crates/v/timsrust?link=https%3A%2F%2Fcrates.io%2Fcrates%2Ftimsrust)
+![docs.rs](https://img.shields.io/docsrs/timsrust?link=https%3A%2F%2Fdocs.rs%2Ftimsrust%2F0.2.1%2Ftimsrust%2F)
+
 # TimsRust
 
 A crate to read Bruker TimsTof data.
