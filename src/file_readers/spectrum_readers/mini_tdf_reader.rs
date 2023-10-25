@@ -7,7 +7,7 @@ use {
             },
             ReadableSpectra,
         },
-        precursors::PrecursorType,
+        precursors::QuadrupoleEvent,
         Precursor, Spectrum,
     },
     rayon::prelude::*,
@@ -56,7 +56,7 @@ impl ReadableSpectra for MiniTDFReader {
     fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let mut spectrum: Spectrum =
             Spectrum::read_from_file(&self.frame_reader, index);
-        spectrum.precursor = PrecursorType::Precursor(self.precursors[index]);
+        spectrum.precursor = QuadrupoleEvent::Precursor(self.precursors[index]);
         spectrum
     }
 

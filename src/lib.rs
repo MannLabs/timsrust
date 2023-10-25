@@ -39,6 +39,6 @@ pub use crate::{
     errors::*,
     file_readers::{FileReader, TDFReader},
     frames::{Frame, FrameMSMSWindow, FrameType},
-    precursors::{Precursor, PrecursorType},
+    precursors::{Precursor, QuadrupoleEvent},
     spectra::Spectrum,
 };
