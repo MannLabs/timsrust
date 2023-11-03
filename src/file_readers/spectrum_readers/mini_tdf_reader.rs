@@ -1,3 +1,4 @@
+use std::fs;
 use {
     crate::{
         file_readers::{
@@ -23,6 +24,18 @@ pub struct MiniTDFReader {
     frame_reader: BinFileReader,
 }
 
+fn find_ms2spectrum_file(ms2_dir_path: &str, extension: String) -> String {
+    let files = fs::read_dir(ms2_dir_path).unwrap();
+    for file in files {
+        let filename = file.unwrap().path().file_name().unwrap().to_str().unwrap().to_owned();
+        if filename.ends_with( std::format!("ms2spectrum.{}", extension).as_str()) {
+            return filename
+        }
+    }
+    panic!("No '*.ms2spectrum.{}' file found in '{}'", extension, ms2_dir_path)
+}
+
+
 impl MiniTDFReader {
     pub fn new(path_name: String) -> Self {
         let mut reader: MiniTDFReader = Self::default();
@@ -35,7 +48,8 @@ impl MiniTDFReader {
 
     fn read_parquet_file_name(&mut self) {
         let mut path: PathBuf = PathBuf::from(&self.path_name);
-        path.push("converter.MS2Spectra.ms2.parquet");
+        let ms2_parquet_file = find_ms2spectrum_file(&self.path_name, "parquet".to_owned());
+        path.push(ms2_parquet_file);
         self.parquet_file_name = path.to_string_lossy().into_owned();
     }
 
@@ -45,7 +59,8 @@ impl MiniTDFReader {
     }
     fn set_spectrum_reader(&mut self) {
         let mut path: PathBuf = PathBuf::from(&self.path_name);
-        path.push("converter.ms2.bin");
+        let ms2_bin_file = find_ms2spectrum_file(&self.path_name, "bin".to_owned());
+        path.push(ms2_bin_file);
         let file_name: String = path.to_string_lossy().into_owned();
         self.frame_reader =
             BinFileReader::new(String::from(&file_name), self.offsets.clone());
