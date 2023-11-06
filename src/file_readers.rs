@@ -1,4 +1,7 @@
-use crate::Error;
+use crate::{
+    converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
+    Error,
+};
 
 mod common;
 mod file_formats;
@@ -14,6 +17,8 @@ use {
 };
 
 pub use file_formats::FileFormatError;
+
+use self::frame_readers::tdf_reader::TDFReader;
 
 /// A reader to read [frames](crate::Frame) and [spectra](crate::Spectrum).
 pub struct FileReader {
@@ -37,10 +42,14 @@ impl FileReader {
         self.format.read_all_frames()
     }
 
+    /// NOTE: The returned vec contains all frames to not disrupt indexing.
+    /// MS2 frames are set to unknown and not read.
     pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
         self.format.read_all_ms1_frames()
     }
 
+    /// NOTE: The returned vec contains all frames to not disrupt indexing.
+    /// MS1 frames are set to unknown and not read.
     pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
         self.format.read_all_ms2_frames()
     }
@@ -55,5 +64,41 @@ impl FileReader {
     /// might yield slightly different mz values.
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.format.read_all_spectra()
+    }
+
+    pub fn get_frame_converter(&self) -> Result<Frame2RtConverter, Error> {
+        match &self.format {
+            FileFormat::DFolder(path) => Ok(TDFReader::new(
+                &path.to_str().unwrap_or_default().to_string(),
+            )
+            .rt_converter),
+            _ => Err(Error::FileFormatError(
+                FileFormatError::MetadataFilesAreMissing,
+            )),
+        }
+    }
+
+    pub fn get_scan_converter(&self) -> Result<Scan2ImConverter, Error> {
+        match &self.format {
+            FileFormat::DFolder(path) => Ok(TDFReader::new(
+                &path.to_str().unwrap_or_default().to_string(),
+            )
+            .im_converter),
+            _ => Err(Error::FileFormatError(
+                FileFormatError::MetadataFilesAreMissing,
+            )),
+        }
+    }
+
+    pub fn get_tof_converter(&self) -> Result<Tof2MzConverter, Error> {
+        match &self.format {
+            FileFormat::DFolder(path) => Ok(TDFReader::new(
+                &path.to_str().unwrap_or_default().to_string(),
+            )
+            .mz_converter),
+            _ => Err(Error::FileFormatError(
+                FileFormatError::MetadataFilesAreMissing,
+            )),
+        }
     }
 }

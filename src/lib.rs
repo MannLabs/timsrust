@@ -11,12 +11,15 @@
 //!
 //! Two file formats are supported:
 //!
-//! * Bruker .ms2 folder containing:
-//!     * converter.ms2.bin
-//!     * converter.MS2Spectra.ms2.parquet
 //! * Bruker .d folder containing:
 //!     * analysis.tdf
 //!     * analysis.tdf_bin
+//! * miniTDF - ProteoScape optimized Bruker file-format. Similar to TDF, miniTDF consists of multiple files: a binary '.bin'
+//!  and an index '.parquet' file. The file-names are made up to the following convention: `<producing-engine-name>.<domain-name>.<extension>`.
+//!  e.g. for MS2 spectrum information: `<producing-engine-name>.ms2spectrum.<extension>`. Therefore the following files are expected
+//!  in the provided ms2 folder:
+//!     * *.ms2spectrum.bin
+//!     * *.ms2spectrum.parquet
 
 mod acquisition;
 mod calibration;
@@ -30,9 +33,12 @@ mod vec_utils;
 
 pub use crate::{
     acquisition::AcquisitionType,
+    converters::{
+        ConvertableIndex, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+    },
     errors::*,
     file_readers::FileReader,
     frames::{Frame, FrameType},
-    precursors::{Precursor, PrecursorType},
+    precursors::{Precursor, QuadrupoleEvent},
     spectra::Spectrum,
 };

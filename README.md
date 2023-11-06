@@ -1,3 +1,7 @@
+
+![Crates.io](https://img.shields.io/crates/v/timsrust?link=https%3A%2F%2Fcrates.io%2Fcrates%2Ftimsrust)
+![docs.rs](https://img.shields.io/docsrs/timsrust?link=https%3A%2F%2Fdocs.rs%2Ftimsrust%2F0.2.1%2Ftimsrust%2F)
+
 # TimsRust
 
 A crate to read Bruker TimsTof data.
@@ -24,12 +28,17 @@ Two primary data types are exposed through TimsRust:
 ### File formats
 
 Two file formats are supported:
-* Bruker .d folder containing:
+* TDF - Bruker .d folder containing:
     * analysis.tdf
     * analysis.tdf_bin
-* Bruker .ms2 folder containing:
-    * converter.ms2.bin
-    * converter.MS2Spectra.ms2.parquet
+
+* miniTDF - ProteoScape optimized Bruker file-format. Similar to TDF, miniTDF consists of multiple files: a binary '.bin'
+ and an index '.parquet' file. The file-names are made up to the following convention: `<producing-engine-name>.<domain-name>.<extension>`.
+ e.g. for MS2 spectrum information: `<producing-engine-name>.ms2spectrum.<extension>`. Therefore the following files are expected
+ in the provided ms2 folder:
+    * *.ms2spectrum.bin
+    * *.ms2spectrum.parquet
+
 
 ## Python bindings
 

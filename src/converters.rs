@@ -1,9 +1,12 @@
 use linreg::linear_regression;
 
+/// Converting from an index domain (e.g. Time of Flight) to a continuous domain (m/z).
 pub trait ConvertableIndex {
+    /// Convert any index (even fractional) to a continuous value.
     fn convert<T: Into<f64> + Copy>(&self, index: T) -> f64;
 }
 
+/// A converter from TOF -> m/z.
 #[derive(Debug, Copy, Clone)]
 pub struct Tof2MzConverter {
     tof_intercept: f64,
@@ -40,6 +43,7 @@ impl ConvertableIndex for Tof2MzConverter {
     }
 }
 
+/// A converter from Scan -> ion mobility.
 #[derive(Debug, Copy, Clone)]
 pub struct Scan2ImConverter {
     scan_intercept: f64,
@@ -64,6 +68,7 @@ impl ConvertableIndex for Scan2ImConverter {
     }
 }
 
+/// A converter from Frame -> retention time.
 #[derive(Debug, Clone)]
 pub struct Frame2RtConverter {
     rt_values: Vec<f64>,
