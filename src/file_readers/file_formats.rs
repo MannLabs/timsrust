@@ -20,7 +20,7 @@ impl FileFormat {
             .unwrap_or_default();
         let format = match extension {
             "d" => Self::DFolder(path),
-            _ => Self::MS2Folder(path)
+            _ => Self::MS2Folder(path),
         };
         format.is_valid()?;
         Ok(format)

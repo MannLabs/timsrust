@@ -32,10 +32,9 @@ Two file formats are supported:
     * analysis.tdf
     * analysis.tdf_bin
 
-
 * miniTDF - ProteoScape optimized Bruker file-format. Similar to TDF, miniTDF consists of multiple files: a binary '.bin'
  and an index '.parquet' file. The file-names are made up to the following convention: `<producing-engine-name>.<domain-name>.<extension>`.
- e.g. for MS2 spectrum information: `<producing-engine-name>.ms2spectrum.<extension>`. Therefor the following files are expected 
+ e.g. for MS2 spectrum information: `<producing-engine-name>.ms2spectrum.<extension>`. Therefore the following files are expected
  in the provided ms2 folder:
     * *.ms2spectrum.bin
     * *.ms2spectrum.parquet

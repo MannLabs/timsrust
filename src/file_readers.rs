@@ -1,5 +1,4 @@
 use crate::{
-    calibration::Tof2MzCalibrator,
     converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
     Error,
 };
