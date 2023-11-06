@@ -1,8 +1,9 @@
-use crate::Frame;
+use crate::{Frame, FrameType};
 
 use self::tdf_reader::TDFReader;
 
 use super::file_formats::FileFormat;
+use crate::acquisition::AcquisitionType;
 
 pub mod tdf_reader;
 
@@ -11,9 +12,43 @@ pub trait ReadableFrames {
 
     fn read_all_frames(&self) -> Vec<Frame>;
 
-    fn read_all_ms1_frames(&self) -> Vec<Frame>;
+    fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        // I am assuming this can be over-written if there is a more
+        // performant way to do this for a specific file format.
+        let frames: Vec<Frame> = self.read_all_frames();
+        let ms1_frames: Vec<Frame> = frames
+            .into_iter()
+            .filter(|frame| frame.frame_type == FrameType::MS1)
+            .collect();
+        ms1_frames
+    }
 
-    fn read_all_ms2_frames(&self) -> Vec<Frame>;
+    fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        // I am assuming this can be over-written if there is a more
+        // performant way to do this for a specific file format.
+        let frames: Vec<Frame> = self.read_all_frames();
+        let dia_frames: Vec<Frame> = frames
+            .into_iter()
+            .filter(|frame| {
+                frame.frame_type == FrameType::MS2(AcquisitionType::DDAPASEF)
+            })
+            .collect();
+        dia_frames
+    }
+
+    fn read_all_dia_frames(&self) -> Vec<Frame> {
+        // I am assuming this can be over-written if there is a more
+        // performant way to do this for a specific file format.
+        let frames: Vec<Frame> = self.read_all_frames();
+        let dia_frames: Vec<Frame> = frames
+            .into_iter()
+            .filter(|frame| {
+                frame.frame_type
+                    == FrameType::MS2(crate::AcquisitionType::DIAPASEF)
+            })
+            .collect();
+        dia_frames
+    }
 }
 
 impl FileFormat {
@@ -46,5 +81,9 @@ impl ReadableFrames for FileFormat {
 
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
         self.unwrap_frame_reader().read_all_ms2_frames()
+    }
+
+    fn read_all_dia_frames(&self) -> Vec<Frame> {
+        self.unwrap_frame_reader().read_all_dia_frames()
     }
 }

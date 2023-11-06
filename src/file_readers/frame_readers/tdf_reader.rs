@@ -8,11 +8,14 @@ use {
         file_readers::{
             common::{
                 ms_data_blobs::{BinFileReader, ReadableFromBinFile},
-                sql_reader::{FrameTable, ReadableFromSql, SqlReader},
+                sql_reader::{
+                    DiaFramesInfoTable, DiaFramesMsMsTable, FrameTable,
+                    ReadableFromSql, SqlReader,
+                },
             },
             ReadableFrames,
         },
-        Frame, FrameType,
+        Frame, FrameMSMSWindow, FrameType,
     },
     rayon::prelude::*,
     std::path::Path,
@@ -27,7 +30,9 @@ pub struct TDFReader {
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
-    frame_types: Vec<FrameType>,
+    pub frame_types: Vec<FrameType>,
+    pub dia_frame_table: DiaFramesInfoTable,
+    pub dia_frame_msms_table: DiaFramesMsMsTable,
 }
 
 impl TDFReader {
@@ -54,6 +59,10 @@ impl TDFReader {
                 _ => FrameType::Unknown,
             })
             .collect();
+        let dia_frames_table: DiaFramesInfoTable =
+            DiaFramesInfoTable::from_sql(&tdf_sql_reader);
+        let dia_frames_msms_table: DiaFramesMsMsTable =
+            DiaFramesMsMsTable::from_sql(&tdf_sql_reader);
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -63,6 +72,8 @@ impl TDFReader {
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
             frame_types: frame_types,
+            dia_frame_table: dia_frames_table,
+            dia_frame_msms_table: dia_frames_msms_table,
         }
     }
 
@@ -90,6 +101,7 @@ impl ReadableFrames for TDFReader {
     }
 
     fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        // TODO add a filter here
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
             .map(|index| match self.frame_types[index] {
@@ -100,6 +112,7 @@ impl ReadableFrames for TDFReader {
     }
 
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        // TODO add a filter here
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
             .map(|index| match self.frame_types[index] {
@@ -107,5 +120,52 @@ impl ReadableFrames for TDFReader {
                 _ => Frame::default(),
             })
             .collect()
+    }
+
+    fn read_all_dia_frames(&self) -> Vec<Frame> {
+        let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
+        dia_frame_ids
+            .into_par_iter()
+            .map(|index| self.read_single_frame(index - 1))
+            .collect()
+    }
+}
+
+impl TDFReader {
+    /// Read all DIA frames from a TDF file and split along the isolation windows.
+    pub fn read_all_dia_isolation_windows(&self) -> Vec<FrameMSMSWindow> {
+        let dia_frame_ids: Vec<usize> = self.dia_frame_table.frame.clone();
+        let dia_frame_window_groups: Vec<usize> =
+            self.dia_frame_msms_table.group.clone();
+        let window_hashmap = self.dia_frame_msms_table.as_hashmap();
+
+        let mut out: Vec<FrameMSMSWindow> = vec![];
+        for i in 0..dia_frame_ids.len() {
+            let frame_id = dia_frame_ids[i];
+            let frame_window_group = dia_frame_window_groups[i];
+            let frame = self.read_single_frame(frame_id - 1);
+            let iws = window_hashmap.get(&frame_window_group).unwrap();
+
+            for iw in iws.into_iter() {
+                let frame_msms_window = FrameMSMSWindow {
+                    scan_offsets: (frame.scan_offsets
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
+                    tof_indices: (frame.tof_indices
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
+                    intensities: (frame.intensities
+                        [iw.scan_start..iw.scan_end])
+                        .to_vec(),
+                    frame_index: frame.index,
+                    rt: frame.rt,
+                    window_group: frame_window_group,
+                    scan_start: iw.scan_start,
+                };
+                out.push(frame_msms_window);
+            }
+        }
+
+        out
     }
 }

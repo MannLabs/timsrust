@@ -25,11 +25,17 @@ mod acquisition;
 mod calibration;
 mod converters;
 mod errors;
-mod file_readers;
+pub mod file_readers;
 mod frames;
 mod precursors;
 mod spectra;
 mod vec_utils;
+
+pub use file_readers::ReadableFrames;
+
+pub use crate::converters::{
+    ConvertableIndex, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+};
 
 pub use crate::{
     acquisition::AcquisitionType,
@@ -37,8 +43,8 @@ pub use crate::{
         ConvertableIndex, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
     },
     errors::*,
-    file_readers::FileReader,
-    frames::{Frame, FrameType},
+    file_readers::{FileReader, TDFReader},
+    frames::{Frame, FrameMSMSWindow, FrameType},
     precursors::{Precursor, QuadrupoleEvent},
     spectra::Spectrum,
 };
