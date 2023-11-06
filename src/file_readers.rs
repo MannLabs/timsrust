@@ -42,10 +42,14 @@ impl FileReader {
         self.format.read_all_frames()
     }
 
+    /// NOTE: The returned vec contains all frames to not disrupt indexing.
+    /// MS2 frames are set to unknown and not read.
     pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
         self.format.read_all_ms1_frames()
     }
 
+    /// NOTE: The returned vec contains all frames to not disrupt indexing.
+    /// MS1 frames are set to unknown and not read.
     pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
         self.format.read_all_ms2_frames()
     }
