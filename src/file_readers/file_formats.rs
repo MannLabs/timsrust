@@ -20,15 +20,7 @@ impl FileFormat {
             .unwrap_or_default();
         let format = match extension {
             "d" => Self::DFolder(path),
-            "ms2" => Self::MS2Folder(path),
-            _ => {
-                if let Some(path) = path.parent() {
-                    // Only recurse if there is a valid parent section,
-                    // otherwise we'll get a stack overflow
-                    return Self::parse(path);
-                }
-                return Err(FileFormatError::NoParentWithBrukerExtension);
-            },
+            _ => Self::MS2Folder(path)
         };
         format.is_valid()?;
         Ok(format)
