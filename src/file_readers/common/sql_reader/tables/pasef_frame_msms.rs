@@ -29,7 +29,7 @@ impl ReadableFromSql for PasefFrameMsMsTable {
                 .read_column_from_table("CollisionEnergy", table_name),
             precursor: sql_reader
                 .read_column_from_table("Precursor", table_name),
-            collision_energy_by_precursor: sql_reader.get_data_from_sql(&"select CollisionEnergy,Precursor from PasefFrameMsMsInfo group by Precursor".to_string()),
+            collision_energy_by_precursor: sql_reader.get_data_from_sql(&"select CollisionEnergy from PasefFrameMsMsInfo group by Precursor".to_string()),
         }
     }
 }

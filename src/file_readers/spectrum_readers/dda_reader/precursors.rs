@@ -34,7 +34,6 @@ impl PrecursorReader {
             .into_par_iter()
             .map(|index| {
                 let frame_id: usize = precursor_table.precursor_frame[index];
-                let precursor_id: usize = precursor_table.id[index];
                 let scan_id: f64 = precursor_table.scan_average[index];
                 Precursor {
                     mz: precursor_table.mz[index],
