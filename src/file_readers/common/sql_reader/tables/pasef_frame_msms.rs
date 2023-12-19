@@ -9,6 +9,7 @@ pub struct PasefFrameMsMsTable {
     pub mz_width: Vec<f64>,
     pub collision_energy: Vec<f64>,
     pub precursor: Vec<usize>,
+    pub collision_energy_by_precursor: Vec<f64>,
 }
 
 impl ReadableFromSql for PasefFrameMsMsTable {
@@ -28,6 +29,7 @@ impl ReadableFromSql for PasefFrameMsMsTable {
                 .read_column_from_table("CollisionEnergy", table_name),
             precursor: sql_reader
                 .read_column_from_table("Precursor", table_name),
+            collision_energy_by_precursor: sql_reader.get_data_from_sql(&"select CollisionEnergy,Precursor from PasefFrameMsMsInfo group by Precursor".to_string()),
         }
     }
 }

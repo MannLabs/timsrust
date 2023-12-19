@@ -29,10 +29,12 @@ impl PrecursorReader {
         let precursor_table: PrecursorTable =
             PrecursorTable::from_sql(&tdf_reader.tdf_sql_reader);
         let retention_times: Vec<f64> = tdf_reader.frame_table.rt.clone();
+        let collision_energy = &pasef_frames.collision_energy_by_precursor;
         let precursors: Vec<Precursor> = (0..precursor_table.mz.len())
             .into_par_iter()
             .map(|index| {
                 let frame_id: usize = precursor_table.precursor_frame[index];
+                let precursor_id: usize = precursor_table.id[index];
                 let scan_id: f64 = precursor_table.scan_average[index];
                 Precursor {
                     mz: precursor_table.mz[index],
@@ -42,6 +44,7 @@ impl PrecursorReader {
                     intensity: precursor_table.intensity[index],
                     index: index + 1, //TODO?
                     frame_index: frame_id,
+                    collision_energy: collision_energy[index],
                 }
             })
             .collect();
