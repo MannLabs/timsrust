@@ -28,7 +28,7 @@ impl SqlReader {
         self.get_data_from_sql(&query)
     }
 
-    fn get_data_from_sql<T: rusqlite::types::FromSql + Default>(
+    pub fn get_data_from_sql<T: rusqlite::types::FromSql + Default>(
         &self,
         query: &String,
     ) -> Vec<T> {

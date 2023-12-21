@@ -23,13 +23,18 @@ pub struct PrecursorReader {
 
 impl PrecursorReader {
     pub fn new(tdf_reader: &TDFReader) -> Self {
+        let select_collision_energy_sql = String::from(
+            "SELECT CollisionEnergy FROM PasefFrameMsMsInfo GROUP BY Precursor",
+        );
         let pasef_frames: PasefFrameMsMsTable =
             PasefFrameMsMsTable::from_sql(&tdf_reader.tdf_sql_reader);
         let im_reader: Scan2ImConverter = tdf_reader.im_converter;
         let precursor_table: PrecursorTable =
             PrecursorTable::from_sql(&tdf_reader.tdf_sql_reader);
         let retention_times: Vec<f64> = tdf_reader.frame_table.rt.clone();
-        let collision_energy = &pasef_frames.collision_energy_by_precursor;
+        let collision_energies = tdf_reader
+            .tdf_sql_reader
+            .get_data_from_sql(&select_collision_energy_sql);
         let precursors: Vec<Precursor> = (0..precursor_table.mz.len())
             .into_par_iter()
             .map(|index| {
@@ -43,7 +48,7 @@ impl PrecursorReader {
                     intensity: precursor_table.intensity[index],
                     index: index + 1, //TODO?
                     frame_index: frame_id,
-                    collision_energy: collision_energy[index],
+                    collision_energy: collision_energies[index],
                 }
             })
             .collect();
