@@ -12,14 +12,11 @@ pub struct SqlReader {
 }
 
 impl SqlReader {
-    fn read_column_from_table<
-        T: rusqlite::types::FromSql + std::default::Default,
-    >(
+    fn read_column_from_table<T: rusqlite::types::FromSql + Default>(
         &self,
         column_name: &str,
         table_name: &str,
     ) -> Vec<T> {
-        let connection: Connection = get_sql_connection(&self.path);
         let column_names: Vec<String> =
             self.get_table_columns(table_name).unwrap();
         let order_by: String = column_names.join(", ");
@@ -27,6 +24,15 @@ impl SqlReader {
             "SELECT {} FROM {} ORDER BY {}",
             column_name, table_name, order_by
         );
+
+        self.get_data_from_sql(&query)
+    }
+
+    pub fn get_data_from_sql<T: rusqlite::types::FromSql + Default>(
+        &self,
+        query: &String,
+    ) -> Vec<T> {
+        let connection: Connection = get_sql_connection(&self.path);
         let mut stmt: Statement = connection.prepare(&query).unwrap();
         let rows = stmt
             .query_map(
