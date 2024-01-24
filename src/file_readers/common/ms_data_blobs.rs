@@ -31,12 +31,14 @@ impl BinFileReader {
                 &mmap[offset as usize..(offset + 4) as usize];
             let byte_count: u32 =
                 u32::from_le_bytes(raw_byte_count.try_into().unwrap());
-            let compressed_blob: &[u8] = &mmap
-                [(offset + 8) as usize..offset as usize + byte_count as usize];
-            let blob: Vec<u8> = decode_all(compressed_blob).unwrap();
-            return blob;
+            if byte_count > 8 {
+                let compressed_blob: &[u8] = &mmap[(offset + 8) as usize
+                    ..offset as usize + byte_count as usize];
+                let blob: Vec<u8> = decode_all(compressed_blob).unwrap();
+                return blob;
+            }
         };
-        return vec![0];
+        return vec![];
     }
 
     pub fn size(&self) -> usize {
