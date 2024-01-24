@@ -1,5 +1,4 @@
-use std::io::{prelude::*, BufReader};
-use zstd::stream::read::Decoder;
+use zstd::decode_all;
 
 use super::readers::{MSDataBlob, MSDataBlobReader, MSDataBlobState};
 
@@ -17,11 +16,7 @@ impl MSDataBlobProcessor {
     fn decompress(mut self) -> Self {
         if self.ms_data_blob.data.len() != 0 {
             let reader: &[u8] = &self.ms_data_blob.data;
-            let mut decoder: Decoder<BufReader<&[u8]>> = Decoder::new(reader)
-                .expect("Cannot set decoder. Are the bytes correct?");
-            let mut buf: Vec<u8> = Vec::new();
-            decoder
-                .read_to_end(&mut buf)
+            let buf = decode_all(reader)
                 .expect("Cannot decompress bytes. Are they zstd compressed?");
             self.ms_data_blob.data = buf;
         }
