@@ -16,7 +16,7 @@ use {
     std::path::PathBuf,
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug)]
 pub struct MiniTDFReader {
     pub path_name: String,
     parquet_file_name: String,
@@ -62,8 +62,17 @@ fn find_ms2spectrum_file(
 
 impl MiniTDFReader {
     pub fn new(path_name: String) -> Self {
-        let mut reader: MiniTDFReader = Self::default();
-        reader.path_name = path_name;
+        let parquet_file_name: String = String::default();
+        let precursors: Vec<Precursor> = Vec::default();
+        let offsets: Vec<u64> = Vec::default();
+        let frame_reader: BinFileReader = BinFileReader::default();
+        let mut reader: MiniTDFReader = MiniTDFReader {
+            path_name,
+            parquet_file_name,
+            precursors,
+            offsets,
+            frame_reader,
+        };
         reader.read_parquet_file_name();
         reader.read_precursors();
         reader.set_spectrum_reader();
