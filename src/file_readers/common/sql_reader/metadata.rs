@@ -66,7 +66,7 @@ impl SqlReader {
     }
 
     pub fn read_mz_information(&self) -> (u32, f64, f64) {
-        let connection = get_sql_connection(&self.path);
+        let connection: Connection = get_sql_connection(&self.path);
         let tof_max_index: u32 = read_tof_max_index(&connection);
         let lower_mz_value: f64 = read_mz_min_value(&connection);
         let upper_mz_value: f64 = read_mz_max_value(&connection);

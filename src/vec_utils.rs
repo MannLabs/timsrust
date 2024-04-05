@@ -67,14 +67,3 @@ pub fn filter_with_mask<T: Copy>(vec: &Vec<T>, mask: &Vec<bool>) -> Vec<T> {
         .map(|(&x_elem, _)| x_elem)
         .collect()
 }
-
-pub fn counts_to_indptr<T: Into<u64> + Copy>(vec: Vec<T>) -> Vec<u64> {
-    let mut indptr: Vec<u64> = Vec::with_capacity(vec.len() + 1);
-    let mut offset: u64 = 0;
-    indptr.push(offset);
-    for i in 0..vec.len() {
-        offset += vec[i].into();
-        indptr.push(offset);
-    }
-    indptr.iter().map(|&x| x as u64).collect()
-}

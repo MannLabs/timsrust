@@ -31,7 +31,7 @@ fn minitdf_reader() {
                 frame_index: 1,
                 collision_energy: 0.0,
             }),
-            index: 0,
+            index: 1,
         },
         Spectrum {
             mz_values: vec![1100.0, 1200.002, 1300.03, 1400.4],
@@ -46,7 +46,7 @@ fn minitdf_reader() {
                 frame_index: 2,
                 collision_energy: 0.0,
             }),
-            index: 1,
+            index: 2,
         },
     ];
     for i in 0..spectra.len() {
