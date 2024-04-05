@@ -108,6 +108,7 @@ impl ReadableSpectra for MiniTDFReader {
         let mut spectrum: Spectrum =
             Spectrum::read_from_file(&self.frame_reader, index);
         spectrum.precursor = QuadrupoleEvent::Precursor(self.precursors[index]);
+        spectrum.index = self.precursors[index].index;
         spectrum
     }
 
