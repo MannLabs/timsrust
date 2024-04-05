@@ -3,7 +3,7 @@ use crate::acquisition::AcquisitionType;
 /// A frame with all unprocessed data as it was acquired.
 #[derive(Debug, PartialEq, Default)]
 pub struct Frame {
-    pub scan_offsets: Vec<u64>,
+    pub scan_offsets: Vec<usize>,
     pub tof_indices: Vec<u32>,
     pub intensities: Vec<u32>,
     pub index: usize,
