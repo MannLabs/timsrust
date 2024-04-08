@@ -1,6 +1,5 @@
 use crate::{
-    converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
-    Error,
+    Error, {Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
 };
 
 mod common;

@@ -1,9 +1,5 @@
 use {
     crate::{
-        converters::{
-            ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
-            Tof2MzConverter,
-        },
         file_readers::{
             common::{
                 ms_data_blobs::{BinFileReader, ReadableFromBinFile},
@@ -12,6 +8,10 @@ use {
             ReadableFrames,
         },
         AcquisitionType, Frame, FrameType,
+        {
+            ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
+            Tof2MzConverter,
+        },
     },
     rayon::prelude::*,
     std::path::Path,

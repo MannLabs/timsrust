@@ -1,7 +1,6 @@
 use rayon::prelude::*;
 
 use crate::{
-    converters::{ConvertableDomain, Scan2ImConverter},
     file_readers::{
         common::sql_reader::{
             PasefFrameMsMsTable, PrecursorTable, ReadableFromSql,
@@ -9,7 +8,7 @@ use crate::{
         frame_readers::tdf_reader::TDFReader,
     },
     vec_utils::argsort,
-    Precursor,
+    Precursor, {ConvertableDomain, Scan2ImConverter},
 };
 
 #[derive(Debug)]

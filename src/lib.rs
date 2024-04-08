@@ -22,19 +22,19 @@
 //!     * *.ms2spectrum.parquet
 
 mod calibration;
-mod converters;
-mod data;
+mod domain_converters;
 mod errors;
 mod file_readers;
+mod ms_data;
 mod vec_utils;
 
 pub use crate::{
-    converters::{
+    domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
-    },
-    data::{
-        AcquisitionType, Frame, FrameType, Precursor, QuadrupoleEvent, Spectrum,
     },
     errors::*,
     file_readers::FileReader,
+    ms_data::{
+        AcquisitionType, Frame, FrameType, Precursor, QuadrupoleEvent, Spectrum,
+    },
 };

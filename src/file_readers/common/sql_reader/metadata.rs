@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Statement};
 
-use crate::converters::{Scan2ImConverter, Tof2MzConverter};
+use crate::{Scan2ImConverter, Tof2MzConverter};
 
 use super::{get_sql_connection, ReadableFromSql, SqlReader};
 
