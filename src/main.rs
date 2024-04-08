@@ -1,27 +1,31 @@
 use std::env;
-use timsrust::{FileReader, Spectrum};
+use timsrust::{FileReader, MGFFormat, MGFWriter, Spectrum};
 
-fn main() {
+fn quick_test() {
     let args: Vec<String> = env::args().collect();
     let d_folder_name: &str = &args[1];
     let x = FileReader::new(d_folder_name.to_string()).unwrap();
     let dda_spectra: Vec<Spectrum> = x.read_all_spectra();
-    let precursor_index: usize;
+    let spectrum_index: usize;
     if args.len() >= 3 {
-        precursor_index = args[2].parse().unwrap_or(0);
+        spectrum_index = args[2].parse().unwrap_or(0);
     } else {
-        precursor_index = 1000;
+        spectrum_index = 10;
     }
+    println!("precursor {:?}", dda_spectra[spectrum_index].precursor);
+    // println!(
+    //     "precursor\n{:?}",
+    //     dda_spectra[spectrum_index].as_mgf_header()
+    // );
+    println!("mz values {:?}", dda_spectra[spectrum_index].mz_values);
+    println!(
+        "intensity values {:?}",
+        dda_spectra[spectrum_index].intensities
+    );
+    // println!("{:?}", dda_spectra[spectrum_index].as_mgf_entry());
+    MGFWriter::write_spectra(d_folder_name, &dda_spectra);
+}
 
-    println!("precursor {:?}", dda_spectra[precursor_index].precursor);
-    println!(
-        "precursor {:?}",
-        dda_spectra[precursor_index].mz_values.len()
-    );
-    println!(
-        "precursor {:?}",
-        dda_spectra[precursor_index].intensities.len()
-    );
-    println!("precursor {:?}", dda_spectra[precursor_index].mz_values);
-    println!("precursor {:?}", dda_spectra[precursor_index].intensities);
+fn main() {
+    quick_test();
 }
