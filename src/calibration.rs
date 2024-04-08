@@ -1,5 +1,5 @@
 use crate::{
-    converters::{ConvertableIndex, Tof2MzConverter},
+    converters::{ConvertableDomain, Tof2MzConverter},
     spectra::RawSpectrum,
     Precursor,
 };

@@ -34,7 +34,7 @@ mod vec_utils;
 pub use crate::{
     acquisition::AcquisitionType,
     converters::{
-        ConvertableIndex, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+        ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
     },
     errors::*,
     file_readers::FileReader,

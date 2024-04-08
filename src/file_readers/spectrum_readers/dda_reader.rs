@@ -120,7 +120,7 @@ impl ReadableSpectra for DDASpectrumReader {
         );
         let mz_reader: Tof2MzConverter;
         if hits.len() >= 2 {
-            mz_reader = Tof2MzConverter::from_unfragmented_precursors(&hits);
+            mz_reader = Tof2MzConverter::from_pairs(&hits);
         } else {
             mz_reader = self.mz_reader
         }

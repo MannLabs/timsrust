@@ -2,7 +2,7 @@ use {
     crate::{
         acquisition::AcquisitionType,
         converters::{
-            ConvertableIndex, Frame2RtConverter, Scan2ImConverter,
+            ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
             Tof2MzConverter,
         },
         file_readers::{
@@ -68,7 +68,7 @@ impl TDFReader {
 
     fn get_rt_converter(frame_table: &FrameTable) -> Frame2RtConverter {
         let retention_times: Vec<f64> = frame_table.rt.clone();
-        Frame2RtConverter::new(retention_times)
+        Frame2RtConverter::from_values(retention_times)
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    converters::{ConvertableIndex, Tof2MzConverter},
+    converters::{ConvertableDomain, Tof2MzConverter},
     precursors::QuadrupoleEvent,
     vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
     Precursor,

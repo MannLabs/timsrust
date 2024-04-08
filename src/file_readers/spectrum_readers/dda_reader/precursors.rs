@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 
 use crate::{
-    converters::{ConvertableIndex, Scan2ImConverter},
+    converters::{ConvertableDomain, Scan2ImConverter},
     file_readers::{
         common::sql_reader::{
             PasefFrameMsMsTable, PrecursorTable, ReadableFromSql,
