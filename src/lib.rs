@@ -21,24 +21,20 @@
 //!     * *.ms2spectrum.bin
 //!     * *.ms2spectrum.parquet
 
-mod acquisition;
 mod calibration;
 mod converters;
+mod data;
 mod errors;
 mod file_readers;
-mod frames;
-mod precursors;
-mod spectra;
 mod vec_utils;
 
 pub use crate::{
-    acquisition::AcquisitionType,
     converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
     },
+    data::{
+        AcquisitionType, Frame, FrameType, Precursor, QuadrupoleEvent, Spectrum,
+    },
     errors::*,
     file_readers::FileReader,
-    frames::{Frame, FrameType},
-    precursors::{Precursor, QuadrupoleEvent},
-    spectra::Spectrum,
 };

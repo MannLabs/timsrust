@@ -1,6 +1,6 @@
 use crate::{
     converters::{ConvertableDomain, Tof2MzConverter},
-    spectra::RawSpectrum,
+    data::spectra::RawSpectrum,
     Precursor,
 };
 

@@ -3,5 +3,6 @@
 pub enum AcquisitionType {
     DDAPASEF,
     DIAPASEF,
+    PRMPASEF,
     Unknown,
 }

@@ -1,4 +1,4 @@
-use crate::file_readers::FileFormatError;
+use crate::{file_readers::FileFormatError, QuadrupoleEvent};
 use std::fs;
 use {
     crate::{
@@ -9,7 +9,6 @@ use {
             },
             ReadableSpectra,
         },
-        precursors::QuadrupoleEvent,
         Precursor, Spectrum,
     },
     rayon::prelude::*,

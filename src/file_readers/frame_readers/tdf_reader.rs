@@ -1,6 +1,5 @@
 use {
     crate::{
-        acquisition::AcquisitionType,
         converters::{
             ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
             Tof2MzConverter,
@@ -12,7 +11,7 @@ use {
             },
             ReadableFrames,
         },
-        Frame, FrameType,
+        AcquisitionType, Frame, FrameType,
     },
     rayon::prelude::*,
     std::path::Path,

@@ -3,15 +3,14 @@ mod precursors;
 use crate::{
     calibration::Tof2MzCalibrator,
     converters::Tof2MzConverter,
+    data::spectra::RawSpectrum,
+    data::spectra::{self, RawSpectrumProcessor},
     file_readers::{
         frame_readers::{tdf_reader::TDFReader, ReadableFrames},
         ReadableSpectra,
     },
-    frames::Frame,
-    spectra::RawSpectrum,
-    spectra::{self, RawSpectrumProcessor},
     vec_utils::group_and_sum,
-    Spectrum,
+    Frame, Spectrum,
 };
 
 use rayon::prelude::*;

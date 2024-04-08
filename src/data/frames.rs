@@ -1,4 +1,4 @@
-use crate::acquisition::AcquisitionType;
+use crate::AcquisitionType;
 
 /// A frame with all unprocessed data as it was acquired.
 #[derive(Debug, PartialEq, Default)]

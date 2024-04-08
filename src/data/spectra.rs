@@ -1,8 +1,7 @@
 use crate::{
     converters::{ConvertableDomain, Tof2MzConverter},
-    precursors::QuadrupoleEvent,
     vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
-    Precursor,
+    Precursor, QuadrupoleEvent,
 };
 
 pub struct RawSpectrumProcessor {
