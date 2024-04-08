@@ -6,9 +6,8 @@ use crate::{
         frame_readers::{tdf_reader::TDFReader, ReadableFrames},
         ReadableSpectra,
     },
-    ms_data::spectra::RawSpectrum,
-    ms_data::spectra::{self, RawSpectrumProcessor},
-    vec_utils::group_and_sum,
+    ms_data::spectra::{self, RawSpectrum, RawSpectrumProcessor},
+    utils::vec_utils::group_and_sum,
     Frame, Spectrum, Tof2MzConverter,
 };
 

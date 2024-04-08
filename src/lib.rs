@@ -26,7 +26,7 @@ mod domain_converters;
 mod errors;
 mod file_readers;
 mod ms_data;
-mod vec_utils;
+mod utils;
 
 pub use crate::{
     domain_converters::{
