@@ -1,7 +1,7 @@
 use linreg::linear_regression;
 
 /// A converter from TOF -> m/z.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Tof2MzConverter {
     tof_intercept: f64,
     tof_slope: f64,

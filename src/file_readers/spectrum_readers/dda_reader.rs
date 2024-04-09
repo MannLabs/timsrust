@@ -29,7 +29,7 @@ pub struct DDASpectrumReader {
 impl DDASpectrumReader {
     pub fn new(path_name: String) -> Self {
         let tdf_reader: TDFReader = TDFReader::new(&path_name.to_string());
-        let mz_reader: Tof2MzConverter = tdf_reader.mz_converter;
+        let mz_reader: Tof2MzConverter = tdf_reader.mz_converter.clone();
         let ms2_frames: Vec<Frame> = tdf_reader.read_all_ms2_frames();
         let precursor_reader: PrecursorReader =
             PrecursorReader::new(&tdf_reader);
@@ -115,11 +115,13 @@ impl ReadableSpectra for DDASpectrumReader {
             &self.precursor_reader.precursors,
             0.1,
         );
-        let mz_reader: Tof2MzConverter;
+        let temp_mz_reader: Tof2MzConverter;
+        let mz_reader: &Tof2MzConverter;
         if hits.len() >= 2 {
-            mz_reader = Tof2MzConverter::from_pairs(&hits);
+            temp_mz_reader = Tof2MzConverter::from_pairs(&hits);
+            mz_reader = &temp_mz_reader;
         } else {
-            mz_reader = self.mz_reader
+            mz_reader = &self.mz_reader
         }
         let spectra: Vec<Spectrum> = raw_spectra
             .into_par_iter()
