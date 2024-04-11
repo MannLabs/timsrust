@@ -41,7 +41,7 @@ impl MGFFormat for Spectrum {
     }
 
     fn as_mgf_header(&self) -> String {
-        let precursor = self.precursor.unwrap_as_precursor();
+        let precursor = self.precursor;
         let title = precursor.index;
         let ms2_data = format!(
             "TITLE=index:{}, im:{:.4}, intensity:{:.4}, frame:{}, ce:{:.4}\nPEPMASS={:.4}\nCHARGE={}\nRT={:.2}\n",

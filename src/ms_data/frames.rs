@@ -9,13 +9,14 @@ pub struct Frame {
     pub index: usize,
     pub rt: f64,
     pub frame_type: FrameType,
+    pub acquisition: AcquisitionType,
 }
 
 /// The kind of frame, determined by acquisition.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FrameType {
     MS1,
-    MS2(AcquisitionType),
+    MS2,
     Unknown,
 }
 

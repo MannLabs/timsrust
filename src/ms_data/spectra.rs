@@ -1,6 +1,6 @@
 use crate::{
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
-    ConvertableDomain, Precursor, QuadrupoleEvent, Tof2MzConverter,
+    ConvertableDomain, Precursor, Tof2MzConverter,
 };
 
 pub struct RawSpectrumProcessor {
@@ -76,7 +76,7 @@ impl RawSpectrumProcessor {
                 .iter()
                 .map(|x| *x as f64)
                 .collect(),
-            precursor: QuadrupoleEvent::Precursor(precursor),
+            precursor: precursor,
             index: index,
         };
         spectrum
@@ -110,6 +110,6 @@ pub struct RawSpectrum {
 pub struct Spectrum {
     pub mz_values: Vec<f64>,
     pub intensities: Vec<f64>,
-    pub precursor: QuadrupoleEvent,
+    pub precursor: Precursor,
     pub index: usize,
 }

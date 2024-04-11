@@ -8,7 +8,7 @@ use crate::{
         frame_readers::tdf_reader::TDFReader,
     },
     utils::vec_utils::argsort,
-    ConvertableDomain, Precursor, Scan2ImConverter,
+    ConvertableDomain, Precursor,
 };
 
 #[derive(Debug)]

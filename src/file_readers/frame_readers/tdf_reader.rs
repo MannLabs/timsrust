@@ -7,11 +7,8 @@ use {
             },
             ReadableFrames,
         },
-        AcquisitionType, Frame, FrameType,
-        {
-            ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
-            Tof2MzConverter,
-        },
+        AcquisitionType, ConvertableDomain, Frame, Frame2RtConverter,
+        FrameType, Scan2ImConverter, Tof2MzConverter,
     },
     rayon::prelude::*,
     std::path::Path,
@@ -26,6 +23,7 @@ pub struct TDFReader {
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
+    pub acquisition: AcquisitionType,
     frame_types: Vec<FrameType>,
 }
 
@@ -48,11 +46,17 @@ impl TDFReader {
             .iter()
             .map(|msms_type| match msms_type {
                 0 => FrameType::MS1,
-                8 => FrameType::MS2(AcquisitionType::DDAPASEF),
-                9 => FrameType::MS2(AcquisitionType::DIAPASEF),
+                8 => FrameType::MS2,
+                9 => FrameType::MS2,
                 _ => FrameType::Unknown,
             })
             .collect();
+        let mut acquisition = AcquisitionType::Unknown;
+        if frame_table.msms_type.contains(&8) {
+            acquisition = AcquisitionType::DDAPASEF;
+        } else if frame_table.msms_type.contains(&9) {
+            acquisition = AcquisitionType::DIAPASEF;
+        }
         Self {
             path: path.to_string(),
             tdf_bin_reader: tdf_bin_reader,
@@ -62,6 +66,7 @@ impl TDFReader {
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
             frame_types: frame_types,
+            acquisition: acquisition,
         }
     }
 
@@ -78,6 +83,7 @@ impl ReadableFrames for TDFReader {
         frame.rt = self.rt_converter.convert(index as u32);
         frame.index = self.frame_table.id[index];
         frame.frame_type = self.frame_types[index];
+        frame.acquisition = self.acquisition;
         frame
     }
 
@@ -102,7 +108,7 @@ impl ReadableFrames for TDFReader {
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
             .map(|index| match self.frame_types[index] {
-                FrameType::MS2(_) => self.read_single_frame(index),
+                FrameType::MS2 => self.read_single_frame(index),
                 _ => Frame::default(),
             })
             .collect()

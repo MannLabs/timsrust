@@ -5,5 +5,5 @@ pub mod spectra;
 
 pub use acquisition::AcquisitionType;
 pub use frames::{Frame, FrameType};
-pub use precursors::{Precursor, QuadrupoleEvent};
+pub use precursors::Precursor;
 pub use spectra::Spectrum;

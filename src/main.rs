@@ -13,6 +13,7 @@ fn quick_test() {
         spectrum_index = 10;
     }
     println!("precursor {:?}", dda_spectra[spectrum_index].precursor);
+    _ = dda_spectra[spectrum_index].as_mgf_header();
     // println!(
     //     "precursor\n{:?}",
     //     dda_spectra[spectrum_index].as_mgf_header()

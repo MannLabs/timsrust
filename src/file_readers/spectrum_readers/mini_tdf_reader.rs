@@ -1,4 +1,4 @@
-use crate::{file_readers::FileFormatError, QuadrupoleEvent};
+use crate::file_readers::FileFormatError;
 use std::fs;
 use {
     crate::{
@@ -106,7 +106,7 @@ impl ReadableSpectra for MiniTDFReader {
     fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let mut spectrum: Spectrum =
             Spectrum::read_from_file(&self.frame_reader, index);
-        spectrum.precursor = QuadrupoleEvent::Precursor(self.precursors[index]);
+        spectrum.precursor = self.precursors[index];
         spectrum.index = self.precursors[index].index;
         spectrum
     }
@@ -118,8 +118,8 @@ impl ReadableSpectra for MiniTDFReader {
             .map(|index| self.read_single_spectrum(index))
             .collect();
         spectra.sort_by(|a, b| {
-            let x = b.precursor.unwrap_as_precursor().index as f64;
-            let y = a.precursor.unwrap_as_precursor().index as f64;
+            let x = b.precursor.index as f64;
+            let y = a.precursor.index as f64;
             y.total_cmp(&x)
         });
         spectra
