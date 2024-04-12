@@ -1,5 +1,7 @@
-use std::path::Path;
-use timsrust::{AcquisitionType, FileReader, Frame, FrameType};
+use std::{path::Path, sync::Arc};
+use timsrust::{
+    AcquisitionType, FileReader, Frame, MSLevel, QuadrupoleSettings,
+};
 
 fn get_local_directory() -> &'static Path {
     Path::new(std::file!())
@@ -24,8 +26,9 @@ fn tdf_reader_frames() {
             intensities: (0..10).map(|x| (x + 1) * 2).collect(),
             index: 1,
             rt: 0.1,
-            frame_type: FrameType::MS1,
-            acquisition: AcquisitionType::DDAPASEF,
+            ms_level: MSLevel::MS1,
+            quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
+            acquisition_type: AcquisitionType::DDAPASEF,
         },
         Frame {
             scan_offsets: vec![0, 5, 11, 18, 26],
@@ -33,8 +36,9 @@ fn tdf_reader_frames() {
             intensities: (10..36).map(|x| (x + 1) * 2).collect(),
             index: 2,
             rt: 0.2,
-            frame_type: FrameType::MS2,
-            acquisition: AcquisitionType::DDAPASEF,
+            ms_level: MSLevel::MS2,
+            quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
+            acquisition_type: AcquisitionType::DDAPASEF,
         },
         Frame {
             scan_offsets: vec![0, 9, 19, 30, 42],
@@ -42,8 +46,9 @@ fn tdf_reader_frames() {
             intensities: (36..78).map(|x| (x + 1) * 2).collect(),
             index: 3,
             rt: 0.3,
-            frame_type: FrameType::MS1,
-            acquisition: AcquisitionType::DDAPASEF,
+            ms_level: MSLevel::MS1,
+            quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
+            acquisition_type: AcquisitionType::DDAPASEF,
         },
         Frame {
             scan_offsets: vec![0, 13, 27, 42, 58],
@@ -51,8 +56,9 @@ fn tdf_reader_frames() {
             intensities: (78..136).map(|x| (x + 1) * 2).collect(),
             index: 4,
             rt: 0.4,
-            frame_type: FrameType::MS2,
-            acquisition: AcquisitionType::DDAPASEF,
+            ms_level: MSLevel::MS2,
+            quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
+            acquisition_type: AcquisitionType::DDAPASEF,
         },
     ];
     for i in 0..frames.len() {

@@ -1,4 +1,4 @@
-/// An MS1 precursor that got selected for fragmentation.
+/// The MS1 precursor that got selected for fragmentation.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Precursor {
     pub mz: f64,

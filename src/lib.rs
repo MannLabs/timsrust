@@ -35,6 +35,9 @@ pub use crate::{
     },
     errors::*,
     file_readers::FileReader,
-    file_writers::mgf_writer::{MGFFormat, MGFWriter},
-    ms_data::{AcquisitionType, Frame, FrameType, Precursor, Spectrum},
+    file_writers::mgf_writer::MGFWriter,
+    ms_data::{
+        AcquisitionType, Frame, MSLevel, Precursor, QuadrupoleSettings,
+        Spectrum,
+    },
 };

@@ -7,11 +7,11 @@ use {
             },
             ReadableFrames,
         },
-        AcquisitionType, ConvertableDomain, Frame, Frame2RtConverter,
-        FrameType, Scan2ImConverter, Tof2MzConverter,
+        AcquisitionType, ConvertableDomain, Frame, Frame2RtConverter, MSLevel,
+        QuadrupoleSettings, Scan2ImConverter, Tof2MzConverter,
     },
     rayon::prelude::*,
-    std::path::Path,
+    std::{path::Path, sync::Arc},
 };
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub struct TDFReader {
     pub mz_converter: Tof2MzConverter,
     pub frame_table: FrameTable,
     pub acquisition: AcquisitionType,
-    frame_types: Vec<FrameType>,
+    ms_levels: Vec<MSLevel>,
 }
 
 impl TDFReader {
@@ -41,14 +41,14 @@ impl TDFReader {
             String::from(&file_name),
             frame_table.offsets.clone(),
         );
-        let frame_types: Vec<FrameType> = frame_table
+        let ms_levels: Vec<MSLevel> = frame_table
             .msms_type
             .iter()
             .map(|msms_type| match msms_type {
-                0 => FrameType::MS1,
-                8 => FrameType::MS2,
-                9 => FrameType::MS2,
-                _ => FrameType::Unknown,
+                0 => MSLevel::MS1,
+                8 => MSLevel::MS2,
+                9 => MSLevel::MS2,
+                _ => MSLevel::Unknown,
             })
             .collect();
         let mut acquisition = AcquisitionType::Unknown;
@@ -65,7 +65,7 @@ impl TDFReader {
             mz_converter: Tof2MzConverter::from_sql(&tdf_sql_reader),
             frame_table: frame_table,
             tdf_sql_reader: tdf_sql_reader,
-            frame_types: frame_types,
+            ms_levels: ms_levels,
             acquisition: acquisition,
         }
     }
@@ -82,8 +82,11 @@ impl ReadableFrames for TDFReader {
             Frame::read_from_file(&self.tdf_bin_reader, index);
         frame.rt = self.rt_converter.convert(index as u32);
         frame.index = self.frame_table.id[index];
-        frame.frame_type = self.frame_types[index];
-        frame.acquisition = self.acquisition;
+        frame.ms_level = self.ms_levels[index];
+        frame.acquisition_type = self.acquisition;
+        if frame.ms_level == MSLevel::MS2 {
+            frame.quadrupole_settings = Arc::new(QuadrupoleSettings::default());
+        }
         frame
     }
 
@@ -97,8 +100,8 @@ impl ReadableFrames for TDFReader {
     fn read_all_ms1_frames(&self) -> Vec<Frame> {
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
-            .map(|index| match self.frame_types[index] {
-                FrameType::MS1 => self.read_single_frame(index),
+            .map(|index| match self.ms_levels[index] {
+                MSLevel::MS1 => self.read_single_frame(index),
                 _ => Frame::default(),
             })
             .collect()
@@ -107,8 +110,8 @@ impl ReadableFrames for TDFReader {
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
         (0..self.tdf_bin_reader.size())
             .into_par_iter()
-            .map(|index| match self.frame_types[index] {
-                FrameType::MS2 => self.read_single_frame(index),
+            .map(|index| match self.ms_levels[index] {
+                MSLevel::MS2 => self.read_single_frame(index),
                 _ => Frame::default(),
             })
             .collect()

@@ -1,5 +1,8 @@
+mod file_writers;
+
+use file_writers::mgf_writer::MGFFormat;
 use std::env;
-use timsrust::{FileReader, MGFFormat, MGFWriter, Spectrum};
+use timsrust::{FileReader, MGFWriter, Spectrum};
 
 fn quick_test() {
     let args: Vec<String> = env::args().collect();

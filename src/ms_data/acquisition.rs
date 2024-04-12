@@ -1,15 +1,11 @@
 /// The kind of acquisition that was used.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub enum AcquisitionType {
     DDAPASEF,
     DIAPASEF,
-    DiagonalDIAPASEF,
-    PRMPASEF,
+    // DiagonalDIAPASEF,
+    // PRMPASEF,
+    /// Default value.
+    #[default]
     Unknown,
-}
-
-impl Default for AcquisitionType {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
