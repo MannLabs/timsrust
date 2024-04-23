@@ -1,7 +1,5 @@
-mod file_writers;
-
-use file_writers::mgf_writer::MGFFormat;
 use std::env;
+use timsrust::io::writers::mgf::MGFFormat;
 use timsrust::{FileReader, MGFWriter, Spectrum};
 
 fn quick_test() {

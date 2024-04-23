@@ -28,18 +28,12 @@ impl MGFWriter {
 }
 
 pub trait MGFFormat {
-    fn as_mgf_entry(&self) -> String;
-
     fn as_mgf_header(&self) -> String;
 
     fn as_mgf_peaks(&self) -> String;
 }
 
 impl MGFFormat for Spectrum {
-    fn as_mgf_entry(&self) -> String {
-        format!("{}{}", self.as_mgf_header(), self.as_mgf_peaks())
-    }
-
     fn as_mgf_header(&self) -> String {
         let precursor = self.precursor;
         let title = precursor.index;

@@ -25,8 +25,8 @@ mod calibration;
 mod domain_converters;
 mod errors;
 mod file_readers;
-mod file_writers;
-mod ms_data;
+pub mod io;
+pub mod ms_data;
 mod utils;
 
 pub use crate::{
@@ -35,7 +35,7 @@ pub use crate::{
     },
     errors::*,
     file_readers::FileReader,
-    file_writers::mgf_writer::MGFWriter,
+    io::writers::mgf::MGFWriter,
     ms_data::{
         AcquisitionType, Frame, MSLevel, Precursor, QuadrupoleSettings,
         Spectrum,
