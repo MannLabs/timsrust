@@ -4,8 +4,8 @@
 //!
 //! Two primary data types are exposed:
 //!
-//! * [Spectra](crate::Spectrum): A traditional representation that expresses intensitites in function of mz values for a given precursor.
-//! * [Frames](crate::Frame): All recorded data from a single TIMS elution (i.e. at one specific retention_time).
+//! * [Spectra](crate::ms_data::Spectrum): A traditional representation that expresses intensitites in function of mz values for a given precursor.
+//! * [Frames](crate::ms_data::Frame): All recorded data from a single TIMS elution (i.e. at one specific retention_time).
 //!
 //! ## File formats
 //!
@@ -22,22 +22,11 @@
 //!     * *.ms2spectrum.parquet
 
 mod calibration;
-mod domain_converters;
+pub mod domain_converters;
 mod errors;
 mod file_readers;
 pub mod io;
 pub mod ms_data;
 mod utils;
 
-pub use crate::{
-    domain_converters::{
-        ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
-    },
-    errors::*,
-    file_readers::FileReader,
-    io::writers::mgf::MGFWriter,
-    ms_data::{
-        AcquisitionType, Frame, MSLevel, Precursor, QuadrupoleSettings,
-        Spectrum,
-    },
-};
+pub use crate::{errors::*, file_readers::FileReader};

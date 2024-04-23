@@ -1,5 +1,9 @@
 use {
     crate::{
+        domain_converters::{
+            ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
+            Tof2MzConverter,
+        },
         file_readers::{
             common::{
                 ms_data_blobs::ReadableFromBinFile,
@@ -8,8 +12,7 @@ use {
             ReadableFrames,
         },
         io::readers::common::tdf_blobs::TdfBlobReader,
-        AcquisitionType, ConvertableDomain, Frame, Frame2RtConverter, MSLevel,
-        QuadrupoleSettings, Scan2ImConverter, Tof2MzConverter,
+        ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
     },
     rayon::prelude::*,
     std::{path::Path, sync::Arc},

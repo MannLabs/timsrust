@@ -12,7 +12,7 @@ use {
             },
             ReadableSpectra,
         },
-        Precursor, Spectrum,
+        ms_data::{Precursor, Spectrum},
     },
     rayon::prelude::*,
     std::path::PathBuf,

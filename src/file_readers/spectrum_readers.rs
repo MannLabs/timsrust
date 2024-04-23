@@ -1,4 +1,4 @@
-use crate::Spectrum;
+use crate::ms_data::Spectrum;
 
 use self::{dda_reader::DDASpectrumReader, mini_tdf_reader::MiniTDFReader};
 

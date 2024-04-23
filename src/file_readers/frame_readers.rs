@@ -1,4 +1,4 @@
-use crate::Frame;
+use crate::ms_data::Frame;
 
 use self::tdf_reader::TDFReader;
 

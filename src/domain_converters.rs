@@ -1,3 +1,4 @@
+//! Allows conversions between domains (e.g. Time of Flight and m/z)
 mod frame_to_rt;
 mod scan_to_im;
 mod tof_to_mz;

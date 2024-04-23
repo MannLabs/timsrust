@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use crate::Spectrum;
+use crate::ms_data::Spectrum;
 
 pub struct MGFWriter {}
 

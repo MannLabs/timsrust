@@ -1,6 +1,7 @@
 use std::{path::Path, sync::Arc};
 use timsrust::{
-    AcquisitionType, FileReader, Frame, MSLevel, QuadrupoleSettings,
+    ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
+    FileReader,
 };
 
 fn get_local_directory() -> &'static Path {

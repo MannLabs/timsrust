@@ -1,6 +1,6 @@
 use crate::io::readers::common::tdf_blobs::{TdfBlob, TdfBlobReader};
 
-use crate::{Frame, Spectrum};
+use crate::ms_data::{Frame, Spectrum};
 
 pub trait ReadableFromBinFile {
     fn parse_from_ms_data_blob(buffer: TdfBlob, index: usize) -> Self;

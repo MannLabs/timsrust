@@ -1,9 +1,11 @@
 use crate::{
+    domain_converters::{ConvertableDomain, Tof2MzConverter},
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
-    ConvertableDomain, Precursor, Tof2MzConverter,
 };
 
-pub struct RawSpectrumProcessor {
+use super::Precursor;
+
+pub(crate) struct RawSpectrumProcessor {
     pub raw_spectrum: RawSpectrum,
 }
 
@@ -84,7 +86,7 @@ impl RawSpectrumProcessor {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum RawProcessedSpectrumState {
+pub(crate) enum RawProcessedSpectrumState {
     Profile,
     SmoothedProfile,
     Centroided,
@@ -98,7 +100,7 @@ impl Default for RawProcessedSpectrumState {
 }
 
 #[derive(Debug, PartialEq, Default, Clone)]
-pub struct RawSpectrum {
+pub(crate) struct RawSpectrum {
     pub tof_indices: Vec<u32>,
     pub intensities: Vec<u64>,
     pub processed_state: RawProcessedSpectrumState,

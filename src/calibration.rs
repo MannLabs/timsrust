@@ -1,6 +1,6 @@
 use crate::{
-    ms_data::spectra::RawSpectrum,
-    Precursor, {ConvertableDomain, Tof2MzConverter},
+    domain_converters::{ConvertableDomain, Tof2MzConverter},
+    ms_data::{Precursor, RawSpectrum},
 };
 
 pub struct Tof2MzCalibrator;

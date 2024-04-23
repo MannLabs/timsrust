@@ -2,13 +2,14 @@ mod precursors;
 
 use crate::{
     calibration::Tof2MzCalibrator,
+    domain_converters::Tof2MzConverter,
     file_readers::{
         frame_readers::{tdf_reader::TDFReader, ReadableFrames},
         ReadableSpectra,
     },
-    ms_data::spectra::{self, RawSpectrum, RawSpectrumProcessor},
+    ms_data::{Frame, Spectrum},
+    ms_data::{RawProcessedSpectrumState, RawSpectrum, RawSpectrumProcessor},
     utils::vec_utils::group_and_sum,
-    Frame, Spectrum, Tof2MzConverter,
 };
 
 use rayon::prelude::*;
@@ -75,7 +76,7 @@ impl DDASpectrumReader {
         let raw_spectrum = RawSpectrum {
             tof_indices: raw_tof_indices,
             intensities: raw_intensities,
-            processed_state: spectra::RawProcessedSpectrumState::Profile,
+            processed_state: RawProcessedSpectrumState::Profile,
             index: index,
         };
         let spectrum_processer = RawSpectrumProcessor { raw_spectrum };

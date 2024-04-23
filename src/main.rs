@@ -1,6 +1,6 @@
 use std::env;
 use timsrust::io::writers::mgf::MGFFormat;
-use timsrust::{FileReader, MGFWriter, Spectrum};
+use timsrust::{ms_data::Spectrum, FileReader};
 
 fn quick_test() {
     let args: Vec<String> = env::args().collect();
@@ -25,7 +25,7 @@ fn quick_test() {
         dda_spectra[spectrum_index].intensities
     );
     // println!("{:?}", dda_spectra[spectrum_index].as_mgf_entry());
-    MGFWriter::write_spectra(d_folder_name, &dda_spectra);
+    // MGFWriter::write_spectra(d_folder_name, &dda_spectra);
 }
 
 fn main() {

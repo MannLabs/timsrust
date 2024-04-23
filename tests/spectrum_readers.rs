@@ -1,5 +1,8 @@
 use std::path::Path;
-use timsrust::{FileReader, Precursor, Spectrum};
+use timsrust::{
+    ms_data::{Precursor, Spectrum},
+    FileReader,
+};
 
 fn get_local_directory() -> &'static Path {
     Path::new(std::file!())

@@ -1,7 +1,7 @@
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use std::fs::File;
 
-use crate::Precursor;
+use crate::ms_data::Precursor;
 
 pub fn read_parquet_precursors(
     parquet_file_name: &String,

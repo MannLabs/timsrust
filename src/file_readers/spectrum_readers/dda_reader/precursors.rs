@@ -1,14 +1,15 @@
 use rayon::prelude::*;
 
 use crate::{
+    domain_converters::ConvertableDomain,
     file_readers::{
         common::sql_reader::{
             PasefFrameMsMsTable, PrecursorTable, ReadableFromSql,
         },
         frame_readers::tdf_reader::TDFReader,
     },
+    ms_data::Precursor,
     utils::vec_utils::argsort,
-    ConvertableDomain, Precursor,
 };
 
 #[derive(Debug)]

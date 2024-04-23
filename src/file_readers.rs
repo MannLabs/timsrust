@@ -1,5 +1,6 @@
 use crate::{
-    Error, {Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
+    domain_converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
+    Error,
 };
 
 mod common;
@@ -12,14 +13,14 @@ use {
         file_formats::FileFormat, frame_readers::ReadableFrames,
         spectrum_readers::ReadableSpectra,
     },
-    crate::{Frame, Spectrum},
+    crate::ms_data::{Frame, Spectrum},
 };
 
 pub use file_formats::FileFormatError;
 
 use self::frame_readers::tdf_reader::TDFReader;
 
-/// A reader to read [frames](crate::Frame) and [spectra](crate::Spectrum).
+/// A reader to read [frames](crate::ms_data::Frame) and [spectra](crate::ms_data::Spectrum).
 pub struct FileReader {
     format: FileFormat,
 }
