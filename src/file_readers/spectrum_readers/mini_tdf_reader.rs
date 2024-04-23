@@ -1,10 +1,13 @@
-use crate::file_readers::FileFormatError;
+use crate::{
+    file_readers::FileFormatError,
+    io::readers::common::tdf_blobs::TdfBlobReader,
+};
 use std::fs;
 use {
     crate::{
         file_readers::{
             common::{
-                ms_data_blobs::{BinFileReader, ReadableFromBinFile},
+                ms_data_blobs::ReadableFromBinFile,
                 parquet_reader::read_parquet_precursors,
             },
             ReadableSpectra,
@@ -21,7 +24,7 @@ pub struct MiniTDFReader {
     parquet_file_name: String,
     precursors: Vec<Precursor>,
     offsets: Vec<u64>,
-    frame_reader: BinFileReader,
+    frame_reader: Option<TdfBlobReader>,
 }
 
 fn find_ms2spectrum_file(
@@ -64,13 +67,12 @@ impl MiniTDFReader {
         let parquet_file_name: String = String::default();
         let precursors: Vec<Precursor> = Vec::default();
         let offsets: Vec<u64> = Vec::default();
-        let frame_reader: BinFileReader = BinFileReader::default();
         let mut reader: MiniTDFReader = MiniTDFReader {
             path_name,
             parquet_file_name,
             precursors,
             offsets,
-            frame_reader,
+            frame_reader: None,
         };
         reader.read_parquet_file_name();
         reader.read_precursors();
@@ -97,15 +99,22 @@ impl MiniTDFReader {
             find_ms2spectrum_file(&self.path_name, "bin".to_owned()).unwrap();
         path.push(ms2_bin_file);
         let file_name: String = path.to_string_lossy().into_owned();
-        self.frame_reader =
-            BinFileReader::new(String::from(&file_name), self.offsets.clone());
+        self.frame_reader = Some(
+            TdfBlobReader::new(
+                String::from(&file_name),
+                self.offsets.iter().map(|x| *x as usize).collect(),
+            )
+            .unwrap(),
+        );
     }
 }
 
 impl ReadableSpectra for MiniTDFReader {
     fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        let mut spectrum: Spectrum =
-            Spectrum::read_from_file(&self.frame_reader, index);
+        let mut spectrum: Spectrum = Spectrum::read_from_file(
+            &self.frame_reader.as_ref().unwrap(),
+            index,
+        );
         spectrum.precursor = self.precursors[index];
         spectrum.index = self.precursors[index].index;
         spectrum

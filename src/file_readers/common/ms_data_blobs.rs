@@ -1,83 +1,32 @@
-mod parsers;
-
-use std::fs::File;
-
-use memmap2::Mmap;
-use zstd::decode_all;
+use crate::io::readers::common::tdf_blobs::{TdfBlob, TdfBlobReader};
 
 use crate::{Frame, Spectrum};
 
-use self::parsers::parse_frame;
-
-#[derive(Debug, Default)]
-pub struct BinFileReader {
-    file_offsets: Vec<u64>,
-    mmap: Option<Mmap>,
-}
-
-impl BinFileReader {
-    pub fn new(file_name: String, file_offsets: Vec<u64>) -> Self {
-        let tdf_bin_file: File = File::open(&file_name)
-            .expect("File cannot be opened. Is the path correct?");
-        let mmap: Option<Mmap> =
-            Some(unsafe { Mmap::map(&tdf_bin_file).unwrap() });
-        Self { file_offsets, mmap }
-    }
-
-    fn read_blob(&self, index: usize) -> Vec<u8> {
-        let offset: u64 = self.file_offsets[index as usize];
-        if let Some(mmap) = self.mmap.as_ref() {
-            let raw_byte_count: &[u8] =
-                &mmap[offset as usize..(offset + 4) as usize];
-            let byte_count: u32 =
-                u32::from_le_bytes(raw_byte_count.try_into().unwrap());
-            if byte_count > 8 {
-                let compressed_blob: &[u8] = &mmap[(offset + 8) as usize
-                    ..offset as usize + byte_count as usize];
-                let blob: Vec<u8> = decode_all(compressed_blob).unwrap();
-                return blob;
-            }
-        };
-        return vec![];
-    }
-
-    pub fn size(&self) -> usize {
-        self.file_offsets.len()
-    }
-}
-
 pub trait ReadableFromBinFile {
-    fn parse_from_ms_data_blob(buffer: Vec<u8>, index: usize) -> Self;
+    fn parse_from_ms_data_blob(buffer: TdfBlob, index: usize) -> Self;
 
-    fn read_from_file(bin_file: &BinFileReader, index: usize) -> Self
+    fn read_from_file(bin_file: &TdfBlobReader, index: usize) -> Self
     where
         Self: Sized,
     {
-        let blob: Vec<u8> = bin_file.read_blob(index);
+        let blob = bin_file.get_blob(index);
         Self::parse_from_ms_data_blob(blob, index)
     }
 }
 
 impl ReadableFromBinFile for Spectrum {
-    fn parse_from_ms_data_blob(blob: Vec<u8>, index: usize) -> Self {
+    fn parse_from_ms_data_blob(blob: TdfBlob, index: usize) -> Self {
         let mut spectrum: Spectrum = Spectrum::default();
         spectrum.index = index;
         if blob.len() == 0 {
             return spectrum;
         };
-        let size: usize = blob.len() / std::mem::size_of::<u32>();
-        let first: &[u8] = &blob[0 * size..1 * size];
-        let second: &[u8] = &blob[1 * size..2 * size];
-        let third: &[u8] = &blob[2 * size..3 * size];
-        let fourth: &[u8] = &blob[3 * size..4 * size];
+        let size: usize = blob.len();
         let mut spectrum_data: Vec<u32> = vec![0; size];
         for i in 0..size {
-            spectrum_data[i] = first[i] as u32;
-            spectrum_data[i] |= (second[i] as u32) << 8;
-            spectrum_data[i] |= (third[i] as u32) << 16;
-            spectrum_data[i] |= (fourth[i] as u32) << 24;
+            spectrum_data[i] = blob.get(i)
         }
-        let scan_count: usize = blob.len() / 3 / std::mem::size_of::<u32>();
+        let scan_count: usize = blob.len() / 3;
         let tof_indices_bytes: &[u32] =
             &spectrum_data[..scan_count as usize * 2];
         let intensities_bytes: &[u32] =
@@ -94,11 +43,76 @@ impl ReadableFromBinFile for Spectrum {
 }
 
 impl ReadableFromBinFile for Frame {
-    fn parse_from_ms_data_blob(blob: Vec<u8>, index: usize) -> Self {
+    fn parse_from_ms_data_blob(blob: TdfBlob, index: usize) -> Self {
         let mut frame = Frame::default();
         (frame.scan_offsets, frame.tof_indices, frame.intensities) =
             parse_frame(blob);
         frame.index = index;
         frame
     }
+}
+
+pub fn parse_frame(blob: TdfBlob) -> (Vec<usize>, Vec<u32>, Vec<u32>) {
+    let mut tof_indices: Vec<u32> = vec![];
+    let mut intensities: Vec<u32> = vec![];
+    let mut scan_offsets: Vec<usize> = vec![];
+    if blob.len() != 0 {
+        let scan_count: usize = blob.get(0) as usize;
+        let peak_count: usize = (blob.len() - scan_count) / 2;
+        scan_offsets = read_scan_offsets(scan_count, peak_count, &blob);
+        intensities = read_intensities(scan_count, peak_count, &blob);
+        tof_indices =
+            read_tof_indices(scan_count, peak_count, &blob, &scan_offsets);
+    }
+    (scan_offsets, tof_indices, intensities)
+}
+
+fn read_scan_offsets(
+    scan_count: usize,
+    peak_count: usize,
+    blob: &TdfBlob,
+) -> Vec<usize> {
+    let mut scan_offsets: Vec<usize> = Vec::with_capacity(scan_count + 1);
+    scan_offsets.push(0);
+    for scan_index in 0..scan_count - 1 {
+        let index = scan_index + 1;
+        let scan_size: usize = (blob.get(index) / 2) as usize;
+        scan_offsets.push(scan_offsets[scan_index] + scan_size);
+    }
+    scan_offsets.push(peak_count);
+    scan_offsets
+}
+
+fn read_intensities(
+    scan_count: usize,
+    peak_count: usize,
+    blob: &TdfBlob,
+) -> Vec<u32> {
+    let mut intensities: Vec<u32> = Vec::with_capacity(peak_count);
+    for peak_index in 0..peak_count {
+        let index: usize = scan_count + 1 + 2 * peak_index;
+        intensities.push(blob.get(index));
+    }
+    intensities
+}
+
+fn read_tof_indices(
+    scan_count: usize,
+    peak_count: usize,
+    blob: &TdfBlob,
+    scan_offsets: &Vec<usize>,
+) -> Vec<u32> {
+    let mut tof_indices: Vec<u32> = Vec::with_capacity(peak_count);
+    for scan_index in 0..scan_count {
+        let start_offset: usize = scan_offsets[scan_index];
+        let end_offset: usize = scan_offsets[scan_index + 1];
+        let mut current_sum: u32 = 0;
+        for peak_index in start_offset..end_offset {
+            let index = scan_count + 2 * peak_index;
+            let tof_index: u32 = blob.get(index);
+            current_sum += tof_index;
+            tof_indices.push(current_sum - 1);
+        }
+    }
+    tof_indices
 }

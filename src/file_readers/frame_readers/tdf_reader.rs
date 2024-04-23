@@ -2,11 +2,12 @@ use {
     crate::{
         file_readers::{
             common::{
-                ms_data_blobs::{BinFileReader, ReadableFromBinFile},
+                ms_data_blobs::ReadableFromBinFile,
                 sql_reader::{FrameTable, ReadableFromSql, SqlReader},
             },
             ReadableFrames,
         },
+        io::readers::common::tdf_blobs::TdfBlobReader,
         AcquisitionType, ConvertableDomain, Frame, Frame2RtConverter, MSLevel,
         QuadrupoleSettings, Scan2ImConverter, Tof2MzConverter,
     },
@@ -18,7 +19,7 @@ use {
 pub struct TDFReader {
     pub path: String,
     pub tdf_sql_reader: SqlReader,
-    tdf_bin_reader: BinFileReader,
+    tdf_bin_reader: TdfBlobReader,
     pub rt_converter: Frame2RtConverter,
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
@@ -37,10 +38,11 @@ impl TDFReader {
             .join("analysis.tdf_bin")
             .to_string_lossy()
             .to_string();
-        let tdf_bin_reader: BinFileReader = BinFileReader::new(
+        let tdf_bin_reader: TdfBlobReader = TdfBlobReader::new(
             String::from(&file_name),
-            frame_table.offsets.clone(),
-        );
+            frame_table.offsets.iter().map(|x| *x as usize).collect(),
+        )
+        .unwrap();
         let ms_levels: Vec<MSLevel> = frame_table
             .msms_type
             .iter()
@@ -91,14 +93,14 @@ impl ReadableFrames for TDFReader {
     }
 
     fn read_all_frames(&self) -> Vec<Frame> {
-        (0..self.tdf_bin_reader.size())
+        (0..self.tdf_bin_reader.len())
             .into_par_iter()
             .map(|index| self.read_single_frame(index))
             .collect()
     }
 
     fn read_all_ms1_frames(&self) -> Vec<Frame> {
-        (0..self.tdf_bin_reader.size())
+        (0..self.tdf_bin_reader.len())
             .into_par_iter()
             .map(|index| match self.ms_levels[index] {
                 MSLevel::MS1 => self.read_single_frame(index),
@@ -108,7 +110,7 @@ impl ReadableFrames for TDFReader {
     }
 
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
-        (0..self.tdf_bin_reader.size())
+        (0..self.tdf_bin_reader.len())
             .into_par_iter()
             .map(|index| match self.ms_levels[index] {
                 MSLevel::MS2 => self.read_single_frame(index),
