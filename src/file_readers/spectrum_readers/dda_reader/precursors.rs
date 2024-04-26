@@ -30,7 +30,7 @@ impl PrecursorReader {
             PasefFrameMsMsTable::from_sql(&tdf_reader.tdf_sql_reader);
         let precursor_table: PrecursorTable =
             PrecursorTable::from_sql(&tdf_reader.tdf_sql_reader);
-        let retention_times: Vec<f64> = tdf_reader.frame_table.rt.clone();
+        // let retention_times: Vec<f64> = tdf_reader.frame_table.rt.clone();
         let collision_energies = tdf_reader
             .tdf_sql_reader
             .get_data_from_sql(&select_collision_energy_sql);
@@ -41,7 +41,7 @@ impl PrecursorReader {
                 let scan_id: f64 = precursor_table.scan_average[index];
                 Precursor {
                     mz: precursor_table.mz[index],
-                    rt: retention_times[frame_id],
+                    rt: tdf_reader.rt_converter.convert(frame_id as u32),
                     im: tdf_reader.im_converter.convert(scan_id),
                     charge: precursor_table.charge[index],
                     intensity: precursor_table.intensity[index],
