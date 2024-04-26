@@ -2,5 +2,5 @@
 
 # Set the maximum line width to 100 characters
 match_block_trailing_comma = true
-max_width = 80
+max_width = 100
 newline_style = "Unix"
