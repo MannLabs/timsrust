@@ -1,16 +1,14 @@
 use crate::{
     file_readers::FileFormatError,
-    io::readers::common::tdf_blobs::TdfBlobReader,
+    io::readers::common::tdf_blobs::{
+        IndexedTdfBlobReader, TdfBlob, TdfBlobParsable,
+    },
 };
 use std::fs;
 use {
     crate::{
         file_readers::{
-            common::{
-                ms_data_blobs::ReadableFromBinFile,
-                parquet_reader::read_parquet_precursors,
-            },
-            ReadableSpectra,
+            common::parquet_reader::read_parquet_precursors, ReadableSpectra,
         },
         ms_data::{Precursor, Spectrum},
     },
@@ -24,7 +22,7 @@ pub struct MiniTDFReader {
     parquet_file_name: String,
     precursors: Vec<Precursor>,
     offsets: Vec<u64>,
-    frame_reader: Option<TdfBlobReader>,
+    frame_reader: Option<IndexedTdfBlobReader>,
 }
 
 fn find_ms2spectrum_file(
@@ -100,7 +98,7 @@ impl MiniTDFReader {
         path.push(ms2_bin_file);
         let file_name: String = path.to_string_lossy().into_owned();
         self.frame_reader = Some(
-            TdfBlobReader::new(
+            IndexedTdfBlobReader::new(
                 String::from(&file_name),
                 self.offsets.iter().map(|x| *x as usize).collect(),
             )
@@ -111,7 +109,7 @@ impl MiniTDFReader {
 
 impl ReadableSpectra for MiniTDFReader {
     fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        let mut spectrum: Spectrum = Spectrum::read_from_file(
+        let mut spectrum: Spectrum = Spectrum::create_from_tdf_blob_reader(
             &self.frame_reader.as_ref().unwrap(),
             index,
         );
@@ -132,5 +130,27 @@ impl ReadableSpectra for MiniTDFReader {
             y.total_cmp(&x)
         });
         spectra
+    }
+}
+
+impl TdfBlobParsable for Spectrum {
+    fn set_tdf_blob_index(&mut self, index: usize) {
+        self.index = index;
+    }
+
+    fn update_from_tdf_blob(&mut self, blob: TdfBlob) {
+        let size: usize = blob.len();
+        let spectrum_data: Vec<u32> = (0..size).map(|i| blob.get(i)).collect();
+        let scan_count: usize = blob.len() / 3;
+        let tof_indices_bytes: &[u32] =
+            &spectrum_data[..scan_count as usize * 2];
+        let intensities_bytes: &[u32] =
+            &spectrum_data[scan_count as usize * 2..];
+        let mz_values: &[f64] =
+            bytemuck::cast_slice::<u32, f64>(tof_indices_bytes);
+        let intensity_values: &[f32] =
+            bytemuck::cast_slice::<u32, f32>(intensities_bytes);
+        self.intensities = intensity_values.iter().map(|&x| x as f64).collect();
+        self.mz_values = mz_values.to_vec();
     }
 }
