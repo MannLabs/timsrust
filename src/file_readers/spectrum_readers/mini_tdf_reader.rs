@@ -1,6 +1,6 @@
 use crate::{
     file_readers::FileFormatError,
-    io::readers::common::tdf_blobs::{
+    io::readers::file_readers::tdf_blobs::{
         IndexedTdfBlobReader, TdfBlob, TdfBlobParsable,
     },
 };

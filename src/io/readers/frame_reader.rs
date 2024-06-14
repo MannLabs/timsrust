@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::ms_data::{AcquisitionType, Frame, MSLevel};
 
-use super::common::{
+use super::file_readers::{
     sql_frames::SqlFrame,
     sql_reader::{SqlReadable, SqlReader},
     tdf_blobs::{TdfBlob, TdfBlobReader},

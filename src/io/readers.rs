@@ -1,2 +1,2 @@
-pub(crate) mod common;
+pub(crate) mod file_readers;
 pub mod frame_reader;
