@@ -12,6 +12,7 @@ pub struct Frame {
     pub acquisition_type: AcquisitionType,
     pub ms_level: MSLevel,
     pub quadrupole_settings: Arc<QuadrupoleSettings>,
+    pub intensity_correction_factor: f64,
 }
 
 /// The MS level used.

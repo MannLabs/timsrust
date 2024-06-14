@@ -14,7 +14,7 @@ use super::common::{
 pub struct FrameReader {
     path: PathBuf,
     tdf_bin_reader: TdfBlobReader,
-    pub sql_frames: Vec<SqlFrame>,
+    sql_frames: Vec<SqlFrame>,
     acquisition: AcquisitionType,
 }
 
@@ -49,38 +49,7 @@ impl FrameReader {
             .into_par_iter()
             .filter(move |x| predicate(&self.sql_frames[*x]))
             .map(move |x| self.get(x))
-        // (0..self.len()).into_par_iter().map(move |x| {
-        //     if predicate(&self.sql_frames[x]) {
-        //         self.get(x)
-        //     } else {
-        //         Frame::default()
-        //     }
-        // })
     }
-
-    // pub fn parallel_filter2<
-    //     'a,
-    //     T: Default + Sync + Send,
-    //     Y: Default,
-    //     F: Fn(&Y) -> bool + Sync + Send + 'a,
-    // >(
-    //     &'a self,
-    //     predicate: F,
-    // ) -> impl ParallelIterator<Item = T> + 'a {
-    //     (0..self.len())
-    //         .into_par_iter()
-    //         .filter(move |x| predicate(&Y::default()))
-    //         .map(move |x| T::default())
-    //     // (0..self.len()).into_par_iter().map(move |x| {
-    //     //     if predicate(&Y::default()) {
-    //     //         // self.get(x)
-    //     //         T::default()
-    //     //     } else {
-    //     //         // Frame::default()
-    //     //         T::default()
-    //     //     }
-    //     // })
-    // }
 
     pub fn get(&self, index: usize) -> Frame {
         let mut frame: Frame = Frame::default();
@@ -108,6 +77,7 @@ impl FrameReader {
         frame.index = sql_frame.id;
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
+        frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
         frame
     }
 
@@ -117,6 +87,10 @@ impl FrameReader {
 
     pub fn len(&self) -> usize {
         self.sql_frames.len()
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        self.path.clone()
     }
 }
 

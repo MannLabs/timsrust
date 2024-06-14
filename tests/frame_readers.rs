@@ -30,6 +30,7 @@ fn tdf_reader_frames1() {
             ms_level: MSLevel::MS1,
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
+            intensity_correction_factor: 1.0 / 100.0,
         },
         // Frame::default(),
         Frame {
@@ -41,6 +42,7 @@ fn tdf_reader_frames1() {
             ms_level: MSLevel::MS1,
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
+            intensity_correction_factor: 1.0 / 100.0,
         },
         // Frame::default(),
     ];
@@ -70,6 +72,7 @@ fn tdf_reader_frames2() {
             ms_level: MSLevel::MS2,
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
+            intensity_correction_factor: 1.0 / 100.0,
         },
         // Frame::default(),
         Frame {
@@ -81,6 +84,7 @@ fn tdf_reader_frames2() {
             ms_level: MSLevel::MS2,
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
+            intensity_correction_factor: 1.0 / 100.0,
         },
     ];
     for i in 0..expected.len() {
