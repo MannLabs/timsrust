@@ -49,23 +49,27 @@ impl DDASpectrumReader {
         let mut tof_indices: Vec<u32> = vec![];
         let mut intensities: Vec<u32> = vec![];
         for &index in selection.iter() {
-            let frame: usize =
+            let frame_index: usize =
                 self.precursor_reader.pasef_frames.frame[index] - 1;
-            if self.ms2_frames[frame].intensities.len() == 0 {
+            // let frame: &Frame = &self.ms2_frames[frame_index];
+            let frame: &Frame = &self
+                .ms2_frames
+                .iter()
+                .find(|&x| x.index == frame_index + 1)
+                .unwrap();
+            if frame.intensities.len() == 0 {
                 continue;
             }
             let scan_start: usize =
                 self.precursor_reader.pasef_frames.scan_start[index];
             let scan_end: usize =
                 self.precursor_reader.pasef_frames.scan_end[index];
-            let offset_start: usize =
-                self.ms2_frames[frame].scan_offsets[scan_start] as usize;
-            let offset_end: usize =
-                self.ms2_frames[frame].scan_offsets[scan_end] as usize;
+            let offset_start: usize = frame.scan_offsets[scan_start] as usize;
+            let offset_end: usize = frame.scan_offsets[scan_end] as usize;
             let tof_selection: &[u32] =
-                &self.ms2_frames[frame].tof_indices[offset_start..offset_end];
+                &frame.tof_indices[offset_start..offset_end];
             let intensity_selection: &[u32] =
-                &self.ms2_frames[frame].intensities[offset_start..offset_end];
+                &frame.intensities[offset_start..offset_end];
             tof_indices.extend(tof_selection);
             intensities.extend(intensity_selection);
         }
