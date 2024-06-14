@@ -27,7 +27,7 @@ fn read_tof_max_index(connection: &Connection) -> u32 {
             |row| row.get(0),
         )
         .unwrap();
-    let mut tof_max_index: u32 = tof_max_index_string.parse().unwrap();
+    let tof_max_index: u32 = tof_max_index_string.parse().unwrap();
     tof_max_index
 }
 

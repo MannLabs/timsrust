@@ -3,7 +3,6 @@ use std::{fs, path::PathBuf};
 use crate::{io::readers::frame_reader::FrameReader, ms_data::Frame};
 use rayon::iter::ParallelIterator;
 
-use super::common::sql_reader::SqlReader;
 pub enum FileFormat {
     DFolder(PathBuf),
     MS2Folder(PathBuf),
