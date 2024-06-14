@@ -1,3 +1,6 @@
+pub mod frames;
+pub mod precursors;
+
 use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;

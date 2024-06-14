@@ -1,15 +1,14 @@
 use crate::{
     file_readers::FileFormatError,
-    io::readers::file_readers::tdf_blobs::{
-        IndexedTdfBlobReader, TdfBlob, TdfBlobParsable,
+    io::readers::file_readers::{
+        parquet_reader::read_parquet_precursors,
+        tdf_blobs::{IndexedTdfBlobReader, TdfBlob, TdfBlobParsable},
     },
 };
 use std::fs;
 use {
     crate::{
-        file_readers::{
-            common::parquet_reader::read_parquet_precursors, ReadableSpectra,
-        },
+        file_readers::ReadableSpectra,
         ms_data::{Precursor, Spectrum},
     },
     rayon::prelude::*,

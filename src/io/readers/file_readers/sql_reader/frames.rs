@@ -1,4 +1,4 @@
-use super::sql_reader::SqlReadable;
+use super::SqlReadable;
 
 #[derive(Debug, PartialEq)]
 pub struct SqlFrame {
@@ -18,7 +18,7 @@ impl SqlReadable for SqlFrame {
     }
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
-        SqlFrame {
+        Self {
             id: row.get(0).unwrap_or_default(),
             scan_mode: row.get(1).unwrap_or_default(),
             msms_type: row.get(2).unwrap_or_default(),

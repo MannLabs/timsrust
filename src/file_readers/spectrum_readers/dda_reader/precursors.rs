@@ -1,11 +1,17 @@
+use std::path::Path;
+
 use rayon::prelude::*;
 
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
     },
-    file_readers::common::sql_reader::{
-        PasefFrameMsMsTable, PrecursorTable, ReadableFromSql, SqlReader,
+    file_readers::{
+        self,
+        common::sql_reader::{PasefFrameMsMsTable, ReadableFromSql},
+    },
+    io::readers::file_readers::sql_reader::{
+        precursors::SqlPrecursor, SqlReadable, SqlReader,
     },
     ms_data::Precursor,
     utils::vec_utils::argsort,
@@ -22,7 +28,7 @@ pub struct PrecursorReader {
 
 impl PrecursorReader {
     pub fn new(path: &String) -> Self {
-        let tdf_sql_reader: SqlReader = SqlReader {
+        let tdf_sql_reader = file_readers::common::sql_reader::SqlReader {
             path: String::from(path),
         };
         let rt_converter: Frame2RtConverter =
@@ -34,21 +40,27 @@ impl PrecursorReader {
         );
         let pasef_frames: PasefFrameMsMsTable =
             PasefFrameMsMsTable::from_sql(&tdf_sql_reader);
-        let precursor_table: PrecursorTable =
-            PrecursorTable::from_sql(&tdf_sql_reader);
+        // let precursor_table: PrecursorTable =
+        //     PrecursorTable::from_sql(&tdf_sql_reader);
+
+        let tdf_sql_reader2 =
+            SqlReader::open(Path::new(path).join("analysis.tdf")).unwrap();
+
+        let precursors =
+            SqlPrecursor::from_sql_reader(&tdf_sql_reader2).unwrap();
         let collision_energies =
             tdf_sql_reader.get_data_from_sql(&select_collision_energy_sql);
-        let precursors: Vec<Precursor> = (0..precursor_table.mz.len())
+        let precursors: Vec<Precursor> = (0..precursors.len())
             .into_par_iter()
             .map(|index| {
-                let frame_id: usize = precursor_table.precursor_frame[index];
-                let scan_id: f64 = precursor_table.scan_average[index];
+                let frame_id: usize = precursors[index].precursor_frame;
+                let scan_id: f64 = precursors[index].scan_average;
                 Precursor {
-                    mz: precursor_table.mz[index],
+                    mz: precursors[index].mz,
                     rt: rt_converter.convert(frame_id as u32),
                     im: im_converter.convert(scan_id),
-                    charge: precursor_table.charge[index],
-                    intensity: precursor_table.intensity[index],
+                    charge: precursors[index].charge,
+                    intensity: precursors[index].intensity,
                     index: index + 1, //TODO?
                     frame_index: frame_id,
                     collision_energy: collision_energies[index],
