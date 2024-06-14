@@ -33,17 +33,12 @@ impl PrecursorReader {
             Frame2RtConverter::from_sql(&tdf_sql_reader);
         let im_converter: Scan2ImConverter =
             Scan2ImConverter::from_sql(&tdf_sql_reader);
-        let select_collision_energy_sql = String::from(
-            "SELECT CollisionEnergy FROM PasefFrameMsMsInfo GROUP BY Precursor",
-        );
         let tdf_sql_reader2 =
             SqlReader::open(Path::new(path).join("analysis.tdf")).unwrap();
         let pasef_frames =
             SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader2).unwrap();
         let precursors =
             SqlPrecursor::from_sql_reader(&tdf_sql_reader2).unwrap();
-        let collision_energies =
-            tdf_sql_reader.get_data_from_sql(&select_collision_energy_sql);
         let precursors: Vec<Precursor> = (0..precursors.len())
             .into_par_iter()
             .map(|index| {
@@ -57,7 +52,12 @@ impl PrecursorReader {
                     intensity: precursors[index].intensity,
                     index: index + 1, //TODO?
                     frame_index: frame_id,
-                    collision_energy: collision_energies[index],
+                    // TODO OPTIMIZE!!!!!
+                    collision_energy: pasef_frames
+                        .iter()
+                        .find(|&x| x.precursor == index + 1)
+                        .unwrap()
+                        .collision_energy,
                 }
             })
             .collect();
