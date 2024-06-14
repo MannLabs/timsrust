@@ -28,7 +28,7 @@ impl FrameReader {
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
-            AcquisitionType::DDAPASEF
+            AcquisitionType::DIAPASEF
         } else {
             AcquisitionType::Unknown
         };
