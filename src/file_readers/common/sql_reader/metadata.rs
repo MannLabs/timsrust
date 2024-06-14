@@ -4,6 +4,19 @@ use crate::domain_converters::{Scan2ImConverter, Tof2MzConverter};
 
 use super::{get_sql_connection, ReadableFromSql, SqlReader};
 
+const OTOF_CONTROL: &str = "Bruker otofControl";
+
+fn read_software(connection: &Connection) -> String {
+    let software: String = connection
+        .query_row(
+            "SELECT Value FROM GlobalMetadata WHERE Key = 'AcquisitionSoftware'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    software
+}
+
 fn read_tof_max_index(connection: &Connection) -> u32 {
     let tof_max_index_string: String = connection
         .query_row(
@@ -12,7 +25,7 @@ fn read_tof_max_index(connection: &Connection) -> u32 {
             |row| row.get(0),
         )
         .unwrap();
-    let tof_max_index: u32 = tof_max_index_string.parse().unwrap();
+    let mut tof_max_index: u32 = tof_max_index_string.parse().unwrap();
     tof_max_index
 }
 
@@ -24,7 +37,10 @@ fn read_mz_max_value(connection: &Connection) -> f64 {
             |row| row.get(0),
         )
         .unwrap();
-    let mz_max_value: f64 = mz_max_value_string.parse().unwrap();
+    let mut mz_max_value: f64 = mz_max_value_string.parse().unwrap();
+    if read_software(connection) == OTOF_CONTROL {
+        mz_max_value += 5.0;
+    }
     mz_max_value
 }
 
@@ -36,7 +52,10 @@ fn read_mz_min_value(connection: &Connection) -> f64 {
             |row| row.get(0),
         )
         .unwrap();
-    let mz_min_value: f64 = mz_min_value_string.parse().unwrap();
+    let mut mz_min_value: f64 = mz_min_value_string.parse().unwrap();
+    if read_software(connection) == OTOF_CONTROL {
+        mz_min_value -= 5.0;
+    }
     mz_min_value
 }
 
