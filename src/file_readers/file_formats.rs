@@ -1,5 +1,9 @@
 use std::{fs, path::PathBuf};
 
+use crate::{io::readers::frame_reader::FrameReader, ms_data::Frame};
+use rayon::iter::ParallelIterator;
+
+use super::common::sql_reader::SqlReader;
 pub enum FileFormat {
     DFolder(PathBuf),
     MS2Folder(PathBuf),
@@ -70,6 +74,40 @@ fn folder_contains_extension(
         }
     }
     false
+}
+
+impl FileFormat {
+    fn get_frame_reader(&self) -> FrameReader {
+        let path = match &self {
+            Self::DFolder(path) => path,
+            Self::MS2Folder(path) => panic!(
+                "Folder {:} is not frame readable",
+                path.to_str().unwrap_or_default().to_string()
+            ),
+        };
+        let frame_reader: FrameReader = FrameReader::new(&path);
+        frame_reader
+    }
+
+    pub fn read_single_frame(&self, index: usize) -> Frame {
+        self.get_frame_reader().get(index)
+    }
+
+    pub fn read_all_frames(&self) -> Vec<Frame> {
+        self.get_frame_reader().parallel_filter(|_| true).collect()
+    }
+
+    pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
+        self.get_frame_reader()
+            .parallel_filter(|x| x.msms_type == 0)
+            .collect()
+    }
+
+    pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
+        self.get_frame_reader()
+            .parallel_filter(|x| x.msms_type != 0)
+            .collect()
+    }
 }
 
 #[derive(thiserror::Error, Debug)]

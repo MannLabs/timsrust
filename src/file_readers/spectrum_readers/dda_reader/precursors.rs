@@ -1,12 +1,11 @@
 use rayon::prelude::*;
 
 use crate::{
-    domain_converters::ConvertableDomain,
-    file_readers::{
-        common::sql_reader::{
-            PasefFrameMsMsTable, PrecursorTable, ReadableFromSql,
-        },
-        frame_readers::tdf_reader::TDFReader,
+    domain_converters::{
+        ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+    },
+    file_readers::common::sql_reader::{
+        PasefFrameMsMsTable, PrecursorTable, ReadableFromSql, SqlReader,
     },
     ms_data::Precursor,
     utils::vec_utils::argsort,
@@ -22,18 +21,23 @@ pub struct PrecursorReader {
 }
 
 impl PrecursorReader {
-    pub fn new(tdf_reader: &TDFReader) -> Self {
+    pub fn new(path: &String) -> Self {
+        let tdf_sql_reader: SqlReader = SqlReader {
+            path: String::from(path),
+        };
+        let rt_converter: Frame2RtConverter =
+            Frame2RtConverter::from_sql(&tdf_sql_reader);
+        let im_converter: Scan2ImConverter =
+            Scan2ImConverter::from_sql(&tdf_sql_reader);
         let select_collision_energy_sql = String::from(
             "SELECT CollisionEnergy FROM PasefFrameMsMsInfo GROUP BY Precursor",
         );
         let pasef_frames: PasefFrameMsMsTable =
-            PasefFrameMsMsTable::from_sql(&tdf_reader.tdf_sql_reader);
+            PasefFrameMsMsTable::from_sql(&tdf_sql_reader);
         let precursor_table: PrecursorTable =
-            PrecursorTable::from_sql(&tdf_reader.tdf_sql_reader);
-        // let retention_times: Vec<f64> = tdf_reader.frame_table.rt.clone();
-        let collision_energies = tdf_reader
-            .tdf_sql_reader
-            .get_data_from_sql(&select_collision_energy_sql);
+            PrecursorTable::from_sql(&tdf_sql_reader);
+        let collision_energies =
+            tdf_sql_reader.get_data_from_sql(&select_collision_energy_sql);
         let precursors: Vec<Precursor> = (0..precursor_table.mz.len())
             .into_par_iter()
             .map(|index| {
@@ -41,8 +45,8 @@ impl PrecursorReader {
                 let scan_id: f64 = precursor_table.scan_average[index];
                 Precursor {
                     mz: precursor_table.mz[index],
-                    rt: tdf_reader.rt_converter.convert(frame_id as u32),
-                    im: tdf_reader.im_converter.convert(scan_id),
+                    rt: rt_converter.convert(frame_id as u32),
+                    im: im_converter.convert(scan_id),
                     charge: precursor_table.charge[index],
                     intensity: precursor_table.intensity[index],
                     index: index + 1, //TODO?

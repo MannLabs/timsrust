@@ -4,11 +4,14 @@ use crate::{
     calibration::Tof2MzCalibrator,
     domain_converters::Tof2MzConverter,
     file_readers::{
-        frame_readers::{tdf_reader::TDFReader, ReadableFrames},
+        common::sql_reader::{ReadableFromSql, SqlReader},
         ReadableSpectra,
     },
-    ms_data::{Frame, Spectrum},
-    ms_data::{RawProcessedSpectrumState, RawSpectrum, RawSpectrumProcessor},
+    io::readers::frame_reader::FrameReader,
+    ms_data::{
+        Frame, RawProcessedSpectrumState, RawSpectrum, RawSpectrumProcessor,
+        Spectrum,
+    },
     utils::vec_utils::group_and_sum,
 };
 
@@ -29,11 +32,18 @@ pub struct DDASpectrumReader {
 
 impl DDASpectrumReader {
     pub fn new(path_name: String) -> Self {
-        let tdf_reader: TDFReader = TDFReader::new(&path_name.to_string());
-        let mz_reader: Tof2MzConverter = tdf_reader.mz_converter.clone();
-        let ms2_frames: Vec<Frame> = tdf_reader.read_all_ms2_frames();
+        // let tdf_reader: TDFReader = TDFReader::new(&path_name.to_string());
+        let tdf_sql_reader: SqlReader = SqlReader {
+            path: String::from(&path_name),
+        };
+        let frame_reader: FrameReader = FrameReader::new(&path_name);
+        let mz_reader: Tof2MzConverter =
+            Tof2MzConverter::from_sql(&tdf_sql_reader);
+
+        let ms2_frames: Vec<Frame> =
+            frame_reader.parallel_filter(|x| x.msms_type != 0).collect();
         let precursor_reader: PrecursorReader =
-            PrecursorReader::new(&tdf_reader);
+            PrecursorReader::new(&path_name);
         Self {
             path_name,
             precursor_reader,
