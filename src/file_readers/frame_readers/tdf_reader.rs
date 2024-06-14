@@ -7,6 +7,7 @@ use crate::{
     io::readers::frame_reader::FrameReader,
     ms_data::Frame,
 };
+use rayon::iter::ParallelIterator;
 
 #[derive(Debug)]
 pub struct TDFReader {
@@ -41,14 +42,18 @@ impl ReadableFrames for TDFReader {
     }
 
     fn read_all_frames(&self) -> Vec<Frame> {
-        self.frame_reader.collect(|_| true)
+        self.frame_reader.parallel_filter(|_| true).collect()
     }
 
     fn read_all_ms1_frames(&self) -> Vec<Frame> {
-        self.frame_reader.collect(|x| x.msms_type == 0)
+        self.frame_reader
+            .parallel_filter(|x| x.msms_type == 0)
+            .collect()
     }
 
     fn read_all_ms2_frames(&self) -> Vec<Frame> {
-        self.frame_reader.collect(|x| x.msms_type != 0)
+        self.frame_reader
+            .parallel_filter(|x| x.msms_type != 0)
+            .collect()
     }
 }
