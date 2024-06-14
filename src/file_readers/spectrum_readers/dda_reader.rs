@@ -60,7 +60,7 @@ impl DDASpectrumReader {
         let mut intensities: Vec<u32> = vec![];
         for &index in selection.iter() {
             let frame_index: usize =
-                self.precursor_reader.pasef_frames.frame[index] - 1;
+                self.precursor_reader.pasef_frames[index].frame - 1;
             // let frame: &Frame = &self.ms2_frames[frame_index];
             let frame: &Frame = &self
                 .ms2_frames
@@ -71,9 +71,9 @@ impl DDASpectrumReader {
                 continue;
             }
             let scan_start: usize =
-                self.precursor_reader.pasef_frames.scan_start[index];
+                self.precursor_reader.pasef_frames[index].scan_start;
             let scan_end: usize =
-                self.precursor_reader.pasef_frames.scan_end[index];
+                self.precursor_reader.pasef_frames[index].scan_end;
             let offset_start: usize = frame.scan_offsets[scan_start] as usize;
             let offset_end: usize = frame.scan_offsets[scan_end] as usize;
             let tof_selection: &[u32] =

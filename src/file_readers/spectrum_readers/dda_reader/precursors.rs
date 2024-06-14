@@ -4,14 +4,12 @@ use rayon::prelude::*;
 
 use crate::{
     domain_converters::{
-        ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+        ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
     },
-    file_readers::{
-        self,
-        common::sql_reader::{PasefFrameMsMsTable, ReadableFromSql},
-    },
+    file_readers::{self, common::sql_reader::ReadableFromSql},
     io::readers::file_readers::sql_reader::{
-        precursors::SqlPrecursor, SqlReadable, SqlReader,
+        pasef_frame_msms::SqlPasefFrameMsMs, precursors::SqlPrecursor,
+        SqlReadable, SqlReader,
     },
     ms_data::Precursor,
     utils::vec_utils::argsort,
@@ -20,7 +18,7 @@ use crate::{
 #[derive(Debug)]
 pub struct PrecursorReader {
     pub precursors: Vec<Precursor>,
-    pub pasef_frames: PasefFrameMsMsTable,
+    pub pasef_frames: Vec<SqlPasefFrameMsMs>,
     pub order: Vec<usize>,
     pub offsets: Vec<usize>,
     pub count: usize,
@@ -38,14 +36,10 @@ impl PrecursorReader {
         let select_collision_energy_sql = String::from(
             "SELECT CollisionEnergy FROM PasefFrameMsMsInfo GROUP BY Precursor",
         );
-        let pasef_frames: PasefFrameMsMsTable =
-            PasefFrameMsMsTable::from_sql(&tdf_sql_reader);
-        // let precursor_table: PrecursorTable =
-        //     PrecursorTable::from_sql(&tdf_sql_reader);
-
         let tdf_sql_reader2 =
             SqlReader::open(Path::new(path).join("analysis.tdf")).unwrap();
-
+        let pasef_frames =
+            SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader2).unwrap();
         let precursors =
             SqlPrecursor::from_sql_reader(&tdf_sql_reader2).unwrap();
         let collision_energies =
@@ -67,15 +61,15 @@ impl PrecursorReader {
                 }
             })
             .collect();
-        let order: Vec<usize> = argsort(&pasef_frames.precursor);
-        let count: usize = *pasef_frames.precursor.iter().max().unwrap();
+        let pasef_precursors =
+            &pasef_frames.iter().map(|x| x.precursor).collect();
+        let order: Vec<usize> = argsort(&pasef_precursors);
+        let count: usize = *pasef_precursors.iter().max().unwrap();
         let mut offsets: Vec<usize> = Vec::with_capacity(count + 1);
         offsets.push(0);
         for (offset, &index) in order.iter().enumerate().take(order.len() - 1) {
             let second_index: usize = order[offset + 1];
-            if pasef_frames.precursor[index]
-                != pasef_frames.precursor[second_index]
-            {
+            if pasef_precursors[index] != pasef_precursors[second_index] {
                 offsets.push(offset + 1)
             }
         }

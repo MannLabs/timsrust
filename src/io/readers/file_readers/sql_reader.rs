@@ -1,4 +1,5 @@
 pub mod frames;
+pub mod pasef_frame_msms;
 pub mod precursors;
 
 use std::path::{Path, PathBuf};

@@ -1,7 +1,7 @@
 mod metadata;
-mod tables;
+// mod tables;
 
-pub use tables::*;
+// pub use tables::*;
 
 use rusqlite::{Connection, Result, Statement};
 use std::path::Path;
