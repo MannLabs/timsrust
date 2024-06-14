@@ -13,7 +13,9 @@ pub struct TdfBlob {
 }
 
 impl TdfBlob {
+    #[inline(always)]
     pub fn get(&self, index: usize) -> u32 {
+        debug_assert!(index < self.len());
         Self::concatenate_bytes(
             self.bytes[index],
             self.bytes[index + self.len()],
@@ -48,7 +50,7 @@ pub struct TdfBlobReader {
 
 impl TdfBlobReader {
     pub fn new(file_name: impl AsRef<Path>) -> Result<Self, TdfBlobError> {
-        let path = file_name.as_ref().to_path_buf();
+        let path: PathBuf = file_name.as_ref().to_path_buf();
         let file: File = File::open(&path)?;
         let mmap: Mmap = unsafe { Mmap::map(&file)? };
         Ok(Self {
@@ -59,7 +61,7 @@ impl TdfBlobReader {
     }
 
     pub fn get_blob(&self, offset: usize) -> Result<TdfBlob, TdfBlobError> {
-        let offset = self.get_offset(offset)?;
+        let offset: usize = self.get_offset(offset)?;
         let byte_count: usize = self.get_byte_count(offset)?;
         let compressed_bytes: &[u8] =
             self.get_compressed_bytes(offset, byte_count);
@@ -189,7 +191,7 @@ pub trait TdfBlobParsable {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TdfBlobError {
-    #[error("Cannot read or mmap file: {0}")]
+    #[error("Cannot read or mmap file {0}")]
     IO(#[from] io::Error),
     #[error("Index {0} is invalid for file {1}")]
     Index(usize, PathBuf),
