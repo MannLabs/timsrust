@@ -1,6 +1,8 @@
 use rusqlite::{Connection, Statement};
 
-use crate::domain_converters::{Scan2ImConverter, Tof2MzConverter};
+use crate::domain_converters::{
+    Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+};
 
 use super::{get_sql_connection, ReadableFromSql, SqlReader};
 
@@ -96,13 +98,19 @@ impl SqlReader {
 impl ReadableFromSql for Tof2MzConverter {
     fn from_sql(sql_reader: &SqlReader) -> Self {
         let (tof_max_index, mz_min, mz_max) = sql_reader.read_mz_information();
-        Tof2MzConverter::from_boundaries(mz_min, mz_max, tof_max_index)
+        Self::from_boundaries(mz_min, mz_max, tof_max_index)
     }
 }
 
 impl ReadableFromSql for Scan2ImConverter {
     fn from_sql(sql_reader: &SqlReader) -> Self {
         let (scan_max_index, im_min, im_max) = sql_reader.read_im_information();
-        Scan2ImConverter::from_boundaries(im_min, im_max, scan_max_index)
+        Self::from_boundaries(im_min, im_max, scan_max_index)
+    }
+}
+
+impl ReadableFromSql for Frame2RtConverter {
+    fn from_sql(sql_reader: &SqlReader) -> Self {
+        Self::from_values(sql_reader.read_column_from_table("Time", "Frames"))
     }
 }

@@ -25,9 +25,7 @@ impl TDFReader {
         };
         let frame_reader: FrameReader = FrameReader::new(&path);
         Self {
-            rt_converter: Frame2RtConverter::from_values(
-                frame_reader.sql_frames.iter().map(|x| x.rt).collect(),
-            ),
+            rt_converter: Frame2RtConverter::from_sql(&tdf_sql_reader),
             im_converter: Scan2ImConverter::from_sql(&tdf_sql_reader),
             mz_converter: Tof2MzConverter::from_sql(&tdf_sql_reader),
             tdf_sql_reader: tdf_sql_reader,
