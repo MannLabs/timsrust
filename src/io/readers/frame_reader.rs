@@ -41,28 +41,46 @@ impl FrameReader {
         }
     }
 
-    pub fn collect<F: Fn(&SqlFrame) -> bool>(&self, filter: F) -> Vec<Frame> {
-        // let selection: Vec<usize> = (0..self.len())
-        //     .filter(|x| filter(&self.sql_frames[*x]))
-        //     .collect();
-        // selection.into_iter().map(|x| self.get(x)).collect()
-        let selection: Vec<Option<usize>> = (0..self.len())
-            .map(|x| {
-                if filter(&self.sql_frames[x]) {
-                    Some(x)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        selection
+    pub fn parallel_filter<'a, F: Fn(&SqlFrame) -> bool + Sync + Send + 'a>(
+        &'a self,
+        predicate: F,
+    ) -> impl ParallelIterator<Item = Frame> + 'a {
+        (0..self.len())
             .into_par_iter()
-            .map(|x| match x {
-                Some(y) => self.get(y),
-                None => Frame::default(),
-            })
-            .collect()
+            .filter(move |x| predicate(&self.sql_frames[*x]))
+            .map(move |x| self.get(x))
+        // (0..self.len()).into_par_iter().map(move |x| {
+        //     if predicate(&self.sql_frames[x]) {
+        //         self.get(x)
+        //     } else {
+        //         Frame::default()
+        //     }
+        // })
     }
+
+    // pub fn parallel_filter2<
+    //     'a,
+    //     T: Default + Sync + Send,
+    //     Y: Default,
+    //     F: Fn(&Y) -> bool + Sync + Send + 'a,
+    // >(
+    //     &'a self,
+    //     predicate: F,
+    // ) -> impl ParallelIterator<Item = T> + 'a {
+    //     (0..self.len())
+    //         .into_par_iter()
+    //         .filter(move |x| predicate(&Y::default()))
+    //         .map(move |x| T::default())
+    //     // (0..self.len()).into_par_iter().map(move |x| {
+    //     //     if predicate(&Y::default()) {
+    //     //         // self.get(x)
+    //     //         T::default()
+    //     //     } else {
+    //     //         // Frame::default()
+    //     //         T::default()
+    //     //     }
+    //     // })
+    // }
 
     pub fn get(&self, index: usize) -> Frame {
         let mut frame: Frame = Frame::default();
