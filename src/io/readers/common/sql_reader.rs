@@ -14,6 +14,10 @@ impl SqlReader {
         let connection = Connection::open(&path)?;
         Ok(Self { path, connection })
     }
+
+    pub fn get_path(&self) -> PathBuf {
+        self.path.clone()
+    }
 }
 
 pub trait SqlReadable {

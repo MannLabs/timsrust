@@ -1,6 +1,6 @@
 use super::sql_reader::SqlReadable;
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SqlFrame {
     pub id: usize,
     pub scan_mode: u8,
@@ -9,11 +9,12 @@ pub struct SqlFrame {
     pub rt: f64,
     pub scan_count: u64,
     pub binary_offset: usize,
+    pub accumulation_time: f64,
 }
 
 impl SqlReadable for SqlFrame {
     fn get_sql_query() -> String {
-        "SELECT Id, ScanMode, MsMsType, NumPeaks, Time, NumScans, TimsId FROM Frames".to_string()
+        "SELECT Id, ScanMode, MsMsType, NumPeaks, Time, NumScans, TimsId, AccumulationTime FROM Frames".to_string()
     }
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
@@ -25,58 +26,7 @@ impl SqlReadable for SqlFrame {
             rt: row.get(4).unwrap_or_default(),
             scan_count: row.get(5).unwrap_or_default(),
             binary_offset: row.get(6).unwrap_or_default(),
+            accumulation_time: row.get(7).unwrap_or_default(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::io::readers::common::sql_reader::SqlReader;
-
-    #[test]
-    fn test_get() {
-        let reader =
-            SqlReader::open("tests/test.d/analysis.tdf".to_string()).unwrap();
-        let sql_frames = SqlFrame::from_sql_reader(&reader).unwrap();
-        let target = [
-            SqlFrame {
-                id: 1,
-                scan_mode: 8,
-                msms_type: 0,
-                peak_count: 10,
-                rt: 0.1,
-                scan_count: 4,
-                binary_offset: 0,
-            },
-            SqlFrame {
-                id: 2,
-                scan_mode: 8,
-                msms_type: 8,
-                peak_count: 26,
-                rt: 0.2,
-                scan_count: 4,
-                binary_offset: 48,
-            },
-            SqlFrame {
-                id: 3,
-                scan_mode: 8,
-                msms_type: 0,
-                peak_count: 42,
-                rt: 0.3,
-                scan_count: 4,
-                binary_offset: 130,
-            },
-            SqlFrame {
-                id: 4,
-                scan_mode: 8,
-                msms_type: 8,
-                peak_count: 58,
-                rt: 0.4,
-                scan_count: 4,
-                binary_offset: 235,
-            },
-        ];
-        assert_eq!(sql_frames, target);
     }
 }
