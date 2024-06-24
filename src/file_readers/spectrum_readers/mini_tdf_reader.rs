@@ -2,7 +2,7 @@ use crate::{
     file_readers::FileFormatError,
     io::readers::file_readers::{
         parquet_reader::read_parquet_precursors,
-        tdf_blobs::{IndexedTdfBlobReader, TdfBlob, TdfBlobParsable},
+        tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob, TdfBlobParsable},
     },
 };
 use std::fs;

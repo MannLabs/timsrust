@@ -6,7 +6,7 @@ use crate::ms_data::{AcquisitionType, Frame, MSLevel};
 
 use super::file_readers::{
     sql_reader::{frames::SqlFrame, ReadableSqlTable, SqlReader},
-    tdf_blobs::{TdfBlob, TdfBlobReader},
+    tdf_blob_reader::{TdfBlob, TdfBlobReader},
 };
 
 #[derive(Debug)]
