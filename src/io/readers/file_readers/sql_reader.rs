@@ -26,10 +26,6 @@ impl SqlReader {
     pub fn get_path(&self) -> PathBuf {
         self.path.clone()
     }
-
-    pub fn get_connection(&self) -> &Connection {
-        &self.connection
-    }
 }
 
 pub trait ReadableSqlTable {
