@@ -56,12 +56,14 @@ pub trait ReadableSqlHashMap {
     {
         let query = Self::get_sql_query();
         let mut stmt = reader.connection.prepare(&query)?;
-        let kv_map: HashMap<String, String> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .map(Result::unwrap)
-            .collect();
-
-        Ok(kv_map)
+        let mut result = HashMap::new();
+        let _ = stmt.query_map([], |row| {
+            let key: String = row.get(0)?;
+            let value: String = row.get(1)?;
+            result.insert(key, value);
+            Ok(())
+        })?;
+        Ok(result)
     }
 }
 
