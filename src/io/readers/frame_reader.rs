@@ -67,12 +67,7 @@ impl FrameReader {
             &blob,
             &frame.scan_offsets,
         );
-        frame.ms_level = match sql_frame.msms_type {
-            0 => MSLevel::MS1,
-            8 => MSLevel::MS2,
-            9 => MSLevel::MS2,
-            _ => MSLevel::Unknown,
-        };
+        frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
         frame.index = sql_frame.id;
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;

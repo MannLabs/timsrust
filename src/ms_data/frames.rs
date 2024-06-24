@@ -24,3 +24,14 @@ pub enum MSLevel {
     #[default]
     Unknown,
 }
+
+impl MSLevel {
+    pub fn read_from_msms_type(msms_type: u8) -> MSLevel {
+        match msms_type {
+            0 => MSLevel::MS1,
+            8 => MSLevel::MS2,
+            9 => MSLevel::MS2,
+            _ => MSLevel::Unknown,
+        }
+    }
+}
