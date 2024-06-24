@@ -4,7 +4,7 @@ mod file_formats;
 mod spectrum_readers;
 
 use {
-    self::{file_formats::FileFormat, spectrum_readers::ReadableSpectra},
+    self::file_formats::FileFormat,
     crate::ms_data::{Frame, Spectrum},
 };
 

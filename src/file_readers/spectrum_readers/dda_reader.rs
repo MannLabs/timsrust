@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     calibration::Tof2MzCalibrator,
     domain_converters::Tof2MzConverter,
-    file_readers::ReadableSpectra,
+    // file_readers::ReadableSpectra,
     io::readers::{
         file_readers::sql_reader::{
             pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlReader,
@@ -133,13 +133,13 @@ impl DDASpectrumReader {
     }
 }
 
-impl ReadableSpectra for DDASpectrumReader {
-    fn read_single_spectrum(&self, index: usize) -> Spectrum {
+impl DDASpectrumReader {
+    pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let raw_spectrum = self.read_single_raw_spectrum(index);
         self.process_single_raw_spectrum(raw_spectrum, &self.mz_reader)
     }
 
-    fn read_all_spectra(&self) -> Vec<Spectrum> {
+    pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         let raw_spectra: Vec<RawSpectrum> = (0..self.precursor_reader.len())
             .into_par_iter()
             .map(|index| self.read_single_raw_spectrum(index))

@@ -8,7 +8,7 @@ use crate::{
 use std::fs;
 use {
     crate::{
-        file_readers::ReadableSpectra,
+        // file_readers::ReadableSpectra,
         ms_data::{Precursor, Spectrum},
     },
     rayon::prelude::*,
@@ -106,8 +106,8 @@ impl MiniTDFReader {
     }
 }
 
-impl ReadableSpectra for MiniTDFReader {
-    fn read_single_spectrum(&self, index: usize) -> Spectrum {
+impl MiniTDFReader {
+    pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let mut spectrum: Spectrum = Spectrum::create_from_tdf_blob_reader(
             &self.frame_reader.as_ref().unwrap(),
             index,
@@ -117,7 +117,7 @@ impl ReadableSpectra for MiniTDFReader {
         spectrum
     }
 
-    fn read_all_spectra(&self) -> Vec<Spectrum> {
+    pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         let size: usize = self.offsets.len();
         let mut spectra: Vec<Spectrum> = (0..size)
             .into_par_iter()

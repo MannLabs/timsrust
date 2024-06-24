@@ -1,7 +1,14 @@
 use std::{fs, path::PathBuf};
 
-use crate::{io::readers::frame_reader::FrameReader, ms_data::Frame};
+use crate::{
+    io::readers::frame_reader::FrameReader,
+    ms_data::{Frame, Spectrum},
+};
 use rayon::iter::ParallelIterator;
+
+use super::spectrum_readers::{
+    dda_reader::DDASpectrumReader, mini_tdf_reader::MiniTDFReader,
+};
 
 pub enum FileFormat {
     DFolder(PathBuf),
@@ -119,4 +126,32 @@ pub enum FileFormatError {
     BinaryFilesAreMissing,
     #[error("MetadataFilesAreMissing")]
     MetadataFilesAreMissing,
+}
+
+impl FileFormat {
+    pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
+        match &self {
+            Self::DFolder(path) => DDASpectrumReader::new(
+                path.to_str().unwrap_or_default().to_string(),
+            )
+            .read_single_spectrum(index),
+            Self::MS2Folder(path) => MiniTDFReader::new(
+                path.to_str().unwrap_or_default().to_string(),
+            )
+            .read_single_spectrum(index),
+        }
+    }
+
+    pub fn read_all_spectra(&self) -> Vec<Spectrum> {
+        match &self {
+            Self::DFolder(path) => DDASpectrumReader::new(
+                path.to_str().unwrap_or_default().to_string(),
+            )
+            .read_all_spectra(),
+            Self::MS2Folder(path) => MiniTDFReader::new(
+                path.to_str().unwrap_or_default().to_string(),
+            )
+            .read_all_spectra(),
+        }
+    }
 }
