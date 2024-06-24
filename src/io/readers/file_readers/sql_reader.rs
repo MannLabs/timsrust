@@ -26,6 +26,21 @@ impl SqlReader {
     pub fn get_path(&self) -> PathBuf {
         self.path.clone()
     }
+
+    pub fn read_column_from_table<T: rusqlite::types::FromSql + Default>(
+        &self,
+        column_name: &str,
+        table_name: &str,
+    ) -> Result<Vec<T>, SqlError> {
+        let query = format!("SELECT {} FROM {}", column_name, table_name);
+        let mut stmt = self.connection.prepare(&query)?;
+        let rows = stmt.query_map([], |row| match row.get::<usize, T>(0) {
+            Ok(value) => Ok(value),
+            _ => Ok(T::default()),
+        })?;
+        let result = rows.collect::<Result<Vec<_>, _>>()?;
+        Ok(result)
+    }
 }
 
 pub trait ReadableSqlTable {
