@@ -1,4 +1,4 @@
-use super::SqlReadable;
+use super::ReadableSqlTable;
 
 #[derive(Debug, PartialEq)]
 pub struct SqlPasefFrameMsMs {
@@ -11,7 +11,7 @@ pub struct SqlPasefFrameMsMs {
     pub precursor: usize,
 }
 
-impl SqlReadable for SqlPasefFrameMsMs {
+impl ReadableSqlTable for SqlPasefFrameMsMs {
     fn get_sql_query() -> String {
         "SELECT Frame, ScanNumBegin, ScanNumEnd, IsolationMz, IsolationWidth, CollisionEnergy, Precursor FROM PasefFrameMsMsInfo".to_string()
     }

@@ -1,4 +1,4 @@
-use super::SqlReadable;
+use super::ReadableSqlTable;
 
 #[derive(Debug, PartialEq)]
 pub struct SqlPrecursor {
@@ -10,7 +10,7 @@ pub struct SqlPrecursor {
     pub precursor_frame: usize,
 }
 
-impl SqlReadable for SqlPrecursor {
+impl ReadableSqlTable for SqlPrecursor {
     fn get_sql_query() -> String {
         "SELECT Id, MonoisotopicMz, Charge, ScanNumber, Intensity, Parent FROM Precursors".to_string()
     }

@@ -9,7 +9,7 @@ use crate::{
     file_readers::{self, common::sql_reader::ReadableFromSql},
     io::readers::file_readers::sql_reader::{
         pasef_frame_msms::SqlPasefFrameMsMs, precursors::SqlPrecursor,
-        SqlReadable, SqlReader,
+        ReadableSqlTable, SqlReader,
     },
     ms_data::Precursor,
     utils::vec_utils::argsort,

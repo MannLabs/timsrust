@@ -1,4 +1,5 @@
 pub mod frames;
+pub mod metadata;
 pub mod pasef_frame_msms;
 pub mod precursors;
 
@@ -22,9 +23,13 @@ impl SqlReader {
     pub fn get_path(&self) -> PathBuf {
         self.path.clone()
     }
+
+    pub fn get_connection(&self) -> &Connection {
+        &self.connection
+    }
 }
 
-pub trait SqlReadable {
+pub trait ReadableSqlTable {
     fn get_sql_query() -> String;
 
     fn from_sql_row(row: &rusqlite::Row) -> Self;

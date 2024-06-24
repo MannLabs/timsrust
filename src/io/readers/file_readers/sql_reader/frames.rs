@@ -1,4 +1,4 @@
-use super::SqlReadable;
+use super::ReadableSqlTable;
 
 #[derive(Debug, PartialEq)]
 pub struct SqlFrame {
@@ -12,7 +12,7 @@ pub struct SqlFrame {
     pub accumulation_time: f64,
 }
 
-impl SqlReadable for SqlFrame {
+impl ReadableSqlTable for SqlFrame {
     fn get_sql_query() -> String {
         "SELECT Id, ScanMode, MsMsType, NumPeaks, Time, NumScans, TimsId, AccumulationTime FROM Frames".to_string()
     }
