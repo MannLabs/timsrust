@@ -1,6 +1,5 @@
 use crate::Error;
 
-mod common;
 mod file_formats;
 mod spectrum_readers;
 
