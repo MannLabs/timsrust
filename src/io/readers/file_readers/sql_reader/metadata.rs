@@ -4,6 +4,6 @@ pub struct SqlMetadata {}
 
 impl ReadableSqlHashMap for SqlMetadata {
     fn get_sql_query() -> String {
-        "SELECT key, value FROM GlobalMetadata".to_string()
+        "SELECT Key, Value FROM GlobalMetadata".to_string()
     }
 }

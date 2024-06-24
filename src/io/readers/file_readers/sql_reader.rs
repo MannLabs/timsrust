@@ -72,12 +72,13 @@ pub trait ReadableSqlHashMap {
         let query = Self::get_sql_query();
         let mut stmt = reader.connection.prepare(&query)?;
         let mut result = HashMap::new();
-        let _ = stmt.query_map([], |row| {
+        let rows = stmt.query_map([], |row| {
             let key: String = row.get(0)?;
             let value: String = row.get(1)?;
             result.insert(key, value);
             Ok(())
         })?;
+        rows.collect::<Result<Vec<_>, _>>()?;
         Ok(result)
     }
 }

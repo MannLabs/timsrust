@@ -6,10 +6,12 @@ use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
     },
-    file_readers::{self, common::sql_reader::ReadableFromSql},
-    io::readers::file_readers::sql_reader::{
-        pasef_frame_msms::SqlPasefFrameMsMs, precursors::SqlPrecursor,
-        ReadableSqlTable, SqlReader,
+    io::readers::{
+        file_readers::sql_reader::{
+            pasef_frame_msms::SqlPasefFrameMsMs, precursors::SqlPrecursor,
+            ReadableSqlTable, SqlReader,
+        },
+        metadata_reader::MetadataReader,
     },
     ms_data::Precursor,
     utils::vec_utils::argsort,
@@ -26,19 +28,15 @@ pub struct PrecursorReader {
 
 impl PrecursorReader {
     pub fn new(path: &String) -> Self {
-        let tdf_sql_reader = file_readers::common::sql_reader::SqlReader {
-            path: String::from(path),
-        };
-        let rt_converter: Frame2RtConverter =
-            Frame2RtConverter::from_sql(&tdf_sql_reader);
-        let im_converter: Scan2ImConverter =
-            Scan2ImConverter::from_sql(&tdf_sql_reader);
-        let tdf_sql_reader2 =
+        let metadata = MetadataReader::new(&path);
+        let rt_converter: Frame2RtConverter = metadata.rt_converter;
+        let im_converter: Scan2ImConverter = metadata.im_converter;
+        let tdf_sql_reader =
             SqlReader::open(Path::new(path).join("analysis.tdf")).unwrap();
         let pasef_frames =
-            SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader2).unwrap();
+            SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader).unwrap();
         let precursors =
-            SqlPrecursor::from_sql_reader(&tdf_sql_reader2).unwrap();
+            SqlPrecursor::from_sql_reader(&tdf_sql_reader).unwrap();
         let precursors: Vec<Precursor> = (0..precursors.len())
             .into_par_iter()
             .map(|index| {
