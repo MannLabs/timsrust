@@ -2,7 +2,7 @@ use crate::{
     file_readers::FileFormatError,
     io::readers::file_readers::{
         parquet_reader::read_parquet_precursors,
-        tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob, TdfBlobParsable},
+        tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob},
     },
 };
 use std::fs;
@@ -132,7 +132,7 @@ impl ReadableSpectra for MiniTDFReader {
     }
 }
 
-impl TdfBlobParsable for Spectrum {
+impl Spectrum {
     fn set_tdf_blob_index(&mut self, index: usize) {
         self.index = index;
     }
@@ -151,5 +151,29 @@ impl TdfBlobParsable for Spectrum {
             bytemuck::cast_slice::<u32, f32>(intensities_bytes);
         self.intensities = intensity_values.iter().map(|&x| x as f64).collect();
         self.mz_values = mz_values.to_vec();
+    }
+
+    fn update_from_tdf_blob_reader(
+        &mut self,
+        bin_file: &IndexedTdfBlobReader,
+        index: usize,
+    ) {
+        let blob = bin_file.get_blob(index).unwrap();
+        if !blob.is_empty() {
+            self.update_from_tdf_blob(blob)
+        }
+    }
+
+    fn create_from_tdf_blob_reader(
+        bin_file: &IndexedTdfBlobReader,
+        index: usize,
+    ) -> Self
+    where
+        Self: Default,
+    {
+        let mut object = Self::default();
+        object.set_tdf_blob_index(index);
+        object.update_from_tdf_blob_reader(bin_file, index);
+        object
     }
 }

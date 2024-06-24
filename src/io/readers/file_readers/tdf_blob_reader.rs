@@ -1,45 +1,14 @@
+mod tdf_blobs;
+
 use memmap2::Mmap;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
+pub use tdf_blobs::*;
 use zstd::decode_all;
 
 const U32_SIZE: usize = std::mem::size_of::<u32>();
 const HEADER_SIZE: usize = 2;
-
-#[derive(Debug, Default)]
-pub struct TdfBlob {
-    bytes: Vec<u8>,
-}
-
-impl TdfBlob {
-    #[inline(always)]
-    pub fn get(&self, index: usize) -> u32 {
-        debug_assert!(index < self.len());
-        Self::concatenate_bytes(
-            self.bytes[index],
-            self.bytes[index + self.len()],
-            self.bytes[index + 2 * self.len()],
-            self.bytes[index + 3 * self.len()],
-        )
-    }
-
-    #[inline(always)]
-    fn concatenate_bytes(b1: u8, b2: u8, b3: u8, b4: u8) -> u32 {
-        b1 as u32
-            | ((b2 as u32) << 8)
-            | ((b3 as u32) << 16)
-            | ((b4 as u32) << 24)
-    }
-
-    pub fn len(&self) -> usize {
-        self.bytes.len() / U32_SIZE
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
 
 #[derive(Debug)]
 pub struct TdfBlobReader {
@@ -66,7 +35,7 @@ impl TdfBlobReader {
         let compressed_bytes: &[u8] =
             self.get_compressed_bytes(offset, byte_count);
         match decode_all(compressed_bytes) {
-            Ok(bytes) => Ok(TdfBlob { bytes }),
+            Ok(bytes) => Ok(TdfBlob::new(bytes)),
             Err(_) => Err(TdfBlobError::Decompression(self.path.clone())),
         }
     }
@@ -154,40 +123,6 @@ impl IndexedTdfBlobReader {
         self.binary_offsets.len()
     }
 }
-
-pub trait TdfBlobParsable {
-    fn set_tdf_blob_index(&mut self, index: usize);
-
-    fn update_from_tdf_blob(&mut self, blob: TdfBlob);
-
-    fn update_from_tdf_blob_reader(
-        &mut self,
-        bin_file: &IndexedTdfBlobReader,
-        index: usize,
-    ) {
-        let blob = bin_file.get_blob(index).unwrap();
-        if !blob.is_empty() {
-            self.update_from_tdf_blob(blob)
-        }
-    }
-
-    fn create_from_tdf_blob_reader(
-        bin_file: &IndexedTdfBlobReader,
-        index: usize,
-    ) -> Self
-    where
-        Self: Default,
-    {
-        let mut object = Self::default();
-        object.set_tdf_blob_index(index);
-        object.update_from_tdf_blob_reader(bin_file, index);
-        object
-    }
-}
-
-// #[derive(thiserror::Error, Debug)]
-// #[error("TdfBlobError: {0}")]
-// pub struct TdfBlobError(#[from] std::io::Error);
 
 #[derive(Debug, thiserror::Error)]
 pub enum TdfBlobError {
