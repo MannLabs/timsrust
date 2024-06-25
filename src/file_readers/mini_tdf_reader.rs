@@ -1,8 +1,13 @@
 use crate::{
     file_readers::FileFormatError,
-    io::readers::file_readers::{
-        parquet_reader::{precursors::ParquetPrecursor, ReadableParquetTable},
-        tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob},
+    io::readers::{
+        file_readers::{
+            parquet_reader::{
+                precursors::ParquetPrecursor, ReadableParquetTable,
+            },
+            tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob, TdfBlobError},
+        },
+        PrecursorReader,
     },
 };
 use std::fs;
@@ -18,10 +23,8 @@ use {
 #[derive(Debug)]
 pub struct MiniTDFReader {
     pub path_name: String,
-    parquet_file_name: String,
-    precursors: Vec<Precursor>,
-    offsets: Vec<u64>,
-    frame_reader: Option<IndexedTdfBlobReader>,
+    precursor_reader: PrecursorReader,
+    blob_reader: IndexedTdfBlobReader,
 }
 
 fn find_ms2spectrum_file(
@@ -61,80 +64,58 @@ fn find_ms2spectrum_file(
 
 impl MiniTDFReader {
     pub fn new(path_name: String) -> Self {
-        let parquet_file_name: String = String::default();
-        let precursors: Vec<Precursor> = Vec::default();
-        let offsets: Vec<u64> = Vec::default();
-        let mut reader: MiniTDFReader = MiniTDFReader {
+        let parquet_file_name = Self::read_parquet_file_name(&path_name);
+        let precursor_reader = PrecursorReader::new(&parquet_file_name);
+        let offsets = Self::get_offsets(&parquet_file_name);
+        let blob_reader =
+            Self::get_spectrum_reader(&path_name, offsets).unwrap();
+        Self {
             path_name,
-            parquet_file_name,
-            precursors,
-            offsets,
-            frame_reader: None,
-        };
-        reader.read_parquet_file_name();
-        reader.read_precursors();
-        reader.set_spectrum_reader();
-        reader
+            precursor_reader,
+            blob_reader,
+        }
     }
 
-    fn read_parquet_file_name(&mut self) {
-        let mut path: PathBuf = PathBuf::from(&self.path_name);
+    fn read_parquet_file_name(path_name: &String) -> String {
+        let mut path: PathBuf = PathBuf::from(&path_name);
         let ms2_parquet_file =
-            find_ms2spectrum_file(&self.path_name, "parquet".to_owned())
-                .unwrap();
+            find_ms2spectrum_file(&path_name, "parquet".to_owned()).unwrap();
         path.push(ms2_parquet_file);
-        self.parquet_file_name = path.to_string_lossy().into_owned();
+        path.to_string_lossy().into_owned()
     }
 
-    fn read_precursors(&mut self) {
-        // (self.precursors, self.offsets) =
-        //     read_parquet_precursors(&self.parquet_file_name);
+    fn get_offsets(parquet_file_name: &String) -> Vec<usize> {
         let parquet_precursors =
-            ParquetPrecursor::from_parquet_file(&&self.parquet_file_name)
-                .unwrap();
-        self.offsets = parquet_precursors.iter().map(|x| x.offset).collect();
-        self.precursors = parquet_precursors
+            ParquetPrecursor::from_parquet_file(&parquet_file_name).unwrap();
+        parquet_precursors
             .iter()
-            .map(|x| Precursor {
-                mz: x.mz,
-                rt: x.rt,
-                im: x.im,
-                charge: x.charge,
-                intensity: x.intensity,
-                index: x.index,
-                frame_index: x.frame_index,
-                collision_energy: x.collision_energy,
-            })
-            .collect();
+            .map(|x| x.offset as usize)
+            .collect()
     }
 
-    fn set_spectrum_reader(&mut self) {
-        let mut path: PathBuf = PathBuf::from(&self.path_name);
+    fn get_spectrum_reader(
+        path_name: &String,
+        offsets: Vec<usize>,
+    ) -> Result<IndexedTdfBlobReader, TdfBlobError> {
+        let mut path: PathBuf = PathBuf::from(&path_name);
         let ms2_bin_file =
-            find_ms2spectrum_file(&self.path_name, "bin".to_owned()).unwrap();
+            find_ms2spectrum_file(&path_name, "bin".to_owned()).unwrap();
         path.push(ms2_bin_file);
         let file_name: String = path.to_string_lossy().into_owned();
-        self.frame_reader = Some(
-            IndexedTdfBlobReader::new(
-                String::from(&file_name),
-                self.offsets.iter().map(|x| *x as usize).collect(),
-            )
-            .unwrap(),
-        );
+        IndexedTdfBlobReader::new(String::from(&file_name), offsets)
     }
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        let mut spectrum: Spectrum = Spectrum::create_from_tdf_blob_reader(
-            &self.frame_reader.as_ref().unwrap(),
-            index,
-        );
-        spectrum.precursor = self.precursors[index];
-        spectrum.index = self.precursors[index].index;
+        let mut spectrum: Spectrum =
+            Spectrum::create_from_tdf_blob_reader(&self.blob_reader, index);
+        let precursor = self.precursor_reader.get(index);
+        spectrum.precursor = precursor;
+        spectrum.index = precursor.index;
         spectrum
     }
 
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
-        let size: usize = self.offsets.len();
+        let size: usize = self.precursor_reader.len();
         let mut spectra: Vec<Spectrum> = (0..size)
             .into_par_iter()
             .map(|index| self.read_single_spectrum(index))
