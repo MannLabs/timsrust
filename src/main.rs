@@ -13,17 +13,16 @@ fn quick_test() {
     } else {
         spectrum_index = 10;
     }
-    println!("precursor {:?}", dda_spectra[spectrum_index].precursor);
-    _ = MGFEntry::write_header(&dda_spectra[spectrum_index]);
+    // println!("precursor {:?}", dda_spectra[spectrum_index].precursor);
+    // _ = MGFEntry::write_header(&dda_spectra[spectrum_index]);
+    println!("{}", MGFEntry::write(&dda_spectra[spectrum_index]));
+    // println!("{}", MGFEntry::write_header(&dda_spectra[spectrum_index]));
+    // println!("{}", MGFEntry::write_peaks(&dda_spectra[spectrum_index]));
+    // println!("mz values {:?}", dda_spectra[spectrum_index].mz_values);
     // println!(
-    //     "precursor\n{:?}",
-    //     MGFEntry::write_header(&dda_spectra[spectrum_index])
+    //     "intensity values {:?}",
+    //     dda_spectra[spectrum_index].intensities
     // );
-    println!("mz values {:?}", dda_spectra[spectrum_index].mz_values);
-    println!(
-        "intensity values {:?}",
-        dda_spectra[spectrum_index].intensities
-    );
     // println!("{:?}", dda_spectra[spectrum_index].as_mgf_entry());
     // MGFWriter::write_spectra(d_folder_name, &dda_spectra);
 }

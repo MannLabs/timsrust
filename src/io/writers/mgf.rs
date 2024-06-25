@@ -19,8 +19,7 @@ impl MGFWriter {
             File::create(output_file_path).expect("Failed to create file");
         for spectrum in spectra {
             _ = file.write_all("BEGIN IONS\n".as_bytes());
-            _ = file.write_all(MGFEntry::write_header(spectrum).as_bytes());
-            _ = file.write_all(MGFEntry::write_peaks(spectrum).as_bytes());
+            _ = file.write_all(MGFEntry::write(spectrum).as_bytes());
             _ = file.write_all("END IONS\n".as_bytes());
         }
         file.flush().expect("Failed to flush to file");
@@ -48,5 +47,13 @@ impl MGFEntry {
             ms2_data.push_str(&format!("{:.4}\t{:.0}\n", mz, intensity));
         }
         ms2_data
+    }
+
+    pub fn write(spectrum: &Spectrum) -> String {
+        format!(
+            "{}{}",
+            Self::write_header(spectrum),
+            Self::write_peaks(spectrum)
+        )
     }
 }
