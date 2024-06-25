@@ -17,7 +17,7 @@ fn quick_test() {
     _ = MGFEntry::write_header(&dda_spectra[spectrum_index]);
     // println!(
     //     "precursor\n{:?}",
-    //     dda_spectra[spectrum_index].as_mgf_header()
+    //     MGFEntry::write_header(&dda_spectra[spectrum_index])
     // );
     println!("mz values {:?}", dda_spectra[spectrum_index].mz_values);
     println!(
