@@ -1,6 +1,6 @@
 use super::ReadableSqlHashMap;
 
-pub struct SqlMetadata {}
+pub struct SqlMetadata;
 
 impl ReadableSqlHashMap for SqlMetadata {
     fn get_sql_query() -> String {

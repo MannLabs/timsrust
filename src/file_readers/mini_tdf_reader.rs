@@ -20,41 +20,6 @@ pub struct MiniTDFReader {
     blob_reader: IndexedTdfBlobReader,
 }
 
-fn find_ms2spectrum_file(
-    ms2_dir_path: &str,
-    extension: String,
-) -> Result<String, FileFormatError> {
-    let files = fs::read_dir(ms2_dir_path).unwrap();
-    for file in files {
-        let filename = file
-            .unwrap()
-            .path()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
-        if filename
-            .ends_with(std::format!("ms2spectrum.{}", extension).as_str())
-        {
-            return Ok(filename);
-        }
-    }
-    let err = match extension.as_str() {
-        "parquet" => FileFormatError::MetadataFilesAreMissing,
-        "bin" => FileFormatError::BinaryFilesAreMissing,
-        _ => FileFormatError::BinaryFilesAreMissing,
-    };
-    println!(
-        "{}",
-        format!(
-            "No '*.ms2spectrum.{}' file found in '{}'",
-            extension, ms2_dir_path
-        )
-    );
-    return Err(err);
-}
-
 impl MiniTDFReader {
     pub fn new(path_name: String) -> Self {
         let parquet_file_name = Self::read_parquet_file_name(&path_name);
@@ -147,4 +112,32 @@ impl MiniTDFReader {
         }
         spectrum
     }
+}
+
+fn find_ms2spectrum_file(
+    ms2_dir_path: &str,
+    extension: String,
+) -> Result<String, FileFormatError> {
+    let files = fs::read_dir(ms2_dir_path).unwrap();
+    for file in files {
+        let filename = file
+            .unwrap()
+            .path()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+        if filename
+            .ends_with(std::format!("ms2spectrum.{}", extension).as_str())
+        {
+            return Ok(filename);
+        }
+    }
+    let err = match extension.as_str() {
+        "parquet" => FileFormatError::MetadataFilesAreMissing,
+        "bin" => FileFormatError::BinaryFilesAreMissing,
+        _ => FileFormatError::BinaryFilesAreMissing,
+    };
+    return Err(err);
 }
