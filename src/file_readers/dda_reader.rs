@@ -38,17 +38,15 @@ pub struct DDASpectrumReader {
 impl DDASpectrumReader {
     pub fn new(path_name: String) -> Self {
         let frame_reader: FrameReader = FrameReader::new(&path_name);
-        let metadata = MetadataReader::new(&path_name);
+        let sql_path = Path::new(&path_name).join("analysis.tdf");
+        let metadata = MetadataReader::new(&sql_path);
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
-        let tdf_sql_reader =
-            SqlReader::open(Path::new(&path_name).join("analysis.tdf"))
-                .unwrap();
+        let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
         let pasef_frames =
             SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader).unwrap();
         let ms2_frames: Vec<Frame> =
             frame_reader.parallel_filter(|x| x.msms_type != 0).collect();
-        let precursor_reader: PrecursorReader =
-            PrecursorReader::new(&path_name);
+        let precursor_reader: PrecursorReader = PrecursorReader::new(&sql_path);
         let pasef_precursors =
             &pasef_frames.iter().map(|x| x.precursor).collect();
         let order: Vec<usize> = argsort(&pasef_precursors);

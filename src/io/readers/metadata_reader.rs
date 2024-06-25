@@ -15,8 +15,8 @@ pub struct MetadataReader;
 
 impl MetadataReader {
     pub fn new(path: impl AsRef<Path>) -> Metadata {
-        let sql_path = path.as_ref().join("analysis.tdf");
-        let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
+        let sql_path = path.as_ref();
+        let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
         let sql_metadata: HashMap<String, String> =
             SqlMetadata::from_sql_reader(&tdf_sql_reader).unwrap();
         Metadata {
