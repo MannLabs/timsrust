@@ -14,21 +14,20 @@ pub struct ParquetPrecursor {
 }
 
 impl ReadableParquetTable for ParquetPrecursor {
-    fn update_from_parquet_file(&mut self, name: &str, field: String) {
-        match name {
-            "Id" => self.index = field.parse().unwrap_or_default(),
-            "RetentionTime" => self.rt = field.parse().unwrap_or_default(),
-            "MonoisotopicMz" => self.mz = field.parse().unwrap_or_default(),
-            "Charge" => self.charge = field.parse().unwrap_or_default(),
-            "Intensity" => self.intensity = field.parse().unwrap_or_default(),
-            "ooK0" => self.im = field.parse().unwrap_or_default(),
+    fn update_from_parquet_file(&mut self, key: &str, value: String) {
+        match key {
+            "Id" => self.index = Self::parse_default_field(value),
+            "RetentionTime" => self.rt = Self::parse_default_field(value),
+            "MonoisotopicMz" => self.mz = Self::parse_default_field(value),
+            "Charge" => self.charge = Self::parse_default_field(value),
+            "Intensity" => self.intensity = Self::parse_default_field(value),
+            "ooK0" => self.im = Self::parse_default_field(value),
             "MS1ParentFrameId" => {
-                self.frame_index =
-                    field.parse::<f32>().unwrap_or_default() as usize
+                self.frame_index = Self::parse_default_field(value)
             },
-            "BinaryOffset" => self.offset = field.parse().unwrap_or_default(),
+            "BinaryOffset" => self.offset = Self::parse_default_field(value),
             "CollisionEnergy" => {
-                self.collision_energy = field.parse().unwrap_or_default()
+                self.collision_energy = Self::parse_default_field(value)
             },
             _ => {},
         }

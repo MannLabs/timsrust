@@ -1,10 +1,14 @@
 pub mod precursors;
 
 use parquet::file::reader::{FileReader, SerializedFileReader};
-use std::{fs::File, io, path::Path};
+use std::{fs::File, io, path::Path, str::FromStr};
 
 pub trait ReadableParquetTable {
-    fn update_from_parquet_file(&mut self, name: &str, field: String);
+    fn update_from_parquet_file(&mut self, key: &str, value: String);
+
+    fn parse_default_field<T: FromStr + Default>(field: String) -> T {
+        field.parse().unwrap_or_default()
+    }
 
     fn from_parquet_file(
         file_name: impl AsRef<Path>,
