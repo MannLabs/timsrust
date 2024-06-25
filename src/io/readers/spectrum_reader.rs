@@ -1,5 +1,5 @@
-pub mod minitdf;
-pub mod tdf;
+mod minitdf;
+mod tdf;
 
 use core::fmt;
 use std::path::{Path, PathBuf};
