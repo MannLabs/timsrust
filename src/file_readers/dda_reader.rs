@@ -30,9 +30,9 @@ pub struct DDASpectrumReader {
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
     ms2_frames: Vec<Frame>,
-    pub pasef_frames: Vec<SqlPasefFrameMsMs>,
-    pub order: Vec<usize>,
-    pub offsets: Vec<usize>,
+    pasef_frames: Vec<SqlPasefFrameMsMs>,
+    order: Vec<usize>,
+    offsets: Vec<usize>,
 }
 
 impl DDASpectrumReader {

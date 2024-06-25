@@ -1,13 +1,10 @@
 pub mod precursors;
 
-use parquet::{
-    file::reader::{FileReader, SerializedFileReader},
-    record::Field,
-};
+use parquet::file::reader::{FileReader, SerializedFileReader};
 use std::{fs::File, io, path::Path};
 
 pub trait ReadableParquetTable {
-    fn update_from_parquet_file(&mut self, name: &String, field: &Field);
+    fn update_from_parquet_file(&mut self, name: &str, field: String);
 
     fn from_parquet_file(
         file_name: impl AsRef<Path>,
@@ -23,7 +20,10 @@ pub trait ReadableParquetTable {
             .map(|record| {
                 let mut result = Self::default();
                 for (name, field) in record.get_column_iter() {
-                    result.update_from_parquet_file(name, field);
+                    result.update_from_parquet_file(
+                        name.to_string().as_str(),
+                        field.to_string(),
+                    );
                 }
                 result
             })

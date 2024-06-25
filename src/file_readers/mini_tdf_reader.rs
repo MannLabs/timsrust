@@ -64,8 +64,12 @@ impl MiniTDFReader {
     }
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        let mut spectrum: Spectrum =
-            Self::create_from_tdf_blob_reader(&self, index);
+        let mut spectrum = Spectrum::default();
+        spectrum.index = index;
+        let blob = self.blob_reader.get_blob(index).unwrap();
+        if !blob.is_empty() {
+            Self::update_from_tdf_blob(&mut spectrum, blob)
+        }
         let precursor = self.precursor_reader.get(index);
         spectrum.precursor = precursor;
         spectrum.index = precursor.index;
@@ -101,16 +105,6 @@ impl MiniTDFReader {
         spectrum.intensities =
             intensity_values.iter().map(|&x| x as f64).collect();
         spectrum.mz_values = mz_values.to_vec();
-    }
-
-    fn create_from_tdf_blob_reader(&self, index: usize) -> Spectrum {
-        let mut spectrum = Spectrum::default();
-        spectrum.index = index;
-        let blob = self.blob_reader.get_blob(index).unwrap();
-        if !blob.is_empty() {
-            Self::update_from_tdf_blob(&mut spectrum, blob)
-        }
-        spectrum
     }
 }
 
