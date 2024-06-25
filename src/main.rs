@@ -1,5 +1,5 @@
 use std::env;
-use timsrust::io::writers::MGFFormat;
+use timsrust::io::writers::MGFEntry;
 use timsrust::{ms_data::Spectrum, FileReader};
 
 fn quick_test() {
@@ -14,7 +14,7 @@ fn quick_test() {
         spectrum_index = 10;
     }
     println!("precursor {:?}", dda_spectra[spectrum_index].precursor);
-    _ = dda_spectra[spectrum_index].as_mgf_header();
+    _ = MGFEntry::write_header(&dda_spectra[spectrum_index]);
     // println!(
     //     "precursor\n{:?}",
     //     dda_spectra[spectrum_index].as_mgf_header()

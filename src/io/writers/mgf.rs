@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::ms_data::Spectrum;
 
-pub struct MGFWriter {}
+pub struct MGFWriter;
 
 impl MGFWriter {
     pub fn write_spectra(input_file_path: &str, spectra: &Vec<Spectrum>) {
@@ -19,23 +19,19 @@ impl MGFWriter {
             File::create(output_file_path).expect("Failed to create file");
         for spectrum in spectra {
             _ = file.write_all("BEGIN IONS\n".as_bytes());
-            _ = file.write_all(spectrum.as_mgf_header().as_bytes());
-            _ = file.write_all(spectrum.as_mgf_peaks().as_bytes());
+            _ = file.write_all(MGFEntry::write_header(spectrum).as_bytes());
+            _ = file.write_all(MGFEntry::write_peaks(spectrum).as_bytes());
             _ = file.write_all("END IONS\n".as_bytes());
         }
         file.flush().expect("Failed to flush to file");
     }
 }
 
-pub trait MGFFormat {
-    fn as_mgf_header(&self) -> String;
+pub struct MGFEntry;
 
-    fn as_mgf_peaks(&self) -> String;
-}
-
-impl MGFFormat for Spectrum {
-    fn as_mgf_header(&self) -> String {
-        let precursor = self.precursor;
+impl MGFEntry {
+    pub fn write_header(spectrum: &Spectrum) -> String {
+        let precursor = spectrum.precursor;
         let title = precursor.index;
         let ms2_data = format!(
             "TITLE=index:{}, im:{:.4}, intensity:{:.4}, frame:{}, ce:{:.4}\nPEPMASS={:.4}\nCHARGE={}\nRT={:.2}\n",
@@ -44,10 +40,10 @@ impl MGFFormat for Spectrum {
         ms2_data
     }
 
-    fn as_mgf_peaks(&self) -> String {
+    pub fn write_peaks(spectrum: &Spectrum) -> String {
         let mut ms2_data: String = String::new();
         for (mz, intensity) in
-            self.mz_values.iter().zip(self.intensities.iter())
+            spectrum.mz_values.iter().zip(spectrum.intensities.iter())
         {
             ms2_data.push_str(&format!("{:.4}\t{:.0}\n", mz, intensity));
         }
