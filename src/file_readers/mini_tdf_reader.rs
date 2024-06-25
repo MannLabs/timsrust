@@ -11,14 +11,7 @@ use crate::{
     },
 };
 use std::fs;
-use {
-    crate::{
-        // file_readers::ReadableSpectra,
-        ms_data::{Precursor, Spectrum},
-    },
-    rayon::prelude::*,
-    std::path::PathBuf,
-};
+use {crate::ms_data::Spectrum, rayon::prelude::*, std::path::PathBuf};
 
 #[derive(Debug)]
 pub struct MiniTDFReader {
@@ -107,7 +100,7 @@ impl MiniTDFReader {
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let mut spectrum: Spectrum =
-            Spectrum::create_from_tdf_blob_reader(&self.blob_reader, index);
+            Self::create_from_tdf_blob_reader(&self, index);
         let precursor = self.precursor_reader.get(index);
         spectrum.precursor = precursor;
         spectrum.index = precursor.index;
@@ -127,14 +120,8 @@ impl MiniTDFReader {
         });
         spectra
     }
-}
 
-impl Spectrum {
-    fn set_tdf_blob_index(&mut self, index: usize) {
-        self.index = index;
-    }
-
-    fn update_from_tdf_blob(&mut self, blob: TdfBlob) {
+    fn update_from_tdf_blob(spectrum: &mut Spectrum, blob: TdfBlob) {
         let size: usize = blob.len();
         let spectrum_data: Vec<u32> = (0..size).map(|i| blob.get(i)).collect();
         let scan_count: usize = blob.len() / 3;
@@ -146,31 +133,18 @@ impl Spectrum {
             bytemuck::cast_slice::<u32, f64>(tof_indices_bytes);
         let intensity_values: &[f32] =
             bytemuck::cast_slice::<u32, f32>(intensities_bytes);
-        self.intensities = intensity_values.iter().map(|&x| x as f64).collect();
-        self.mz_values = mz_values.to_vec();
+        spectrum.intensities =
+            intensity_values.iter().map(|&x| x as f64).collect();
+        spectrum.mz_values = mz_values.to_vec();
     }
 
-    fn update_from_tdf_blob_reader(
-        &mut self,
-        bin_file: &IndexedTdfBlobReader,
-        index: usize,
-    ) {
-        let blob = bin_file.get_blob(index).unwrap();
+    fn create_from_tdf_blob_reader(&self, index: usize) -> Spectrum {
+        let mut spectrum = Spectrum::default();
+        spectrum.index = index;
+        let blob = self.blob_reader.get_blob(index).unwrap();
         if !blob.is_empty() {
-            self.update_from_tdf_blob(blob)
+            Self::update_from_tdf_blob(&mut spectrum, blob)
         }
-    }
-
-    fn create_from_tdf_blob_reader(
-        bin_file: &IndexedTdfBlobReader,
-        index: usize,
-    ) -> Self
-    where
-        Self: Default,
-    {
-        let mut object = Self::default();
-        object.set_tdf_blob_index(index);
-        object.update_from_tdf_blob_reader(bin_file, index);
-        object
+        spectrum
     }
 }
