@@ -3,7 +3,7 @@ mod mini_tdf_reader;
 
 use std::{fs, path::PathBuf};
 
-use crate::{io::readers::frame_reader::FrameReader, Error};
+use crate::{io::readers::FrameReader, Error};
 
 use dda_reader::DDASpectrumReader;
 use mini_tdf_reader::MiniTDFReader;

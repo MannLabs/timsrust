@@ -1,5 +1,5 @@
 use std::env;
-use timsrust::io::writers::mgf::MGFFormat;
+use timsrust::io::writers::MGFFormat;
 use timsrust::{ms_data::Spectrum, FileReader};
 
 fn quick_test() {

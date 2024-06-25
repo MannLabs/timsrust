@@ -8,9 +8,7 @@ use crate::{
         file_readers::sql_reader::{
             pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlReader,
         },
-        frame_reader::FrameReader,
-        metadata_reader::MetadataReader,
-        precursor_reader::PrecursorReader,
+        FrameReader, MetadataReader, PrecursorReader,
     },
     ms_data::{
         Frame, Precursor, RawProcessedSpectrumState, RawSpectrum,
@@ -131,9 +129,7 @@ impl DDASpectrumReader {
             .finalize(self.precursor_reader.get(index), mz_reader);
         spectrum
     }
-}
 
-impl DDASpectrumReader {
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let raw_spectrum = self.read_single_raw_spectrum(index);
         self.process_single_raw_spectrum(raw_spectrum, &self.mz_reader)

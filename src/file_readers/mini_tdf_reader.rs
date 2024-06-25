@@ -104,9 +104,7 @@ impl MiniTDFReader {
             .unwrap(),
         );
     }
-}
 
-impl MiniTDFReader {
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
         let mut spectrum: Spectrum = Spectrum::create_from_tdf_blob_reader(
             &self.frame_reader.as_ref().unwrap(),

@@ -1,1 +1,3 @@
-pub mod mgf;
+mod mgf;
+
+pub use mgf::*;
