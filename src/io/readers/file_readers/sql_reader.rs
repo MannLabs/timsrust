@@ -3,28 +3,20 @@ pub mod metadata;
 pub mod pasef_frame_msms;
 pub mod precursors;
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::Path};
 
 use rusqlite::Connection;
 
 #[derive(Debug)]
 pub struct SqlReader {
-    path: PathBuf,
     connection: Connection,
 }
 
 impl SqlReader {
-    pub fn open(file_name: impl AsRef<Path>) -> Result<SqlReader, SqlError> {
+    pub fn open(file_name: impl AsRef<Path>) -> Result<Self, SqlError> {
         let path = file_name.as_ref().to_path_buf();
         let connection = Connection::open(&path)?;
-        Ok(Self { path, connection })
-    }
-
-    pub fn get_path(&self) -> PathBuf {
-        self.path.clone()
+        Ok(Self { connection })
     }
 
     pub fn read_column_from_table<T: rusqlite::types::FromSql + Default>(

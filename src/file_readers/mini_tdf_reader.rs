@@ -1,7 +1,7 @@
 use crate::{
     file_readers::FileFormatError,
     io::readers::file_readers::{
-        parquet_reader::read_parquet_precursors,
+        parquet_reader::{precursors::ParquetPrecursor, ReadableParquetTable},
         tdf_blob_reader::{IndexedTdfBlobReader, TdfBlob},
     },
 };
@@ -87,9 +87,27 @@ impl MiniTDFReader {
     }
 
     fn read_precursors(&mut self) {
-        (self.precursors, self.offsets) =
-            read_parquet_precursors(&self.parquet_file_name);
+        // (self.precursors, self.offsets) =
+        //     read_parquet_precursors(&self.parquet_file_name);
+        let parquet_precursors =
+            ParquetPrecursor::from_parquet_file(&&self.parquet_file_name)
+                .unwrap();
+        self.offsets = parquet_precursors.iter().map(|x| x.offset).collect();
+        self.precursors = parquet_precursors
+            .iter()
+            .map(|x| Precursor {
+                mz: x.mz,
+                rt: x.rt,
+                im: x.im,
+                charge: x.charge,
+                intensity: x.intensity,
+                index: x.index,
+                frame_index: x.frame_index,
+                collision_energy: x.collision_energy,
+            })
+            .collect();
     }
+
     fn set_spectrum_reader(&mut self) {
         let mut path: PathBuf = PathBuf::from(&self.path_name);
         let ms2_bin_file =

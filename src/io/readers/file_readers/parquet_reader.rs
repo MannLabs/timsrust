@@ -1,46 +1,41 @@
-use parquet::file::reader::{FileReader, SerializedFileReader};
-use std::fs::File;
+pub mod precursors;
 
-use crate::ms_data::Precursor;
+use parquet::{
+    file::reader::{FileReader, SerializedFileReader},
+    record::Field,
+};
+use std::{fs::File, io, path::Path};
 
-pub fn read_parquet_precursors(
-    parquet_file_name: &String,
-) -> (Vec<Precursor>, Vec<u64>) {
-    let file: File = File::open(parquet_file_name).unwrap();
-    let reader: SerializedFileReader<File> =
-        SerializedFileReader::new(file).unwrap();
-    let mut precursors: Vec<Precursor> = vec![];
-    let mut offsets: Vec<u64> = vec![];
-    for record in reader.get_row_iter(None).unwrap() {
-        let mut precursor: Precursor = Precursor::default();
-        for (name, field) in record.get_column_iter() {
-            match name.to_string().as_str() {
-                "Id" => precursor.index = field.to_string().parse().unwrap(),
-                "RetentionTime" => {
-                    precursor.rt = field.to_string().parse().unwrap()
-                },
-                "MonoisotopicMz" => {
-                    precursor.mz = field.to_string().parse().unwrap_or(0.0)
-                },
-                "Charge" => {
-                    precursor.charge =
-                        field.to_string().parse().unwrap_or(0.0) as usize
-                },
-                "Intensity" => {
-                    precursor.intensity = field.to_string().parse().unwrap()
-                },
-                "ooK0" => precursor.im = field.to_string().parse().unwrap(),
-                "MS1ParentFrameId" => {
-                    precursor.frame_index =
-                        field.to_string().parse::<f32>().unwrap() as usize
-                },
-                "BinaryOffset" => {
-                    offsets.push(field.to_string().parse().unwrap())
-                },
-                _ => {},
-            }
-        }
-        precursors.push(precursor);
+pub trait ReadableParquetTable {
+    fn update_from_parquet_file(&mut self, name: &String, field: &Field);
+
+    fn from_parquet_file(
+        file_name: impl AsRef<Path>,
+    ) -> Result<Vec<Self>, ParquetError>
+    where
+        Self: Sized + Default,
+    {
+        let file: File = File::open(file_name)?;
+        let reader: SerializedFileReader<File> =
+            SerializedFileReader::new(file)?;
+        let results: Vec<Self> = reader
+            .get_row_iter(None)?
+            .map(|record| {
+                let mut result = Self::default();
+                for (name, field) in record.get_column_iter() {
+                    result.update_from_parquet_file(name, field);
+                }
+                result
+            })
+            .collect();
+        Ok(results)
     }
-    (precursors, offsets)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParquetError {
+    #[error("Cannot read file {0}")]
+    IO(#[from] io::Error),
+    #[error("Cannot iterate over row {0}")]
+    ParquetIO(#[from] parquet::errors::ParquetError),
 }
