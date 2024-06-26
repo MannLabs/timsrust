@@ -5,6 +5,7 @@ use core::fmt;
 use std::path::{Path, PathBuf};
 
 use minitdf::MiniTDFSpectrumReader;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tdf::TDFSpectrumReader;
 
 use crate::ms_data::Spectrum;
@@ -23,7 +24,7 @@ impl SpectrumReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
             match path.as_ref().extension().and_then(|e| e.to_str()) {
-                Some("parquet") => Box::new(MiniTDFSpectrumReader::new(path)),
+                Some("ms2") => Box::new(MiniTDFSpectrumReader::new(path)),
                 Some("tdf") => Box::new(TDFSpectrumReader::new(path)),
                 _ => panic!(),
             };
@@ -32,6 +33,19 @@ impl SpectrumReader {
 
     pub fn get(&self, index: usize) -> Spectrum {
         self.spectrum_reader.get(index)
+    }
+
+    pub fn get_all(&self) -> Vec<Spectrum> {
+        let mut spectra: Vec<Spectrum> = (0..self.len())
+            .into_par_iter()
+            .map(|index| self.get(index))
+            .collect();
+        spectra.sort_by(|a, b| {
+            let x = b.precursor.index as f64;
+            let y = a.precursor.index as f64;
+            y.total_cmp(&x)
+        });
+        spectra
     }
 
     pub fn get_path(&self) -> PathBuf {

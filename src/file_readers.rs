@@ -1,24 +1,24 @@
 mod dda_reader;
-mod mini_tdf_reader;
 
 use std::{fs, path::PathBuf};
 
+use crate::io::readers::file_readers::sql_reader::frames::SqlFrame;
+use crate::io::readers::SpectrumReader;
 use crate::{io::readers::FrameReader, Error};
 
 use crate::ms_data::{Frame, Spectrum};
 use dda_reader::DDASpectrumReader;
-use mini_tdf_reader::MiniTDFReader;
 use rayon::iter::ParallelIterator;
 
 /// A reader to read [frames](crate::ms_data::Frame) and [spectra](crate::ms_data::Spectrum).
 pub struct FileReader {
-    format: FileFormat,
     frame_reader: Option<FrameReader>,
-    // spectrum_reader: Option<SpectrumReader>,
+    tdf_spectrum_reader: Option<DDASpectrumReader>,
+    minitdf_spectrum_reader: Option<SpectrumReader>,
 }
 
-///NOTE: The functions to read a single frame or spectrum are not optimized.
-/// In case many frames or spectra are required, it is best to use
+///NOTE: The function to read a single spectrum is not optimized.
+/// In case many spectra are required, it is best to use
 /// any of the functions that directly return a `Vec`.
 impl FileReader {
     pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
@@ -27,9 +27,20 @@ impl FileReader {
             FileFormat::DFolder(path) => Some(FrameReader::new(&path)),
             FileFormat::MS2Folder(_) => None,
         };
+        let tdf_spectrum_reader = match &format {
+            FileFormat::DFolder(path) => Some(DDASpectrumReader::new(
+                path.to_str().unwrap_or_default().to_string(),
+            )),
+            FileFormat::MS2Folder(_) => None,
+        };
+        let minitdf_spectrum_reader = match &format {
+            FileFormat::DFolder(_) => None,
+            FileFormat::MS2Folder(path) => Some(SpectrumReader::new(path)),
+        };
         Ok(Self {
-            format,
             frame_reader,
+            tdf_spectrum_reader,
+            minitdf_spectrum_reader,
         })
     }
 
@@ -37,34 +48,34 @@ impl FileReader {
         self.frame_reader.as_ref().unwrap().get(index)
     }
 
+    fn read_multiple_frames<'a, F: Fn(&SqlFrame) -> bool + Sync + Send + 'a>(
+        &self,
+        predicate: F,
+    ) -> Vec<Frame> {
+        self.frame_reader
+            .as_ref()
+            .unwrap()
+            .parallel_filter(|x| predicate(x))
+            .collect()
+    }
+
     pub fn read_all_frames(&self) -> Vec<Frame> {
-        self.frame_reader
-            .as_ref()
-            .unwrap()
-            .parallel_filter(|_| true)
-            .collect()
+        self.read_multiple_frames(|_| true)
     }
 
-    /// MS2 frames are set to unknown and not read.
     pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
-        self.frame_reader
-            .as_ref()
-            .unwrap()
-            .parallel_filter(|x| x.msms_type == 0)
-            .collect()
+        self.read_multiple_frames(|x| x.msms_type == 0)
     }
 
-    /// MS1 frames are set to unknown and not read.
     pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
-        self.frame_reader
-            .as_ref()
-            .unwrap()
-            .parallel_filter(|x| x.msms_type != 0)
-            .collect()
+        self.read_multiple_frames(|x| x.msms_type != 0)
     }
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        self.format.read_single_spectrum(index)
+        match &self.tdf_spectrum_reader {
+            Some(reader) => reader.read_single_spectrum(index),
+            None => self.minitdf_spectrum_reader.as_ref().unwrap().get(index),
+        }
     }
 
     ///NOTE: ddaPASEF MS2 spectra are automatically calibrated with
@@ -72,7 +83,10 @@ impl FileReader {
     /// Hence, reading spectra individually through `read_single_spectrum`
     /// might yield slightly different mz values.
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
-        self.format.read_all_spectra()
+        match &self.tdf_spectrum_reader {
+            Some(reader) => reader.read_all_spectra(),
+            None => self.minitdf_spectrum_reader.as_ref().unwrap().get_all(),
+        }
     }
 }
 
@@ -123,32 +137,6 @@ impl FileFormat {
             },
         }
         Ok(())
-    }
-
-    pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
-        match &self {
-            Self::DFolder(path) => DDASpectrumReader::new(
-                path.to_str().unwrap_or_default().to_string(),
-            )
-            .read_single_spectrum(index),
-            Self::MS2Folder(path) => MiniTDFReader::new(
-                path.to_str().unwrap_or_default().to_string(),
-            )
-            .read_single_spectrum(index),
-        }
-    }
-
-    pub fn read_all_spectra(&self) -> Vec<Spectrum> {
-        match &self {
-            Self::DFolder(path) => DDASpectrumReader::new(
-                path.to_str().unwrap_or_default().to_string(),
-            )
-            .read_all_spectra(),
-            Self::MS2Folder(path) => MiniTDFReader::new(
-                path.to_str().unwrap_or_default().to_string(),
-            )
-            .read_all_spectra(),
-        }
     }
 }
 
