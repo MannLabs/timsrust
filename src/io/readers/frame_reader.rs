@@ -2,7 +2,10 @@ use std::path::{Path, PathBuf};
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::ms_data::{AcquisitionType, Frame, MSLevel};
+use crate::{
+    ms_data::{AcquisitionType, Frame, MSLevel},
+    utils::find_extension,
+};
 
 use super::file_readers::{
     sql_reader::{frames::SqlFrame, ReadableSqlTable, SqlReader},
@@ -19,10 +22,10 @@ pub struct FrameReader {
 
 impl FrameReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
-        let sql_path = path.as_ref().join("analysis.tdf");
+        let sql_path = find_extension(&path, "analysis.tdf").unwrap();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader).unwrap();
-        let bin_path = path.as_ref().join("analysis.tdf_bin");
+        let bin_path = find_extension(&path, "analysis.tdf_bin").unwrap();
         let tdf_bin_reader: TdfBlobReader =
             TdfBlobReader::new(bin_path).unwrap();
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
