@@ -28,7 +28,11 @@ impl MiniTDFSpectrumReader {
         let parquet_file_name =
             find_extension(&path, "ms2spectrum.parquet").unwrap();
         let precursor_reader = PrecursorReader::new(&parquet_file_name);
-        let offsets = Self::get_offsets(&parquet_file_name);
+        let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)
+            .unwrap()
+            .iter()
+            .map(|x| x.offset as usize)
+            .collect();
         let bin_file_name = find_extension(&path, "bin").unwrap();
         let blob_reader =
             IndexedTdfBlobReader::new(&bin_file_name, offsets).unwrap();
@@ -37,14 +41,6 @@ impl MiniTDFSpectrumReader {
             precursor_reader,
             blob_reader,
         }
-    }
-
-    fn get_offsets(parquet_file_name: impl AsRef<Path>) -> Vec<usize> {
-        ParquetPrecursor::from_parquet_file(&parquet_file_name)
-            .unwrap()
-            .iter()
-            .map(|x| x.offset as usize)
-            .collect()
     }
 }
 
@@ -83,4 +79,6 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
     fn get_path(&self) -> PathBuf {
         self.path.clone()
     }
+
+    fn calibrate(&mut self) {}
 }

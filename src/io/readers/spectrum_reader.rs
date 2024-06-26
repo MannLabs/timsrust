@@ -2,10 +2,9 @@ mod minitdf;
 mod tdf;
 
 use core::fmt;
-use std::path::{Path, PathBuf};
-
 use minitdf::MiniTDFSpectrumReader;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::path::{Path, PathBuf};
 use tdf::TDFSpectrumReader;
 
 use crate::ms_data::Spectrum;
@@ -25,7 +24,7 @@ impl SpectrumReader {
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
             match path.as_ref().extension().and_then(|e| e.to_str()) {
                 Some("ms2") => Box::new(MiniTDFSpectrumReader::new(path)),
-                Some("tdf") => Box::new(TDFSpectrumReader::new(path)),
+                Some("d") => Box::new(TDFSpectrumReader::new(path)),
                 _ => panic!(),
             };
         Self { spectrum_reader }
@@ -33,6 +32,14 @@ impl SpectrumReader {
 
     pub fn get(&self, index: usize) -> Spectrum {
         self.spectrum_reader.get(index)
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        self.spectrum_reader.get_path()
+    }
+
+    pub fn len(&self) -> usize {
+        self.spectrum_reader.len()
     }
 
     pub fn get_all(&self) -> Vec<Spectrum> {
@@ -48,12 +55,8 @@ impl SpectrumReader {
         spectra
     }
 
-    pub fn get_path(&self) -> PathBuf {
-        self.spectrum_reader.get_path()
-    }
-
-    pub fn len(&self) -> usize {
-        self.spectrum_reader.len()
+    pub fn calibrate(&mut self) {
+        self.spectrum_reader.calibrate();
     }
 }
 
@@ -61,4 +64,5 @@ trait SpectrumReaderTrait: Sync {
     fn get(&self, index: usize) -> Spectrum;
     fn get_path(&self) -> PathBuf;
     fn len(&self) -> usize;
+    fn calibrate(&mut self);
 }
