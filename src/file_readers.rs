@@ -5,17 +5,16 @@ use std::{fs, path::PathBuf};
 
 use crate::{io::readers::FrameReader, Error};
 
+use crate::ms_data::{Frame, Spectrum};
 use dda_reader::DDASpectrumReader;
 use mini_tdf_reader::MiniTDFReader;
 use rayon::iter::ParallelIterator;
-use {
-    // self::file_formats::FileFormat,
-    crate::ms_data::{Frame, Spectrum},
-};
 
 /// A reader to read [frames](crate::ms_data::Frame) and [spectra](crate::ms_data::Spectrum).
 pub struct FileReader {
     format: FileFormat,
+    frame_reader: Option<FrameReader>,
+    // spectrum_reader: Option<SpectrumReader>,
 }
 
 ///NOTE: The functions to read a single frame or spectrum are not optimized.
@@ -24,27 +23,44 @@ pub struct FileReader {
 impl FileReader {
     pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
-        Ok(Self { format })
+        let frame_reader = match &format {
+            FileFormat::DFolder(path) => Some(FrameReader::new(&path)),
+            FileFormat::MS2Folder(_) => None,
+        };
+        Ok(Self {
+            format,
+            frame_reader,
+        })
     }
 
     pub fn read_single_frame(&self, index: usize) -> Frame {
-        self.format.read_single_frame(index)
+        self.frame_reader.as_ref().unwrap().get(index)
     }
 
     pub fn read_all_frames(&self) -> Vec<Frame> {
-        self.format.read_all_frames()
+        self.frame_reader
+            .as_ref()
+            .unwrap()
+            .parallel_filter(|_| true)
+            .collect()
     }
 
-    /// NOTE: The returned vec contains all frames to not disrupt indexing.
     /// MS2 frames are set to unknown and not read.
     pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
-        self.format.read_all_ms1_frames()
+        self.frame_reader
+            .as_ref()
+            .unwrap()
+            .parallel_filter(|x| x.msms_type == 0)
+            .collect()
     }
 
-    /// NOTE: The returned vec contains all frames to not disrupt indexing.
     /// MS1 frames are set to unknown and not read.
     pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
-        self.format.read_all_ms2_frames()
+        self.frame_reader
+            .as_ref()
+            .unwrap()
+            .parallel_filter(|x| x.msms_type != 0)
+            .collect()
     }
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
@@ -107,38 +123,6 @@ impl FileFormat {
             },
         }
         Ok(())
-    }
-
-    fn get_frame_reader(&self) -> FrameReader {
-        let path = match &self {
-            Self::DFolder(path) => path,
-            Self::MS2Folder(path) => panic!(
-                "Folder {:} is not frame readable",
-                path.to_str().unwrap_or_default().to_string()
-            ),
-        };
-        let frame_reader: FrameReader = FrameReader::new(&path);
-        frame_reader
-    }
-
-    pub fn read_single_frame(&self, index: usize) -> Frame {
-        self.get_frame_reader().get(index)
-    }
-
-    pub fn read_all_frames(&self) -> Vec<Frame> {
-        self.get_frame_reader().parallel_filter(|_| true).collect()
-    }
-
-    pub fn read_all_ms1_frames(&self) -> Vec<Frame> {
-        self.get_frame_reader()
-            .parallel_filter(|x| x.msms_type == 0)
-            .collect()
-    }
-
-    pub fn read_all_ms2_frames(&self) -> Vec<Frame> {
-        self.get_frame_reader()
-            .parallel_filter(|x| x.msms_type != 0)
-            .collect()
     }
 
     pub fn read_single_spectrum(&self, index: usize) -> Spectrum {
