@@ -56,10 +56,11 @@ impl FrameReader {
     pub fn get(&self, index: usize) -> Frame {
         let mut frame: Frame = Frame::default();
         let sql_frame = &self.sql_frames[index];
-        let blob = self
-            .tdf_bin_reader
-            .get_blob(sql_frame.binary_offset)
-            .unwrap();
+        frame.index = sql_frame.id;
+        let blob = match self.tdf_bin_reader.get_blob(sql_frame.binary_offset) {
+            Ok(blob) => blob,
+            Err(_) => return frame,
+        };
         let scan_count: usize = blob.get(0) as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
         frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob);
@@ -71,7 +72,6 @@ impl FrameReader {
             &frame.scan_offsets,
         );
         frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
-        frame.index = sql_frame.id;
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
         frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
