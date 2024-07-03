@@ -65,7 +65,7 @@ impl TdfBlobReader {
         byte_count: usize,
         offset: usize,
     ) -> Result<usize, TdfBlobError> {
-        if (byte_count <= (HEADER_SIZE * U32_SIZE))
+        if (byte_count < (HEADER_SIZE * U32_SIZE))
             || ((offset + byte_count) > self.len())
         {
             return Err(TdfBlobError::ByteCount(
