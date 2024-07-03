@@ -151,7 +151,6 @@ impl FrameReader {
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
         frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
-        // TODO: implement intensity reader
         if (self.acquisition == AcquisitionType::DIAPASEF)
             & (frame.ms_level == MSLevel::MS2)
         {

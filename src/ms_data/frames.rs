@@ -16,6 +16,12 @@ pub struct Frame {
     pub window_group: u8,
 }
 
+impl Frame {
+    pub fn get_corrected_intensity(&self, index: usize) -> f64 {
+        self.intensity_correction_factor * self.intensities[index] as f64
+    }
+}
+
 /// The MS level used.
 #[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub enum MSLevel {
