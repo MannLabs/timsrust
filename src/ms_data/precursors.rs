@@ -8,5 +8,4 @@ pub struct Precursor {
     pub intensity: f64,
     pub index: usize,
     pub frame_index: usize,
-    pub collision_energy: f64,
 }

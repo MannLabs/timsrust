@@ -52,14 +52,8 @@ impl PrecursorReaderTrait for TDFPrecursorReader {
         precursor.im = self.im_converter.convert(scan_id);
         precursor.charge = sql_precursor.charge;
         precursor.intensity = sql_precursor.intensity;
-        precursor.index = index + 1; //TODO;
+        precursor.index = index + 1;
         precursor.frame_index = frame_id;
-        // TODO OPTIMIZE!!!!!
-        // precursor.collision_energy = pasef_frames
-        //     .iter()
-        //     .find(|&x| x.precursor == index + 1)
-        //     .unwrap()
-        //     .collision_energy;
         precursor
     }
 

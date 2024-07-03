@@ -21,6 +21,7 @@ pub struct MiniTDFSpectrumReader {
     path: PathBuf,
     precursor_reader: PrecursorReader,
     blob_reader: IndexedTdfBlobReader,
+    collision_energies: Vec<f64>,
 }
 
 impl MiniTDFSpectrumReader {
@@ -33,6 +34,12 @@ impl MiniTDFSpectrumReader {
             .iter()
             .map(|x| x.offset as usize)
             .collect();
+        let collision_energies =
+            ParquetPrecursor::from_parquet_file(&parquet_file_name)
+                .unwrap()
+                .iter()
+                .map(|x| x.collision_energy)
+                .collect();
         let bin_file_name = find_extension(&path, "bin").unwrap();
         let blob_reader =
             IndexedTdfBlobReader::new(&bin_file_name, offsets).unwrap();
@@ -40,6 +47,7 @@ impl MiniTDFSpectrumReader {
             path: path.as_ref().to_path_buf(),
             precursor_reader,
             blob_reader,
+            collision_energies,
         }
     }
 }
@@ -69,6 +77,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
         let precursor = self.precursor_reader.get(index);
         spectrum.precursor = precursor;
         spectrum.index = precursor.index;
+        spectrum.collision_energy = self.collision_energies[index];
         spectrum
     }
 

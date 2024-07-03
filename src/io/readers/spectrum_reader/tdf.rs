@@ -56,10 +56,12 @@ impl TDFSpectrumReader {
     pub fn read_single_raw_spectrum(&self, index: usize) -> RawSpectrum {
         let mut tof_indices: Vec<u32> = vec![];
         let mut intensities: Vec<u32> = vec![];
+        let mut collision_energy = 0.0;
         for pasef_frame in self
             .spectrum_frame_index_reader
             .iterate_over_pasef_frames(index)
         {
+            collision_energy = pasef_frame.collision_energy;
             let frame_index: usize = pasef_frame.frame - 1;
             let frame = self.frame_reader.get(frame_index);
             if frame.intensities.len() == 0 {
@@ -84,6 +86,7 @@ impl TDFSpectrumReader {
             tof_indices: raw_tof_indices,
             intensities: raw_intensities,
             index: index,
+            collision_energy,
         };
         raw_spectrum
             .smooth(SMOOTHING_WINDOW)
@@ -182,6 +185,7 @@ pub(crate) struct RawSpectrum {
     pub tof_indices: Vec<u32>,
     pub intensities: Vec<u64>,
     pub index: usize,
+    pub collision_energy: f64,
 }
 
 impl RawSpectrum {
@@ -233,6 +237,7 @@ impl RawSpectrum {
             intensities: self.intensities.iter().map(|x| *x as f64).collect(),
             precursor: precursor,
             index: index,
+            collision_energy: self.collision_energy,
         };
         spectrum
     }

@@ -7,4 +7,5 @@ pub struct Spectrum {
     pub intensities: Vec<f64>,
     pub precursor: Precursor,
     pub index: usize,
+    pub collision_energy: f64,
 }

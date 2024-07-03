@@ -37,7 +37,6 @@ impl PrecursorReaderTrait for MiniTDFPrecursorReader {
             intensity: x.intensity,
             index: x.index,
             frame_index: x.frame_index,
-            collision_energy: x.collision_energy,
         }
     }
 
