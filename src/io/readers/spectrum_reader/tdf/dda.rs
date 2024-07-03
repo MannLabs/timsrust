@@ -11,14 +11,14 @@ use crate::{
 use super::raw_spectra::RawSpectrum;
 
 #[derive(Debug)]
-pub struct SpectrumFrameIndexReader {
+pub struct RawSpectrumReader {
     order: Vec<usize>,
     offsets: Vec<usize>,
     pasef_frames: Vec<SqlPasefFrameMsMs>,
     frame_reader: FrameReader,
 }
 
-impl SpectrumFrameIndexReader {
+impl RawSpectrumReader {
     pub fn new(tdf_sql_reader: &SqlReader, frame_reader: FrameReader) -> Self {
         let pasef_frames =
             SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader).unwrap();

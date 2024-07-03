@@ -1,7 +1,7 @@
 mod dda;
 mod raw_spectra;
 
-use dda::SpectrumFrameIndexReader;
+use dda::RawSpectrumReader;
 use raw_spectra::RawSpectrum;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
@@ -27,7 +27,7 @@ pub struct TDFSpectrumReader {
     path: PathBuf,
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
-    spectrum_frame_index_reader: SpectrumFrameIndexReader,
+    spectrum_frame_index_reader: RawSpectrumReader,
 }
 
 impl TDFSpectrumReader {
@@ -42,7 +42,7 @@ impl TDFSpectrumReader {
         if frame_reader.get_acquisition() == AcquisitionType::DDAPASEF {
             precursor_reader = PrecursorReader::new(&sql_path);
             spectrum_frame_index_reader =
-                SpectrumFrameIndexReader::new(&tdf_sql_reader, frame_reader);
+                RawSpectrumReader::new(&tdf_sql_reader, frame_reader);
         } else {
             // TODO parse diaPASEF
             panic!("Not DDA")
