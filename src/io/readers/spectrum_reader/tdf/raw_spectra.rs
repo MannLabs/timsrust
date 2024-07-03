@@ -10,6 +10,8 @@ pub(crate) struct RawSpectrum {
     pub intensities: Vec<u64>,
     pub index: usize,
     pub collision_energy: f64,
+    pub isolation_mz: f64,
+    pub isolation_width: f64,
 }
 
 impl RawSpectrum {
@@ -62,6 +64,8 @@ impl RawSpectrum {
             precursor: precursor,
             index: index,
             collision_energy: self.collision_energy,
+            isolation_mz: self.isolation_mz,
+            isolation_width: self.isolation_width,
         };
         spectrum
     }

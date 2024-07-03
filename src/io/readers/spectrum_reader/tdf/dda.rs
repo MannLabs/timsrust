@@ -56,10 +56,14 @@ impl SpectrumFrameIndexReader {
 
     pub fn get_raw_spectrum(&self, index: usize) -> RawSpectrum {
         let mut collision_energy = 0.0;
+        let mut isolation_mz = 0.0;
+        let mut isolation_width = 0.0;
         let mut tof_indices: Vec<u32> = vec![];
         let mut intensities: Vec<u32> = vec![];
         for pasef_frame in self.iterate_over_pasef_frames(index) {
             collision_energy = pasef_frame.collision_energy;
+            isolation_mz = pasef_frame.isolation_mz;
+            isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame - 1;
             let frame = self.frame_reader.get(frame_index);
             if frame.intensities.len() == 0 {
@@ -85,6 +89,8 @@ impl SpectrumFrameIndexReader {
             intensities: raw_intensities,
             index: index,
             collision_energy,
+            isolation_mz,
+            isolation_width,
         };
         raw_spectrum
     }

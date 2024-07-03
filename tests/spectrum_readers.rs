@@ -35,6 +35,8 @@ fn minitdf_reader() {
             },
             index: 1,
             collision_energy: 0.0,
+            isolation_mz: 0.0,
+            isolation_width: 0.0,
         },
         Spectrum {
             mz_values: vec![1100.0, 1200.002, 1300.03, 1400.4],
@@ -50,6 +52,8 @@ fn minitdf_reader() {
             },
             index: 2,
             collision_energy: 0.0,
+            isolation_mz: 0.0,
+            isolation_width: 0.0,
         },
     ];
     for i in 0..spectra.len() {
@@ -82,6 +86,8 @@ fn tdf_reader_dda() {
             },
             index: 0,
             collision_energy: 0.0,
+            isolation_mz: 500.5,
+            isolation_width: 2.0,
         },
         Spectrum {
             mz_values: vec![169.5419900362706, 695.6972509397959],
@@ -97,6 +103,8 @@ fn tdf_reader_dda() {
             },
             index: 1,
             collision_energy: 0.0,
+            isolation_mz: 501.5,
+            isolation_width: 2.0,
         },
         Spectrum {
             mz_values: vec![827.1915846690921],
@@ -112,6 +120,8 @@ fn tdf_reader_dda() {
             },
             index: 2,
             collision_energy: 0.0,
+            isolation_mz: 502.5,
+            isolation_width: 2.0,
         },
     ];
     for i in 0..spectra.len() {

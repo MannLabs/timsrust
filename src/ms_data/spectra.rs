@@ -8,4 +8,6 @@ pub struct Spectrum {
     pub precursor: Precursor,
     pub index: usize,
     pub collision_energy: f64,
+    pub isolation_mz: f64,
+    pub isolation_width: f64,
 }
