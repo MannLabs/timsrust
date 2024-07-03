@@ -67,8 +67,6 @@ fn get_im_converter(
         .read_column_from_table("NumScans", "Frames")
         .unwrap();
     let scan_max_index = *scan_counts.iter().max().unwrap();
-    println!("{:?}", scan_counts);
-    println!("{}", scan_max_index);
     // let scan_max_index = 927;
     let im_min: f64 = sql_metadata
         .get("OneOverK0AcqRangeLower")
