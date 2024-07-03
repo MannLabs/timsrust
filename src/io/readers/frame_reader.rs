@@ -35,12 +35,12 @@ impl FrameReader {
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader).unwrap();
         let bin_path = find_extension(&path, "analysis.tdf_bin").unwrap();
-        let tdf_bin_reader: TdfBlobReader =
-            TdfBlobReader::new(bin_path).unwrap();
+        let tdf_bin_reader = TdfBlobReader::new(bin_path).unwrap();
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
             AcquisitionType::DIAPASEF
+            // TODO: can also be diagonalpasef
         } else {
             AcquisitionType::Unknown
         };
