@@ -61,9 +61,8 @@ pub fn find_sparse_local_maxima_mask(
 }
 
 pub fn filter_with_mask<T: Copy>(vec: &Vec<T>, mask: &Vec<bool>) -> Vec<T> {
-    vec.iter()
-        .zip(mask.iter())
-        .filter(|(_, y_elem)| **y_elem)
-        .map(|(&x_elem, _)| x_elem)
+    (0..vec.len())
+        .filter(|&x| mask[x])
+        .map(|x| vec[x])
         .collect()
 }
