@@ -15,6 +15,8 @@ pub struct FileReader {
 
 impl FileReader {
     // TODO refactor out
+    // TODO proper error handling
+    // TODO update docs
     pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
         let frame_reader = match &format {
