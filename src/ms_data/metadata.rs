@@ -11,4 +11,5 @@ pub struct Metadata {
     pub rt_converter: Frame2RtConverter,
     pub im_converter: Scan2ImConverter,
     pub mz_converter: Tof2MzConverter,
+    pub compression_type: u8,
 }

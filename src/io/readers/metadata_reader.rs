@@ -19,11 +19,17 @@ impl MetadataReader {
         let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
         let sql_metadata: HashMap<String, String> =
             SqlMetadata::from_sql_reader(&tdf_sql_reader).unwrap();
+        let compression_type = sql_metadata
+            .get("TimsCompressionType")
+            .unwrap()
+            .parse()
+            .unwrap();
         Metadata {
             path: path.as_ref().to_path_buf(),
             rt_converter: get_rt_converter(&tdf_sql_reader),
             im_converter: get_im_converter(&sql_metadata, &tdf_sql_reader),
             mz_converter: get_mz_converter(&sql_metadata),
+            compression_type,
         }
     }
 }

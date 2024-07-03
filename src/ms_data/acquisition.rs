@@ -3,7 +3,7 @@
 pub enum AcquisitionType {
     DDAPASEF,
     DIAPASEF,
-    // DiagonalDIAPASEF,
+    DiagonalDIAPASEF,
     // PRMPASEF,
     /// Default value.
     #[default]
