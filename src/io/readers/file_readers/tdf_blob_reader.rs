@@ -18,6 +18,7 @@ pub struct TdfBlobReader {
 }
 
 impl TdfBlobReader {
+    // TODO parse compression1
     pub fn new(file_name: impl AsRef<Path>) -> Result<Self, TdfBlobError> {
         let path: PathBuf = file_name.as_ref().to_path_buf();
         let file: File = File::open(&path)?;

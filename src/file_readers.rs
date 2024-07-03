@@ -14,6 +14,7 @@ pub struct FileReader {
 }
 
 impl FileReader {
+    // TODO refactor out
     pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
         let frame_reader = match &format {
@@ -76,6 +77,7 @@ pub enum FileFormat {
 }
 
 impl FileFormat {
+    // TODO make into proper struct
     pub fn parse(
         input: impl AsRef<std::path::Path>,
     ) -> Result<Self, FileFormatError> {
