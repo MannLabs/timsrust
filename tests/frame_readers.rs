@@ -31,6 +31,7 @@ fn tdf_reader_frames1() {
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
             intensity_correction_factor: 1.0 / 100.0,
+            window_group: 0,
         },
         // Frame::default(),
         Frame {
@@ -43,6 +44,7 @@ fn tdf_reader_frames1() {
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
             intensity_correction_factor: 1.0 / 100.0,
+            window_group: 0,
         },
         // Frame::default(),
     ];
@@ -73,6 +75,7 @@ fn tdf_reader_frames2() {
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
             intensity_correction_factor: 1.0 / 100.0,
+            window_group: 0,
         },
         // Frame::default(),
         Frame {
@@ -85,9 +88,12 @@ fn tdf_reader_frames2() {
             quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
             acquisition_type: AcquisitionType::DDAPASEF,
             intensity_correction_factor: 1.0 / 100.0,
+            window_group: 0,
         },
     ];
     for i in 0..expected.len() {
         assert_eq!(&frames[i], &expected[i])
     }
 }
+
+// TODO test for DIA

@@ -13,6 +13,7 @@ pub struct Frame {
     pub ms_level: MSLevel,
     pub quadrupole_settings: Arc<QuadrupoleSettings>,
     pub intensity_correction_factor: f64,
+    pub window_group: u8,
 }
 
 /// The MS level used.
