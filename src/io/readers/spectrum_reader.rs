@@ -47,11 +47,7 @@ impl SpectrumReader {
             .into_par_iter()
             .map(|index| self.get(index))
             .collect();
-        spectra.sort_by(|a, b| {
-            let x = b.precursor.index as f64;
-            let y = a.precursor.index as f64;
-            y.total_cmp(&x)
-        });
+        spectra.sort_by_key(|x| x.precursor.index);
         spectra
     }
 
