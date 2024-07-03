@@ -10,7 +10,6 @@ impl TdfBlob {
         Self { bytes }
     }
 
-    #[inline(always)]
     pub fn get(&self, index: usize) -> u32 {
         debug_assert!(index < self.len());
         Self::concatenate_bytes(
@@ -21,7 +20,6 @@ impl TdfBlob {
         )
     }
 
-    #[inline(always)]
     fn concatenate_bytes(b1: u8, b2: u8, b3: u8, b4: u8) -> u32 {
         b1 as u32
             | ((b2 as u32) << 8)
