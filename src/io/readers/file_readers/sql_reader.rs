@@ -1,7 +1,9 @@
+pub mod frame_groups;
 pub mod frames;
 pub mod metadata;
 pub mod pasef_frame_msms;
 pub mod precursors;
+pub mod quad_settings;
 
 use std::{collections::HashMap, path::Path};
 
