@@ -13,9 +13,6 @@ pub struct FileReader {
     spectrum_reader: Option<SpectrumReader>,
 }
 
-///NOTE: The function to read a single spectrum is not optimized.
-/// In case many spectra are required, it is best to use
-/// any of the functions that directly return a `Vec`.
 impl FileReader {
     pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
@@ -25,13 +22,12 @@ impl FileReader {
         };
         let spectrum_reader = match &format {
             FileFormat::DFolder(path) => {
-                let mut reader = SpectrumReader::new(path);
-                reader.calibrate();
+                let reader = SpectrumReader::new(path);
+                // reader.calibrate();
                 Some(reader)
             },
             FileFormat::MS2Folder(path) => Some(SpectrumReader::new(path)),
         };
-
         Ok(Self {
             frame_reader,
             spectrum_reader,
@@ -69,10 +65,6 @@ impl FileReader {
         self.spectrum_reader.as_ref().unwrap().get(index)
     }
 
-    ///NOTE: ddaPASEF MS2 spectra are automatically calibrated with
-    /// all unfragmented precursor signals.
-    /// Hence, reading spectra individually through `read_single_spectrum`
-    /// might yield slightly different mz values.
     pub fn read_all_spectra(&self) -> Vec<Spectrum> {
         self.spectrum_reader.as_ref().unwrap().get_all()
     }
