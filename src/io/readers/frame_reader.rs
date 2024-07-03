@@ -1,14 +1,21 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    vec,
+};
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{
-    ms_data::{AcquisitionType, Frame, MSLevel},
-    utils::find_extension,
+    ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
+    utils::{find_extension, vec_utils::argsort},
 };
 
 use super::file_readers::{
-    sql_reader::{frames::SqlFrame, ReadableSqlTable, SqlReader},
+    sql_reader::{
+        frame_groups::SqlWindowGroup, frames::SqlFrame,
+        quad_settings::SqlQuadSettings, ReadableSqlTable, SqlReader,
+    },
     tdf_blob_reader::{TdfBlob, TdfBlobReader},
 };
 
@@ -18,6 +25,8 @@ pub struct FrameReader {
     tdf_bin_reader: TdfBlobReader,
     sql_frames: Vec<SqlFrame>,
     acquisition: AcquisitionType,
+    window_groups: Vec<u8>,
+    quadrupole_settings: Vec<Arc<QuadrupoleSettings>>,
 }
 
 impl FrameReader {
@@ -35,11 +44,78 @@ impl FrameReader {
         } else {
             AcquisitionType::Unknown
         };
+        let mut window_groups = vec![0; sql_frames.len()];
+        let mut quadrupole_settings: Vec<QuadrupoleSettings>;
+        if acquisition == AcquisitionType::DIAPASEF {
+            for window_group in
+                SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap()
+            {
+                window_groups[window_group.frame - 1] =
+                    window_group.window_group;
+            }
+            let sql_quadrupole_settings =
+                SqlQuadSettings::from_sql_reader(&tdf_sql_reader).unwrap();
+            let window_group_count =
+                *window_groups.iter().max().unwrap() as usize;
+            quadrupole_settings = (0..window_group_count)
+                .map(|window_group| {
+                    let mut quad = QuadrupoleSettings::default();
+                    quad.index = window_group + 1;
+                    quad
+                })
+                .collect();
+            for window_group in sql_quadrupole_settings {
+                let group = window_group.window_group - 1;
+                quadrupole_settings[group]
+                    .scan_starts
+                    .push(window_group.scan_start);
+                quadrupole_settings[group]
+                    .scan_ends
+                    .push(window_group.scan_end);
+                quadrupole_settings[group]
+                    .collision_energy
+                    .push(window_group.collision_energy);
+                quadrupole_settings[group]
+                    .isolation_mz
+                    .push(window_group.mz_center);
+                quadrupole_settings[group]
+                    .isolation_width
+                    .push(window_group.mz_width);
+            }
+            quadrupole_settings = quadrupole_settings
+                .into_iter()
+                .map(|mut window| {
+                    let order = argsort(&window.scan_starts);
+                    window.isolation_mz =
+                        order.iter().map(|&i| window.isolation_mz[i]).collect();
+                    window.isolation_width = order
+                        .iter()
+                        .map(|&i| window.isolation_width[i])
+                        .collect();
+                    window.collision_energy = order
+                        .iter()
+                        .map(|&i| window.collision_energy[i])
+                        .collect();
+                    window.scan_starts =
+                        order.iter().map(|&i| window.scan_starts[i]).collect();
+                    window.scan_ends =
+                        order.iter().map(|&i| window.scan_ends[i]).collect();
+                    window
+                })
+                .collect();
+        } else {
+            quadrupole_settings = vec![];
+        }
         Self {
             path: path.as_ref().to_path_buf(),
             tdf_bin_reader,
             sql_frames,
             acquisition,
+            window_groups,
+            quadrupole_settings: quadrupole_settings
+                .into_iter()
+                .map(|x| Arc::new(x))
+                .collect(),
         }
     }
 
@@ -75,6 +151,15 @@ impl FrameReader {
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
         frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
+        // TODO: implement intensity reader
+        if (self.acquisition == AcquisitionType::DIAPASEF)
+            & (frame.ms_level == MSLevel::MS2)
+        {
+            let window_group = self.window_groups[index];
+            frame.window_group = window_group;
+            frame.quadrupole_settings =
+                self.quadrupole_settings[window_group as usize - 1].clone();
+        }
         frame
     }
 
