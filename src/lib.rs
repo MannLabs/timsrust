@@ -21,7 +21,6 @@
 //!     * *.ms2spectrum.bin
 //!     * *.ms2spectrum.parquet
 
-mod calibration;
 pub mod domain_converters;
 mod errors;
 mod file_readers;
