@@ -74,7 +74,7 @@ fn tdf_reader_dda() {
             precursor: Precursor {
                 mz: 500.0,
                 rt: 0.2,
-                im: 1.4989212513484358,
+                im: 1.25,
                 charge: 2,
                 intensity: 10.0,
                 index: 1,
@@ -89,7 +89,7 @@ fn tdf_reader_dda() {
             precursor: Precursor {
                 mz: 501.0,
                 rt: 0.2,
-                im: 1.4978425026968716,
+                im: 1.0,
                 charge: 3,
                 intensity: 10.0,
                 index: 2,
@@ -104,7 +104,7 @@ fn tdf_reader_dda() {
             precursor: Precursor {
                 mz: 502.0,
                 rt: 0.4,
-                im: 1.4989212513484358,
+                im: 1.25,
                 charge: 2,
                 intensity: 10.0,
                 index: 3,

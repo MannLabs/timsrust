@@ -22,7 +22,7 @@ impl MetadataReader {
         Metadata {
             path: path.as_ref().to_path_buf(),
             rt_converter: get_rt_converter(&tdf_sql_reader),
-            im_converter: get_im_converter(&sql_metadata),
+            im_converter: get_im_converter(&sql_metadata, &tdf_sql_reader),
             mz_converter: get_mz_converter(&sql_metadata),
         }
     }
@@ -61,8 +61,15 @@ fn get_mz_converter(sql_metadata: &HashMap<String, String>) -> Tof2MzConverter {
 
 fn get_im_converter(
     sql_metadata: &HashMap<String, String>,
+    tdf_sql_reader: &SqlReader,
 ) -> Scan2ImConverter {
-    let scan_max_index: u32 = 927; //TODO
+    let scan_counts: Vec<u32> = tdf_sql_reader
+        .read_column_from_table("NumScans", "Frames")
+        .unwrap();
+    let scan_max_index = *scan_counts.iter().max().unwrap();
+    println!("{:?}", scan_counts);
+    println!("{}", scan_max_index);
+    // let scan_max_index = 927;
     let im_min: f64 = sql_metadata
         .get("OneOverK0AcqRangeLower")
         .unwrap()
