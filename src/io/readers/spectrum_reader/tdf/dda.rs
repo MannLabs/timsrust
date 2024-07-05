@@ -8,17 +8,17 @@ use crate::{
     utils::vec_utils::{argsort, group_and_sum},
 };
 
-use super::raw_spectra::RawSpectrum;
+use super::raw_spectra::{RawSpectrum, RawSpectrumReaderTrait};
 
 #[derive(Debug)]
-pub struct RawSpectrumReader {
+pub struct DDARawSpectrumReader {
     order: Vec<usize>,
     offsets: Vec<usize>,
     pasef_frames: Vec<SqlPasefFrameMsMs>,
     frame_reader: FrameReader,
 }
 
-impl RawSpectrumReader {
+impl DDARawSpectrumReader {
     pub fn new(tdf_sql_reader: &SqlReader, frame_reader: FrameReader) -> Self {
         let pasef_frames =
             SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader).unwrap();
@@ -53,8 +53,10 @@ impl RawSpectrumReader {
             .iter()
             .map(|&x| &self.pasef_frames[x])
     }
+}
 
-    pub fn get_raw_spectrum(&self, index: usize) -> RawSpectrum {
+impl RawSpectrumReaderTrait for DDARawSpectrumReader {
+    fn get(&self, index: usize) -> RawSpectrum {
         let mut collision_energy = 0.0;
         let mut isolation_mz = 0.0;
         let mut isolation_width = 0.0;

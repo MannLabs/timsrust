@@ -1,67 +1,60 @@
+mod dda;
+mod dia;
+
 use std::path::{Path, PathBuf};
 
+use dda::DDATDFPrecursorReader;
+use dia::DIATDFPrecursorReader;
+
 use crate::{
-    domain_converters::{
-        ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
-    },
-    io::readers::{
-        file_readers::sql_reader::{
-            precursors::SqlPrecursor, ReadableSqlTable, SqlReader,
-        },
-        MetadataReader,
-    },
-    ms_data::Precursor,
+    io::readers::file_readers::sql_reader::SqlReader,
+    ms_data::{AcquisitionType, Precursor},
 };
 
 use super::PrecursorReaderTrait;
 
-#[derive(Debug)]
 pub struct TDFPrecursorReader {
-    path: PathBuf,
-    sql_precursors: Vec<SqlPrecursor>,
-    rt_converter: Frame2RtConverter,
-    im_converter: Scan2ImConverter,
+    precursor_reader: Box<dyn PrecursorReaderTrait>,
 }
 
 impl TDFPrecursorReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
-        let metadata = MetadataReader::new(&path);
-        let rt_converter: Frame2RtConverter = metadata.rt_converter;
-        let im_converter: Scan2ImConverter = metadata.im_converter;
-        let sql_precursors =
-            SqlPrecursor::from_sql_reader(&tdf_sql_reader).unwrap();
-        Self {
-            path: path.as_ref().to_path_buf(),
-            sql_precursors,
-            rt_converter,
-            im_converter,
-        }
+        let sql_frames: Vec<u8> = tdf_sql_reader
+            .read_column_from_table("ScanMode", "Frames")
+            .unwrap();
+        let acquisition_type = if sql_frames.iter().any(|&x| x == 8) {
+            AcquisitionType::DDAPASEF
+        } else if sql_frames.iter().any(|&x| x == 9) {
+            AcquisitionType::DIAPASEF
+        } else {
+            AcquisitionType::Unknown
+        };
+        let precursor_reader: Box<dyn PrecursorReaderTrait> =
+            match acquisition_type {
+                AcquisitionType::DDAPASEF => {
+                    Box::new(DDATDFPrecursorReader::new(path))
+                },
+                AcquisitionType::DIAPASEF => {
+                    Box::new(DIATDFPrecursorReader::new(path))
+                },
+                _ => panic!(),
+            };
+        Self { precursor_reader }
     }
 }
 
 impl PrecursorReaderTrait for TDFPrecursorReader {
     fn get(&self, index: usize) -> Precursor {
-        let mut precursor: Precursor = Precursor::default();
-        let sql_precursor = &self.sql_precursors[index];
-        let frame_id: usize = sql_precursor.precursor_frame;
-        let scan_id: f64 = sql_precursor.scan_average;
-        precursor.mz = sql_precursor.mz;
-        precursor.rt = self.rt_converter.convert(frame_id as u32);
-        precursor.im = self.im_converter.convert(scan_id);
-        precursor.charge = sql_precursor.charge;
-        precursor.intensity = sql_precursor.intensity;
-        precursor.index = index + 1;
-        precursor.frame_index = frame_id;
-        precursor
+        self.precursor_reader.get(index)
     }
 
     fn len(&self) -> usize {
-        self.sql_precursors.len()
+        self.precursor_reader.len()
     }
 
     fn get_path(&self) -> PathBuf {
-        self.path.clone()
+        self.precursor_reader.get_path()
     }
 }

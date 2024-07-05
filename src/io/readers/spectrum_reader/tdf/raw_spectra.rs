@@ -1,8 +1,13 @@
+use core::fmt;
+
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
-    ms_data::{Precursor, Spectrum},
+    io::readers::{file_readers::sql_reader::SqlReader, FrameReader},
+    ms_data::{AcquisitionType, Precursor, Spectrum},
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
 };
+
+use super::{dda::DDARawSpectrumReader, dia::DIARawSpectrumReader};
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub(crate) struct RawSpectrum {
@@ -69,4 +74,44 @@ impl RawSpectrum {
         };
         spectrum
     }
+}
+
+pub struct RawSpectrumReader {
+    raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait>,
+}
+
+impl fmt::Debug for RawSpectrumReader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "RawSpectrumReader {{ /* fields omitted */ }}")
+    }
+}
+
+impl RawSpectrumReader {
+    pub fn new(
+        tdf_sql_reader: &SqlReader,
+        frame_reader: FrameReader,
+        acquisition_type: AcquisitionType,
+    ) -> Self {
+        let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
+            match acquisition_type {
+                AcquisitionType::DDAPASEF => Box::new(
+                    DDARawSpectrumReader::new(tdf_sql_reader, frame_reader),
+                ),
+                AcquisitionType::DIAPASEF => Box::new(
+                    DIARawSpectrumReader::new(tdf_sql_reader, frame_reader),
+                ),
+                _ => panic!(),
+            };
+        Self {
+            raw_spectrum_reader,
+        }
+    }
+
+    pub fn get(&self, index: usize) -> RawSpectrum {
+        self.raw_spectrum_reader.get(index)
+    }
+}
+
+pub trait RawSpectrumReaderTrait: Sync {
+    fn get(&self, index: usize) -> RawSpectrum;
 }

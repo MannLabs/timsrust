@@ -1,8 +1,8 @@
 mod dda;
+mod dia;
 mod raw_spectra;
 
-use dda::RawSpectrumReader;
-use raw_spectra::RawSpectrum;
+use raw_spectra::{RawSpectrum, RawSpectrumReader};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
 
@@ -12,7 +12,7 @@ use crate::{
         file_readers::sql_reader::SqlReader, FrameReader, MetadataReader,
         PrecursorReader,
     },
-    ms_data::{AcquisitionType, Spectrum},
+    ms_data::Spectrum,
     utils::find_extension,
 };
 
@@ -27,7 +27,7 @@ pub struct TDFSpectrumReader {
     path: PathBuf,
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
-    spectrum_frame_index_reader: RawSpectrumReader,
+    raw_spectrum_reader: RawSpectrumReader,
 }
 
 impl TDFSpectrumReader {
@@ -37,27 +37,23 @@ impl TDFSpectrumReader {
         let metadata = MetadataReader::new(&sql_path);
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
         let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
-        let precursor_reader;
-        let spectrum_frame_index_reader;
-        if frame_reader.get_acquisition() == AcquisitionType::DDAPASEF {
-            precursor_reader = PrecursorReader::new(&sql_path);
-            spectrum_frame_index_reader =
-                RawSpectrumReader::new(&tdf_sql_reader, frame_reader);
-        } else {
-            // TODO parse diaPASEF
-            panic!("Not DDA")
-        }
+        let precursor_reader = PrecursorReader::new(&sql_path);
+        let acquisition_type = frame_reader.get_acquisition();
+        let raw_spectrum_reader = RawSpectrumReader::new(
+            &tdf_sql_reader,
+            frame_reader,
+            acquisition_type,
+        );
         Self {
             path: path_name.as_ref().to_path_buf(),
             precursor_reader,
             mz_reader,
-            spectrum_frame_index_reader,
+            raw_spectrum_reader,
         }
     }
 
     pub fn read_single_raw_spectrum(&self, index: usize) -> RawSpectrum {
-        let raw_spectrum =
-            self.spectrum_frame_index_reader.get_raw_spectrum(index);
+        let raw_spectrum = self.raw_spectrum_reader.get(index);
         raw_spectrum
             .smooth(SMOOTHING_WINDOW)
             .centroid(CENTROIDING_WINDOW)
