@@ -5,20 +5,24 @@ pub mod pasef_frame_msms;
 pub mod precursors;
 pub mod quad_settings;
 
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use rusqlite::Connection;
 
 #[derive(Debug)]
 pub struct SqlReader {
     connection: Connection,
+    path: PathBuf,
 }
 
 impl SqlReader {
     pub fn open(file_name: impl AsRef<Path>) -> Result<Self, SqlError> {
         let path = file_name.as_ref().to_path_buf();
         let connection = Connection::open(&path)?;
-        Ok(Self { connection })
+        Ok(Self { connection, path })
     }
 
     pub fn read_column_from_table<T: rusqlite::types::FromSql + Default>(
@@ -34,6 +38,10 @@ impl SqlReader {
         })?;
         let result = rows.collect::<Result<Vec<_>, _>>()?;
         Ok(result)
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        self.path.clone()
     }
 }
 
