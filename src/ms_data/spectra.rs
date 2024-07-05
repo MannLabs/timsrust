@@ -13,7 +13,8 @@ pub struct Spectrum {
 }
 
 impl Spectrum {
-    pub fn get_top_n(&self, top_n: usize) -> Self {
+    pub fn get_top_n(&self, n: usize) -> Self {
+        let top_n = if n == 0 { self.len() } else { n };
         let mut indexed: Vec<(f64, usize)> =
             self.intensities.iter().cloned().zip(0..).collect();
         indexed.sort_by(|a, b| {
@@ -40,5 +41,9 @@ impl Spectrum {
             isolation_mz: self.isolation_mz,
             isolation_width: self.isolation_width,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.mz_values.len()
     }
 }
