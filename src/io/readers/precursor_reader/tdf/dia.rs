@@ -70,8 +70,8 @@ impl PrecursorReaderTrait for DIATDFPrecursorReader {
             mz: quad_settings.isolation_mz[0],
             rt: self.rt_converter.convert(quad_settings.index as u32 - 1),
             im: self.im_converter.convert(scan_id),
-            charge: 0,      //TODO
-            intensity: 0.0, //TODO
+            charge: None,
+            intensity: None,
             index: index,
             frame_index: quad_settings.index,
         }

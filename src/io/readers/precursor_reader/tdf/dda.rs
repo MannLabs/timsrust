@@ -50,8 +50,8 @@ impl PrecursorReaderTrait for DDATDFPrecursorReader {
             mz: sql_precursor.mz,
             rt: self.rt_converter.convert(frame_id as u32),
             im: self.im_converter.convert(scan_id),
-            charge: sql_precursor.charge,
-            intensity: sql_precursor.intensity,
+            charge: Some(sql_precursor.charge),
+            intensity: Some(sql_precursor.intensity),
             index: index + 1,
             frame_index: frame_id,
         }

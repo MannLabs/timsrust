@@ -33,7 +33,6 @@ pub struct FrameReader {
 }
 
 impl FrameReader {
-    // TODO refactor/simplify
     pub fn new(path: impl AsRef<Path>) -> Self {
         let sql_path = find_extension(&path, "analysis.tdf").unwrap();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();

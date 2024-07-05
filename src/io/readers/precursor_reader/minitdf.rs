@@ -33,8 +33,8 @@ impl PrecursorReaderTrait for MiniTDFPrecursorReader {
             mz: x.mz,
             rt: x.rt,
             im: x.im,
-            charge: x.charge,
-            intensity: x.intensity,
+            charge: Some(x.charge),
+            intensity: Some(x.intensity),
             index: x.index,
             frame_index: x.frame_index,
         }
