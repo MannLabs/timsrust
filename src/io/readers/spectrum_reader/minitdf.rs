@@ -78,8 +78,14 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
         spectrum.precursor = precursor;
         spectrum.index = precursor.index;
         spectrum.collision_energy = self.collision_energies[index];
-        spectrum.isolation_mz = 0.0; //TODO
-        spectrum.isolation_width = 0.0; //TODO
+        spectrum.isolation_mz = precursor.mz; //FIX?
+        spectrum.isolation_width = if precursor.mz <= 700.0 {
+            2.0
+        } else if precursor.mz >= 800.0 {
+            3.0
+        } else {
+            2.0 + (precursor.mz - 700.0) / 100.0
+        }; //FIX?
         spectrum
     }
 
