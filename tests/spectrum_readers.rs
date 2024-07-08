@@ -35,8 +35,8 @@ fn minitdf_reader() {
             },
             index: 1,
             collision_energy: 0.0,
-            isolation_mz: 0.0,
-            isolation_width: 0.0,
+            isolation_mz: 123.4567,
+            isolation_width: 2.0,
         },
         Spectrum {
             mz_values: vec![1100.0, 1200.002, 1300.03, 1400.4],
@@ -52,8 +52,8 @@ fn minitdf_reader() {
             },
             index: 2,
             collision_energy: 0.0,
-            isolation_mz: 0.0,
-            isolation_width: 0.0,
+            isolation_mz: 987.6543,
+            isolation_width: 3.0,
         },
     ];
     for i in 0..spectra.len() {
