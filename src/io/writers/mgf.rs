@@ -35,7 +35,7 @@ impl MGFEntry {
         let intensity = precursor.intensity.unwrap_or(0.0);
         let charge = precursor.charge.unwrap_or(0);
         let ms2_data = format!(
-            "TITLE=index:{}, im:{:.4}, intensity:{:.4}, frame:{}, ce:{:.4}\nPEPMASS={:.4}\nCHARGE={}\nRT={:.2}\n",
+            "TITLE=index:{}, im:{:.4}, intensity:{:.4}, frame:{}, ce:{:.4}\nPEPMASS={:.4}\nCHARGE={}\nRTINSECONDS={:.2}\n",
             title, precursor.im, intensity, precursor.frame_index, spectrum.collision_energy, precursor.mz, charge, precursor.rt
         );
         ms2_data
