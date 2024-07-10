@@ -1,7 +1,8 @@
+use rayon::iter::ParallelIterator;
 use std::{path::Path, sync::Arc};
 use timsrust::{
+    io::readers::FrameReader,
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
-    FileReader,
 };
 
 fn get_local_directory() -> &'static Path {
@@ -18,8 +19,9 @@ fn tdf_reader_frames1() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> =
-        FileReader::new(&file_path).unwrap().read_all_ms1_frames();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .parallel_filter(|x| x.msms_type == 0)
+        .collect();
     let expected: Vec<Frame> = vec![
         Frame {
             scan_offsets: vec![0, 1, 3, 6, 10],
@@ -61,8 +63,9 @@ fn tdf_reader_frames2() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> =
-        FileReader::new(&file_path).unwrap().read_all_ms2_frames();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .parallel_filter(|x| x.msms_type != 0)
+        .collect();
     let expected: Vec<Frame> = vec![
         // Frame::default(),
         Frame {
