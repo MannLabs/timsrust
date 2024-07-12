@@ -1,5 +1,5 @@
 /// A converter from Scan -> (inversed) ion mobility.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Scan2ImConverter {
     scan_intercept: f64,
     scan_slope: f64,

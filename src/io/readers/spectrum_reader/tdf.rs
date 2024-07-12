@@ -98,7 +98,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
                 acc
             });
         if hits.len() >= 2 {
-            self.mz_reader = Tof2MzConverter::from_pairs(&hits);
+            self.mz_reader = Tof2MzConverter::regress_from_pairs(&hits);
         }
     }
 }
