@@ -1,3 +1,4 @@
+use crate::io::readers::tdf_utils::expand_quadrupole_settings;
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
@@ -19,27 +20,12 @@ pub struct DIARawSpectrumReader {
 
 impl DIARawSpectrumReader {
     pub fn new(tdf_sql_reader: &SqlReader, frame_reader: FrameReader) -> Self {
-        let window_groups =
+        let window_groups: Vec<SqlWindowGroup> =
             SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path());
-        let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
-        for window_group in window_groups {
-            let window = window_group.window_group;
-            let frame = window_group.frame;
-            let group = &quadrupole_settings[window as usize - 1];
-            for sub_window in 0..group.isolation_mz.len() {
-                let sub_quad_settings = QuadrupoleSettings {
-                    index: frame,
-                    scan_starts: vec![group.scan_starts[sub_window]],
-                    scan_ends: vec![group.scan_ends[sub_window]],
-                    isolation_mz: vec![group.isolation_mz[sub_window]],
-                    isolation_width: vec![group.isolation_width[sub_window]],
-                    collision_energy: vec![group.collision_energy[sub_window]],
-                };
-                expanded_quadrupole_settings.push(sub_quad_settings)
-            }
-        }
+        let expanded_quadrupole_settings =
+            expand_quadrupole_settings(&window_groups, &quadrupole_settings);
         Self {
             expanded_quadrupole_settings,
             frame_reader,
@@ -50,6 +36,15 @@ impl DIARawSpectrumReader {
 impl RawSpectrumReaderTrait for DIARawSpectrumReader {
     fn get(&self, index: usize) -> RawSpectrum {
         let quad_settings = &self.expanded_quadrupole_settings[index];
+        if index < 10 {
+            println!("{}", index);
+            println!("{:?}", quad_settings);
+        }
+        if index > (self.expanded_quadrupole_settings.len() - 10) {
+            println!("{}", index);
+            println!("{:?}", quad_settings);
+        }
+
         let collision_energy = quad_settings.collision_energy[0];
         let isolation_mz = quad_settings.isolation_mz[0];
         let isolation_width = quad_settings.isolation_width[0];
@@ -74,5 +69,9 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
             isolation_width,
         };
         raw_spectrum
+    }
+
+    fn len(&self) -> usize {
+        self.expanded_quadrupole_settings.len()
     }
 }

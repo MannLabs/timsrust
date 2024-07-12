@@ -69,7 +69,11 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
     }
 
     fn len(&self) -> usize {
-        self.precursor_reader.len()
+        debug_assert_eq!(
+            self.precursor_reader.len(),
+            self.raw_spectrum_reader.len()
+        );
+        self.raw_spectrum_reader.len()
     }
 
     fn get_path(&self) -> PathBuf {

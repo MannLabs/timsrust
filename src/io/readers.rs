@@ -4,6 +4,7 @@ mod metadata_reader;
 mod precursor_reader;
 mod quad_settings_reader;
 mod spectrum_reader;
+mod tdf_utils;
 
 pub use frame_reader::*;
 pub use metadata_reader::*;

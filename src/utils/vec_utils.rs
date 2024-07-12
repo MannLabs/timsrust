@@ -12,8 +12,8 @@ pub fn group_and_sum<T: Ord + Copy, U: std::ops::Add<Output = U> + Copy>(
         return (vec![], vec![]);
     }
     let order: Vec<usize> = argsort(&groups);
-    let mut new_groups: Vec<T> = vec![];
-    let mut new_values: Vec<U> = vec![];
+    let mut new_groups: Vec<T> = Vec::with_capacity(order.len());
+    let mut new_values: Vec<U> = Vec::with_capacity(order.len());
     let mut current_group: T = groups[order[0]];
     let mut current_value: U = values[order[0]];
     for &index in &order[1..] {

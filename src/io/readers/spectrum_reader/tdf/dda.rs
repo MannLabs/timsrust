@@ -96,4 +96,8 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
         };
         raw_spectrum
     }
+
+    fn len(&self) -> usize {
+        self.offsets.len() - 1
+    }
 }

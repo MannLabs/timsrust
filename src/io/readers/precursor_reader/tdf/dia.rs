@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::io::readers::tdf_utils::expand_quadrupole_settings;
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
@@ -34,23 +35,8 @@ impl DIATDFPrecursorReader {
             SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
-        let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
-        for window_group in window_groups {
-            let window = window_group.window_group;
-            let frame = window_group.frame;
-            let group = &quadrupole_settings[window as usize - 1];
-            for sub_window in 0..group.isolation_mz.len() {
-                let sub_quad_settings = QuadrupoleSettings {
-                    index: frame,
-                    scan_starts: vec![group.scan_starts[sub_window]],
-                    scan_ends: vec![group.scan_ends[sub_window]],
-                    isolation_mz: vec![group.isolation_mz[sub_window]],
-                    isolation_width: vec![group.isolation_width[sub_window]],
-                    collision_energy: vec![group.collision_energy[sub_window]],
-                };
-                expanded_quadrupole_settings.push(sub_quad_settings)
-            }
-        }
+        let expanded_quadrupole_settings =
+            expand_quadrupole_settings(&window_groups, &quadrupole_settings);
         Self {
             path: path.as_ref().to_path_buf(),
             expanded_quadrupole_settings,
