@@ -23,9 +23,8 @@
 
 pub mod domain_converters;
 mod errors;
-mod file_readers;
 pub mod io;
 pub mod ms_data;
 mod utils;
 
-pub use crate::{errors::*, file_readers::FileReader};
+pub use crate::errors::*;
