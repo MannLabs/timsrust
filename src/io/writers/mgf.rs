@@ -30,7 +30,7 @@ pub struct MGFEntry;
 
 impl MGFEntry {
     pub fn write_header(spectrum: &Spectrum) -> String {
-        let precursor = spectrum.precursor;
+        let precursor = spectrum.precursor.unwrap();
         let title = precursor.index;
         let intensity = precursor.intensity.unwrap_or(0.0);
         let charge = precursor.charge.unwrap_or(0);

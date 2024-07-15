@@ -75,7 +75,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
             spectrum.mz_values = mz_values.to_vec();
         }
         let precursor = self.precursor_reader.get(index);
-        spectrum.precursor = precursor;
+        spectrum.precursor = Some(precursor);
         spectrum.index = precursor.index;
         spectrum.collision_energy = self.collision_energies[index];
         spectrum.isolation_mz = precursor.mz; //FIX?
