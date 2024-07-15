@@ -5,7 +5,7 @@ use crate::domain_converters::{
 };
 
 /// Metadata from a single run.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
     pub path: PathBuf,
     pub rt_converter: Frame2RtConverter,
