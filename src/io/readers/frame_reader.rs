@@ -43,7 +43,6 @@ impl FrameReader {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
             AcquisitionType::DIAPASEF
-            // TODO: can also be diagonalpasef
         } else {
             AcquisitionType::Unknown
         };
@@ -115,6 +114,18 @@ impl FrameReader {
                 self.quadrupole_settings[window_group as usize - 1].clone();
         }
         frame
+    }
+
+    pub fn get_all(&self) -> Vec<Frame> {
+        self.parallel_filter(|_| true).collect()
+    }
+
+    pub fn get_all_ms1(&self) -> Vec<Frame> {
+        self.parallel_filter(|x| x.msms_type == 0).collect()
+    }
+
+    pub fn get_all_ms2(&self) -> Vec<Frame> {
+        self.parallel_filter(|x| x.msms_type != 0).collect()
     }
 
     pub fn get_acquisition(&self) -> AcquisitionType {
