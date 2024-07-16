@@ -7,7 +7,7 @@ use std::path::Path;
 pub use tdf_blobs::*;
 use zstd::decode_all;
 
-const BLOB_TYPE_SIZE: usize = std::mem::size_of::<u32>();
+const U32_SIZE: usize = std::mem::size_of::<u32>();
 const HEADER_SIZE: usize = 2;
 
 #[derive(Debug)]
@@ -47,7 +47,7 @@ impl TdfBlobReader {
 
     fn get_byte_count(&self, offset: usize) -> Option<usize> {
         let start = offset as usize;
-        let end = (offset + BLOB_TYPE_SIZE) as usize;
+        let end = (offset + U32_SIZE) as usize;
         let raw_byte_count = self.mmap.get(start..end)?;
         let byte_count =
             u32::from_le_bytes(raw_byte_count.try_into().ok()?) as usize;
@@ -59,7 +59,7 @@ impl TdfBlobReader {
         offset: usize,
         byte_count: usize,
     ) -> Option<&[u8]> {
-        let start = offset + HEADER_SIZE * BLOB_TYPE_SIZE;
+        let start = offset + HEADER_SIZE * U32_SIZE;
         let end = offset + byte_count;
         self.mmap.get(start..end)
     }
