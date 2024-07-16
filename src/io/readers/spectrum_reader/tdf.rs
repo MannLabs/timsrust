@@ -34,7 +34,7 @@ impl TDFSpectrumReader {
     pub fn new(path_name: impl AsRef<Path>) -> Self {
         let frame_reader: FrameReader = FrameReader::new(&path_name).unwrap();
         let sql_path = find_extension(&path_name, "analysis.tdf").unwrap();
-        let metadata = MetadataReader::new(&sql_path);
+        let metadata = MetadataReader::new(&sql_path).unwrap();
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
         let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
         let precursor_reader = PrecursorReader::new(&sql_path);

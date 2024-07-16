@@ -27,7 +27,7 @@ impl DIATDFPrecursorReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
-        let metadata = MetadataReader::new(&path);
+        let metadata = MetadataReader::new(&path).unwrap();
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
         let window_groups =
