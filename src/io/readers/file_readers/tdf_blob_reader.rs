@@ -59,7 +59,7 @@ impl TdfBlobReader {
             },
         )?;
         let byte_count =
-            u32::from_le_bytes(raw_byte_count.try_into().unwrap()) as usize;
+            u32::from_le_bytes(raw_byte_count.try_into()?) as usize;
         Ok(byte_count)
     }
 
@@ -135,11 +135,6 @@ pub enum TdfBlobReaderError {
         end: usize,
         length: usize,
     },
-
-    #[error("Index {0} is invalid for file {1}")]
-    Index(usize, PathBuf),
-    #[error("Offset {0} is invalid for file {1}")]
-    Offset(usize, PathBuf),
-    #[error("Byte count {0} from offset {1} is invalid for file {2}")]
-    ByteCount(usize, usize, PathBuf),
+    #[error("{0}")]
+    TryFromSliceError(#[from] std::array::TryFromSliceError),
 }
