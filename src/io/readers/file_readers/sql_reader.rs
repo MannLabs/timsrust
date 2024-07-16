@@ -96,5 +96,5 @@ impl ParseDefault for rusqlite::Row<'_> {
 }
 
 #[derive(thiserror::Error, Debug)]
-#[error("SqlError: {0}")]
+#[error("{0}")]
 pub struct SqlError(#[from] rusqlite::Error);
