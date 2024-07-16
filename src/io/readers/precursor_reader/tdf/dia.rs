@@ -9,6 +9,7 @@ use crate::{
             frame_groups::SqlWindowGroup, ReadableSqlTable, SqlError, SqlReader,
         },
         MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
+        QuadrupoleSettingsReaderError,
     },
     ms_data::{Precursor, QuadrupoleSettings},
 };
@@ -33,7 +34,7 @@ impl DIATDFPrecursorReader {
         let im_converter: Scan2ImConverter = metadata.im_converter;
         let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let quadrupole_settings =
-            QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
+            QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
         let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
         for window_group in window_groups {
             let window = window_group.window_group;
@@ -89,4 +90,6 @@ pub enum DIATDFPrecursorReaderError {
     SqlError(#[from] SqlError),
     #[error("{0}")]
     MetadataReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }

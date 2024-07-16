@@ -22,7 +22,7 @@ impl DIARawSpectrumReader {
         let window_groups =
             SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
         let quadrupole_settings =
-            QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path());
+            QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path()).unwrap();
         let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
         for window_group in window_groups {
             let window = window_group.window_group;

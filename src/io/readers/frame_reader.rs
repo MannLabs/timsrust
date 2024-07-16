@@ -19,7 +19,7 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    QuadrupoleSettingsReader,
+    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
@@ -60,7 +60,7 @@ impl FrameReader {
                     window_group.window_group;
             }
             quadrupole_settings =
-                QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
+                QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
         } else {
             quadrupole_settings = vec![];
         }
@@ -209,4 +209,6 @@ pub enum FrameReaderError {
     SqlError(#[from] SqlError),
     #[error("Corrupt Frame")]
     CorruptFrame,
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }
