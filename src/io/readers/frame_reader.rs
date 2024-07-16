@@ -17,9 +17,7 @@ use super::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
             SqlError, SqlReader,
         },
-        tdf_blob_reader::{
-            TdfBlob, TdfBlobError, TdfBlobReader, TdfBlobReaderError,
-        },
+        tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
     QuadrupoleSettingsReader,
 };
