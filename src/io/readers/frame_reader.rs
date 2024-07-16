@@ -85,11 +85,11 @@ impl FrameReader {
             .map(move |x| self.get(x).unwrap())
     }
 
-    pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
+    pub fn get(&self, index: usize) -> Option<Frame> {
         let mut frame: Frame = Frame::default();
         let sql_frame = &self.sql_frames[index];
         frame.index = sql_frame.id;
-        let blob = self.tdf_bin_reader.get_blob(sql_frame.binary_offset)?;
+        let blob = self.tdf_bin_reader.get(sql_frame.binary_offset).ok()?;
         let scan_count: usize = blob.get(0)? as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
         frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
@@ -112,7 +112,7 @@ impl FrameReader {
             frame.quadrupole_settings =
                 self.quadrupole_settings[window_group as usize - 1].clone();
         }
-        Ok(frame)
+        Some(frame)
     }
 
     pub fn get_all(&self) -> Vec<Frame> {
@@ -144,7 +144,7 @@ fn read_scan_offsets(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Result<Vec<usize>, FrameReaderError> {
+) -> Option<Vec<usize>> {
     let mut scan_offsets: Vec<usize> = Vec::with_capacity(scan_count + 1);
     scan_offsets.push(0);
     for scan_index in 0..scan_count - 1 {
@@ -153,20 +153,20 @@ fn read_scan_offsets(
         scan_offsets.push(scan_offsets[scan_index] + scan_size);
     }
     scan_offsets.push(peak_count);
-    Ok(scan_offsets)
+    Some(scan_offsets)
 }
 
 fn read_intensities(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Result<Vec<u32>, FrameReaderError> {
+) -> Option<Vec<u32>> {
     let mut intensities: Vec<u32> = Vec::with_capacity(peak_count);
     for peak_index in 0..peak_count {
         let index: usize = scan_count + 1 + 2 * peak_index;
         intensities.push(blob.get(index)?);
     }
-    Ok(intensities)
+    Some(intensities)
 }
 
 fn read_tof_indices(
@@ -174,7 +174,7 @@ fn read_tof_indices(
     peak_count: usize,
     blob: &TdfBlob,
     scan_offsets: &Vec<usize>,
-) -> Result<Vec<u32>, FrameReaderError> {
+) -> Option<Vec<u32>> {
     let mut tof_indices: Vec<u32> = Vec::with_capacity(peak_count);
     for scan_index in 0..scan_count {
         let start_offset: usize = scan_offsets[scan_index];
@@ -187,7 +187,7 @@ fn read_tof_indices(
             tof_indices.push(current_sum - 1);
         }
     }
-    Ok(tof_indices)
+    Some(tof_indices)
 }
 
 #[derive(Debug, thiserror::Error)]

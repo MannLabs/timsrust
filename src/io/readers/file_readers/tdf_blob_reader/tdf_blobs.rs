@@ -8,22 +8,17 @@ pub struct TdfBlob {
 impl TdfBlob {
     pub fn new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
         if bytes.len() % BLOB_TYPE_SIZE != 0 {
-            Err(TdfBlobError::InvalidLength {
-                length: bytes.len(),
-            })
+            Err(TdfBlobError(bytes.len()))
         } else {
             Ok(Self { bytes })
         }
     }
 
-    pub fn get(&self, index: usize) -> Result<u32, TdfBlobError> {
+    pub fn get(&self, index: usize) -> Option<u32> {
         if index >= self.len() {
-            Err(TdfBlobError::IndexOutOfBounds {
-                length: self.len(),
-                index,
-            })
+            None
         } else {
-            Ok(Self::concatenate_bytes(
+            Some(Self::concatenate_bytes(
                 self.bytes[index],
                 self.bytes[index + self.len()],
                 self.bytes[index + 2 * self.len()],
@@ -49,9 +44,5 @@ impl TdfBlob {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum TdfBlobError {
-    #[error("Length {length} not a multiple of {BLOB_TYPE_SIZE}")]
-    InvalidLength { length: usize },
-    #[error("Index {index} out of bounds for length {length})")]
-    IndexOutOfBounds { index: usize, length: usize },
-}
+#[error("Length {0} is not a multiple of {BLOB_TYPE_SIZE}")]
+pub struct TdfBlobError(usize);

@@ -58,7 +58,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
     fn get(&self, index: usize) -> Spectrum {
         let mut spectrum = Spectrum::default();
         spectrum.index = index;
-        let blob = self.blob_reader.get_blob(index).unwrap();
+        let blob = self.blob_reader.get(index).unwrap();
         if !blob.is_empty() {
             let size: usize = blob.len();
             let spectrum_data: Vec<u32> =

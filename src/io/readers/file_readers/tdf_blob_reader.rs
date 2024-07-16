@@ -3,7 +3,7 @@ mod tdf_blobs;
 use memmap2::Mmap;
 use std::fs::File;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 pub use tdf_blobs::*;
 use zstd::decode_all;
 
@@ -12,7 +12,6 @@ const HEADER_SIZE: usize = 2;
 
 #[derive(Debug)]
 pub struct TdfBlobReader {
-    path: PathBuf,
     mmap: Mmap,
     global_file_offset: usize,
 }
@@ -26,61 +25,43 @@ impl TdfBlobReader {
         let file = File::open(&path)?;
         let mmap = unsafe { Mmap::map(&file)? };
         let reader = Self {
-            path,
             mmap,
             global_file_offset: 0,
         };
         Ok(reader)
     }
 
-    pub fn get_blob(
-        &self,
-        offset: usize,
-    ) -> Result<TdfBlob, TdfBlobReaderError> {
+    pub fn get(&self, offset: usize) -> Result<TdfBlob, TdfBlobReaderError> {
         let offset = self.global_file_offset + offset;
-        let byte_count = self.get_byte_count(offset)?;
-        let compressed_bytes = self.get_compressed_bytes(offset, byte_count)?;
-        let bytes = decode_all(compressed_bytes)?;
+        let byte_count = self
+            .get_byte_count(offset)
+            .ok_or(TdfBlobReaderError::InvalidOffset)?;
+        let compressed_bytes = self
+            .get_compressed_bytes(offset, byte_count)
+            .ok_or(TdfBlobReaderError::CorruptData)?;
+        let bytes = decode_all(compressed_bytes)
+            .map_err(|_| TdfBlobReaderError::Decompression)?;
         let blob = TdfBlob::new(bytes)?;
         Ok(blob)
     }
 
-    fn get_byte_count(
-        &self,
-        offset: usize,
-    ) -> Result<usize, TdfBlobReaderError> {
+    fn get_byte_count(&self, offset: usize) -> Option<usize> {
         let start = offset as usize;
         let end = (offset + BLOB_TYPE_SIZE) as usize;
-        let raw_byte_count = self.mmap.get(start..end).ok_or(
-            TdfBlobReaderError::RangeOutOfBounds {
-                start,
-                end,
-                length: self.mmap.len(),
-            },
-        )?;
+        let raw_byte_count = self.mmap.get(start..end)?;
         let byte_count =
-            u32::from_le_bytes(raw_byte_count.try_into()?) as usize;
-        Ok(byte_count)
+            u32::from_le_bytes(raw_byte_count.try_into().ok()?) as usize;
+        Some(byte_count)
     }
 
     fn get_compressed_bytes(
         &self,
         offset: usize,
         byte_count: usize,
-    ) -> Result<&[u8], TdfBlobReaderError> {
+    ) -> Option<&[u8]> {
         let start = offset + HEADER_SIZE * BLOB_TYPE_SIZE;
         let end = offset + byte_count;
-        self.mmap
-            .get(start..end)
-            .ok_or(TdfBlobReaderError::RangeOutOfBounds {
-                start,
-                end,
-                length: self.mmap.len(),
-            })
-    }
-
-    pub fn len(&self) -> usize {
-        self.mmap.len()
+        self.mmap.get(start..end)
     }
 }
 
@@ -103,21 +84,16 @@ impl IndexedTdfBlobReader {
         Ok(reader)
     }
 
-    pub fn get_blob(
+    pub fn get(
         &self,
         index: usize,
-    ) -> Result<TdfBlob, TdfBlobReaderError> {
-        let offset = *self.binary_offsets.get(index).ok_or(
-            TdfBlobReaderError::IndexOutOfBounds {
-                index,
-                length: self.binary_offsets.len(),
-            },
-        )?;
-        self.blob_reader.get_blob(offset)
-    }
-
-    pub fn len(&self) -> usize {
-        self.binary_offsets.len()
+    ) -> Result<TdfBlob, IndexedTdfBlobReaderError> {
+        let offset = *self
+            .binary_offsets
+            .get(index)
+            .ok_or(IndexedTdfBlobReaderError::InvalidIndex)?;
+        let blob = self.blob_reader.get(offset)?;
+        Ok(blob)
     }
 }
 
@@ -127,14 +103,18 @@ pub enum TdfBlobReaderError {
     IO(#[from] io::Error),
     #[error("{0}")]
     TdfBlob(#[from] TdfBlobError),
-    #[error("Index {index} out of bounds for length {length})")]
-    IndexOutOfBounds { index: usize, length: usize },
-    #[error("Range [{start}-{end}] out of bounds for length {length})")]
-    RangeOutOfBounds {
-        start: usize,
-        end: usize,
-        length: usize,
-    },
+    #[error("Data is corrupt")]
+    CorruptData,
+    #[error("Decompression fails")]
+    Decompression,
+    #[error("Invalid offset")]
+    InvalidOffset,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum IndexedTdfBlobReaderError {
     #[error("{0}")]
-    TryFromSliceError(#[from] std::array::TryFromSliceError),
+    TdfBlobReaderError(#[from] TdfBlobReaderError),
+    #[error("Invalid index")]
+    InvalidIndex,
 }
