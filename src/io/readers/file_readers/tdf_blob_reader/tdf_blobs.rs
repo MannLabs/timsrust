@@ -1,17 +1,18 @@
 const U32_SIZE: usize = std::mem::size_of::<u32>();
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TdfBlob {
     bytes: Vec<u8>,
 }
 
 impl TdfBlob {
     pub fn new(bytes: Vec<u8>) -> Self {
+        assert!(bytes.len() % U32_SIZE == 0);
         Self { bytes }
     }
 
     pub fn get(&self, index: usize) -> u32 {
-        debug_assert!(index < self.len());
+        assert!(index < self.len());
         Self::concatenate_bytes(
             self.bytes[index],
             self.bytes[index + self.len()],
