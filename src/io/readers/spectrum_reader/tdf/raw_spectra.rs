@@ -66,7 +66,7 @@ impl RawSpectrum {
                 .map(|&x| mz_reader.convert(x))
                 .collect(),
             intensities: self.intensities.iter().map(|x| *x as f64).collect(),
-            precursor: precursor,
+            precursor: Some(precursor),
             index: index,
             collision_energy: self.collision_energy,
             isolation_mz: self.isolation_mz,
