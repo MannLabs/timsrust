@@ -6,7 +6,9 @@ use crate::{
             parquet_reader::{
                 precursors::ParquetPrecursor, ReadableParquetTable,
             },
-            tdf_blob_reader::IndexedTdfBlobReader,
+            tdf_blob_reader::{
+                IndexedTdfBlobReader, TdfBlobError, TdfBlobReaderError,
+            },
         },
         PrecursorReader,
     },
@@ -60,7 +62,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
         if !blob.is_empty() {
             let size: usize = blob.len();
             let spectrum_data: Vec<u32> =
-                (0..size).map(|i| blob.get(i)).collect();
+                (0..size).map(|i| blob.get(i).unwrap()).collect();
             let scan_count: usize = blob.len() / 3;
             let tof_indices_bytes: &[u32] =
                 &spectrum_data[..scan_count as usize * 2];

@@ -17,7 +17,9 @@ use super::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
             SqlReader,
         },
-        tdf_blob_reader::{TdfBlob, TdfBlobReader},
+        tdf_blob_reader::{
+            TdfBlob, TdfBlobError, TdfBlobReader, TdfBlobReaderError,
+        },
     },
     QuadrupoleSettingsReader,
 };
@@ -80,27 +82,24 @@ impl FrameReader {
         (0..self.len())
             .into_par_iter()
             .filter(move |x| predicate(&self.sql_frames[*x]))
-            .map(move |x| self.get(x))
+            .map(move |x| self.get(x).unwrap())
     }
 
-    pub fn get(&self, index: usize) -> Frame {
+    pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
         let mut frame: Frame = Frame::default();
         let sql_frame = &self.sql_frames[index];
         frame.index = sql_frame.id;
-        let blob = match self.tdf_bin_reader.get_blob(sql_frame.binary_offset) {
-            Ok(blob) => blob,
-            Err(_) => return frame,
-        };
-        let scan_count: usize = blob.get(0) as usize;
+        let blob = self.tdf_bin_reader.get_blob(sql_frame.binary_offset)?;
+        let scan_count: usize = blob.get(0)? as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
-        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob);
-        frame.intensities = read_intensities(scan_count, peak_count, &blob);
+        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
+        frame.intensities = read_intensities(scan_count, peak_count, &blob)?;
         frame.tof_indices = read_tof_indices(
             scan_count,
             peak_count,
             &blob,
             &frame.scan_offsets,
-        );
+        )?;
         frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
@@ -113,7 +112,7 @@ impl FrameReader {
             frame.quadrupole_settings =
                 self.quadrupole_settings[window_group as usize - 1].clone();
         }
-        frame
+        Ok(frame)
     }
 
     pub fn get_all(&self) -> Vec<Frame> {
@@ -145,29 +144,29 @@ fn read_scan_offsets(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Vec<usize> {
+) -> Result<Vec<usize>, FrameReaderError> {
     let mut scan_offsets: Vec<usize> = Vec::with_capacity(scan_count + 1);
     scan_offsets.push(0);
     for scan_index in 0..scan_count - 1 {
         let index = scan_index + 1;
-        let scan_size: usize = (blob.get(index) / 2) as usize;
+        let scan_size: usize = (blob.get(index)? / 2) as usize;
         scan_offsets.push(scan_offsets[scan_index] + scan_size);
     }
     scan_offsets.push(peak_count);
-    scan_offsets
+    Ok(scan_offsets)
 }
 
 fn read_intensities(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Vec<u32> {
+) -> Result<Vec<u32>, FrameReaderError> {
     let mut intensities: Vec<u32> = Vec::with_capacity(peak_count);
     for peak_index in 0..peak_count {
         let index: usize = scan_count + 1 + 2 * peak_index;
-        intensities.push(blob.get(index));
+        intensities.push(blob.get(index)?);
     }
-    intensities
+    Ok(intensities)
 }
 
 fn read_tof_indices(
@@ -175,7 +174,7 @@ fn read_tof_indices(
     peak_count: usize,
     blob: &TdfBlob,
     scan_offsets: &Vec<usize>,
-) -> Vec<u32> {
+) -> Result<Vec<u32>, FrameReaderError> {
     let mut tof_indices: Vec<u32> = Vec::with_capacity(peak_count);
     for scan_index in 0..scan_count {
         let start_offset: usize = scan_offsets[scan_index];
@@ -183,10 +182,18 @@ fn read_tof_indices(
         let mut current_sum: u32 = 0;
         for peak_index in start_offset..end_offset {
             let index = scan_count + 2 * peak_index;
-            let tof_index: u32 = blob.get(index);
+            let tof_index: u32 = blob.get(index)?;
             current_sum += tof_index;
             tof_indices.push(current_sum - 1);
         }
     }
-    tof_indices
+    Ok(tof_indices)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FrameReaderError {
+    #[error("{0}")]
+    TdfBlob(#[from] TdfBlobError),
+    #[error("{0}")]
+    TdfBlobReader(#[from] TdfBlobReaderError),
 }

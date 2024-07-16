@@ -56,7 +56,7 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
         let scan_start = quad_settings.scan_starts[0];
         let scan_end = quad_settings.scan_ends[0];
         let frame_index = quad_settings.index - 1;
-        let frame = self.frame_reader.get(frame_index);
+        let frame = self.frame_reader.get(frame_index).unwrap();
         let offset_start = frame.scan_offsets[scan_start] as usize;
         let offset_end = frame.scan_offsets[scan_end] as usize;
         let tof_indices = &frame.tof_indices[offset_start..offset_end];

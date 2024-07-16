@@ -1,4 +1,4 @@
-const U32_SIZE: usize = std::mem::size_of::<u32>();
+const BLOB_TYPE_SIZE: usize = std::mem::size_of::<u32>();
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TdfBlob {
@@ -6,19 +6,30 @@ pub struct TdfBlob {
 }
 
 impl TdfBlob {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        assert!(bytes.len() % U32_SIZE == 0);
-        Self { bytes }
+    pub fn new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
+        if bytes.len() % BLOB_TYPE_SIZE != 0 {
+            Err(TdfBlobError::InvalidLength {
+                length: bytes.len(),
+            })
+        } else {
+            Ok(Self { bytes })
+        }
     }
 
-    pub fn get(&self, index: usize) -> u32 {
-        assert!(index < self.len());
-        Self::concatenate_bytes(
-            self.bytes[index],
-            self.bytes[index + self.len()],
-            self.bytes[index + 2 * self.len()],
-            self.bytes[index + 3 * self.len()],
-        )
+    pub fn get(&self, index: usize) -> Result<u32, TdfBlobError> {
+        if index >= self.len() {
+            Err(TdfBlobError::IndexOutOfBounds {
+                length: self.len(),
+                index,
+            })
+        } else {
+            Ok(Self::concatenate_bytes(
+                self.bytes[index],
+                self.bytes[index + self.len()],
+                self.bytes[index + 2 * self.len()],
+                self.bytes[index + 3 * self.len()],
+            ))
+        }
     }
 
     fn concatenate_bytes(b1: u8, b2: u8, b3: u8, b4: u8) -> u32 {
@@ -29,10 +40,18 @@ impl TdfBlob {
     }
 
     pub fn len(&self) -> usize {
-        self.bytes.len() / U32_SIZE
+        self.bytes.len() / BLOB_TYPE_SIZE
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TdfBlobError {
+    #[error("Length {length} not a multiple of {BLOB_TYPE_SIZE}")]
+    InvalidLength { length: usize },
+    #[error("Index {index} out of bounds for length {length})")]
+    IndexOutOfBounds { index: usize, length: usize },
 }
