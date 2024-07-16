@@ -1,6 +1,6 @@
 use super::ReadableSqlTable;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlQuadSettings {
     pub window_group: usize,
     pub scan_start: usize,

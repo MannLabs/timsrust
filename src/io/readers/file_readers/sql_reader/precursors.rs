@@ -1,6 +1,6 @@
 use super::ReadableSqlTable;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlPrecursor {
     pub id: usize,
     pub mz: f64,

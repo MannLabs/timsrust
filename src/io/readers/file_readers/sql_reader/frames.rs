@@ -1,6 +1,6 @@
 use super::ReadableSqlTable;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlFrame {
     pub id: usize,
     pub scan_mode: u8,

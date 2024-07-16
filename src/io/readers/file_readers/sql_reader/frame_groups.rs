@@ -1,6 +1,6 @@
 use super::ReadableSqlTable;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlWindowGroup {
     pub frame: usize,
     pub window_group: u8,
