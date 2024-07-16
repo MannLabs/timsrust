@@ -1,4 +1,3 @@
-use rayon::iter::ParallelIterator;
 use std::{path::Path, sync::Arc};
 use timsrust::{
     io::readers::FrameReader,
@@ -20,7 +19,10 @@ fn tdf_reader_frames1() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> = FrameReader::new(&file_path)
-        .parallel_filter(|x| x.msms_type == 0)
+        .unwrap()
+        .get_all_ms1()
+        .into_iter()
+        .map(|x| x.unwrap())
         .collect();
     let expected: Vec<Frame> = vec![
         Frame {
@@ -64,7 +66,10 @@ fn tdf_reader_frames2() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> = FrameReader::new(&file_path)
-        .parallel_filter(|x| x.msms_type != 0)
+        .unwrap()
+        .get_all_ms2()
+        .into_iter()
+        .map(|x| x.unwrap())
         .collect();
     let expected: Vec<Frame> = vec![
         // Frame::default(),

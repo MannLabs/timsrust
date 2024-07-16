@@ -13,21 +13,15 @@ const SYP_TEST: &str =
     "/mnt/c/Users/Sander.Willems/Documents/data/20230505_TIMS05_PaSk_SA_HeLa_6min_syP_5scans_30Da_S1-D4_1_2330.d/";
 
 fn read_all_frames(frame_reader: &FrameReader) {
-    frame_reader
-        .parallel_filter(|x| true)
-        .collect::<Vec<Frame>>();
+    frame_reader.get_all();
 }
 
 fn read_all_ms1_frames(frame_reader: &FrameReader) {
-    frame_reader
-        .parallel_filter(|x| x.msms_type == 0)
-        .collect::<Vec<Frame>>();
+    frame_reader.get_all_ms1();
 }
 
 fn read_all_ms2_frames(frame_reader: &FrameReader) {
-    frame_reader
-        .parallel_filter(|x| x.msms_type != 0)
-        .collect::<Vec<Frame>>();
+    frame_reader.get_all_ms2();
 }
 
 fn read_all_spectra(spectrum_reader: &SpectrumReader) {
@@ -39,7 +33,7 @@ fn criterion_benchmark_dda(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = DDA_TEST;
-    let frame_reader = FrameReader::new(d_folder_name);
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader = SpectrumReader::new(d_folder_name);
     group.bench_function("DDA read_all_frames 6m", |b| {
         b.iter(|| read_all_frames(black_box(&frame_reader)))
@@ -61,7 +55,7 @@ fn criterion_benchmark_dia(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = DIA_TEST;
-    let frame_reader = FrameReader::new(d_folder_name);
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader = SpectrumReader::new(d_folder_name);
     group.bench_function("DIA read_all_frames 6m", |b| {
         b.iter(|| read_all_frames(black_box(&frame_reader)))
@@ -80,7 +74,7 @@ fn criterion_benchmark_syp(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = SYP_TEST;
-    let frame_reader = FrameReader::new(d_folder_name);
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader = SpectrumReader::new(d_folder_name);
     group.bench_function("SYP read_all_frames 6m", |b| {
         b.iter(|| read_all_frames(black_box(&frame_reader)))

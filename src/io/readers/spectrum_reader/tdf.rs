@@ -32,7 +32,7 @@ pub struct TDFSpectrumReader {
 
 impl TDFSpectrumReader {
     pub fn new(path_name: impl AsRef<Path>) -> Self {
-        let frame_reader: FrameReader = FrameReader::new(&path_name);
+        let frame_reader: FrameReader = FrameReader::new(&path_name).unwrap();
         let sql_path = find_extension(&path_name, "analysis.tdf").unwrap();
         let metadata = MetadataReader::new(&sql_path);
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
