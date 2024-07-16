@@ -6,9 +6,7 @@ use crate::{
             parquet_reader::{
                 precursors::ParquetPrecursor, ReadableParquetTable,
             },
-            tdf_blob_reader::{
-                IndexedTdfBlobReader, TdfBlobError, TdfBlobReaderError,
-            },
+            tdf_blob_reader::IndexedTdfBlobReader,
         },
         PrecursorReader,
     },
@@ -30,7 +28,8 @@ impl MiniTDFSpectrumReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let parquet_file_name =
             find_extension(&path, "ms2spectrum.parquet").unwrap();
-        let precursor_reader = PrecursorReader::new(&parquet_file_name);
+        let precursor_reader =
+            PrecursorReader::new(&parquet_file_name).unwrap();
         let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)
             .unwrap()
             .iter()
@@ -76,7 +75,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
                 intensity_values.iter().map(|&x| x as f64).collect();
             spectrum.mz_values = mz_values.to_vec();
         }
-        let precursor = self.precursor_reader.get(index);
+        let precursor = self.precursor_reader.get(index).unwrap();
         spectrum.precursor = Some(precursor);
         spectrum.index = precursor.index;
         spectrum.collision_energy = self.collision_energies[index];
