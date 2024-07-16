@@ -35,7 +35,7 @@ impl TdfBlobReader {
         let offset = self.global_file_offset + offset;
         let byte_count = self
             .get_byte_count(offset)
-            .ok_or(TdfBlobReaderError::InvalidOffset)?;
+            .ok_or(TdfBlobReaderError::InvalidOffset(offset))?;
         let compressed_bytes = self
             .get_compressed_bytes(offset, byte_count)
             .ok_or(TdfBlobReaderError::CorruptData)?;
@@ -91,7 +91,7 @@ impl IndexedTdfBlobReader {
         let offset = *self
             .binary_offsets
             .get(index)
-            .ok_or(IndexedTdfBlobReaderError::InvalidIndex)?;
+            .ok_or(IndexedTdfBlobReaderError::InvalidIndex(index))?;
         let blob = self.blob_reader.get(offset)?;
         Ok(blob)
     }
@@ -107,14 +107,14 @@ pub enum TdfBlobReaderError {
     CorruptData,
     #[error("Decompression fails")]
     Decompression,
-    #[error("Invalid offset")]
-    InvalidOffset,
+    #[error("Invalid offset {0}")]
+    InvalidOffset(usize),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum IndexedTdfBlobReaderError {
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
-    #[error("Invalid index")]
-    InvalidIndex,
+    #[error("Invalid index {0}")]
+    InvalidIndex(usize),
 }
