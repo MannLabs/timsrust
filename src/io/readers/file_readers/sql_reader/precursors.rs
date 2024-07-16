@@ -1,4 +1,4 @@
-use super::ReadableSqlTable;
+use super::{ParseDefault, ReadableSqlTable};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlPrecursor {
@@ -17,12 +17,12 @@ impl ReadableSqlTable for SqlPrecursor {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
         Self {
-            id: row.get(0).unwrap_or_default(),
-            mz: row.get(1).unwrap_or_default(),
-            charge: row.get(2).unwrap_or_default(),
-            scan_average: row.get(3).unwrap_or_default(),
-            intensity: row.get(4).unwrap_or_default(),
-            precursor_frame: row.get(5).unwrap_or_default(),
+            id: row.parse_default(0),
+            mz: row.parse_default(1),
+            charge: row.parse_default(2),
+            scan_average: row.parse_default(3),
+            intensity: row.parse_default(4),
+            precursor_frame: row.parse_default(5),
         }
     }
 }

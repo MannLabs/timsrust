@@ -1,4 +1,4 @@
-use super::ReadableSqlTable;
+use super::{ParseDefault, ReadableSqlTable};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlQuadSettings {
@@ -17,12 +17,12 @@ impl ReadableSqlTable for SqlQuadSettings {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
         Self {
-            window_group: row.get(0).unwrap_or_default(),
-            scan_start: row.get(1).unwrap_or_default(),
-            scan_end: row.get(2).unwrap_or_default(),
-            mz_center: row.get(3).unwrap_or_default(),
-            mz_width: row.get(4).unwrap_or_default(),
-            collision_energy: row.get(5).unwrap_or_default(),
+            window_group: row.parse_default(0),
+            scan_start: row.parse_default(1),
+            scan_end: row.parse_default(2),
+            mz_center: row.parse_default(3),
+            mz_width: row.parse_default(4),
+            collision_energy: row.parse_default(5),
         }
     }
 }

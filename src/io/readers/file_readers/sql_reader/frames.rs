@@ -1,4 +1,4 @@
-use super::ReadableSqlTable;
+use super::{ParseDefault, ReadableSqlTable};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlFrame {
@@ -19,14 +19,14 @@ impl ReadableSqlTable for SqlFrame {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
         Self {
-            id: row.get(0).unwrap_or_default(),
-            scan_mode: row.get(1).unwrap_or_default(),
-            msms_type: row.get(2).unwrap_or_default(),
-            peak_count: row.get(3).unwrap_or_default(),
-            rt: row.get(4).unwrap_or_default(),
-            scan_count: row.get(5).unwrap_or_default(),
-            binary_offset: row.get(6).unwrap_or_default(),
-            accumulation_time: row.get(7).unwrap_or_default(),
+            id: row.parse_default(0),
+            scan_mode: row.parse_default(1),
+            msms_type: row.parse_default(2),
+            peak_count: row.parse_default(3),
+            rt: row.parse_default(4),
+            scan_count: row.parse_default(5),
+            binary_offset: row.parse_default(6),
+            accumulation_time: row.parse_default(7),
         }
     }
 }

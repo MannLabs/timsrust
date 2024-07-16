@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rusqlite::Connection;
+use rusqlite::{types::FromSql, Connection};
 
 #[derive(Debug)]
 pub struct SqlReader {
@@ -82,6 +82,16 @@ pub trait ReadableSqlHashMap {
         })?;
         rows.collect::<Result<Vec<_>, _>>()?;
         Ok(result)
+    }
+}
+
+pub trait ParseDefault {
+    fn parse_default<T: Default + FromSql>(&self, index: usize) -> T;
+}
+
+impl ParseDefault for rusqlite::Row<'_> {
+    fn parse_default<T: Default + FromSql>(&self, index: usize) -> T {
+        self.get(index).unwrap_or_default()
     }
 }
 
