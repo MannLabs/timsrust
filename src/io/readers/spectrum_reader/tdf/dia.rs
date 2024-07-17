@@ -1,9 +1,9 @@
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
-            frame_groups::SqlWindowGroup, ReadableSqlTable, SqlReader,
+            frame_groups::SqlWindowGroup, ReadableSqlTable, SqlError, SqlReader,
         },
-        FrameReader, QuadrupoleSettingsReader,
+        FrameReader, QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
     },
     ms_data::QuadrupoleSettings,
     utils::vec_utils::group_and_sum,
@@ -18,11 +18,13 @@ pub struct DIARawSpectrumReader {
 }
 
 impl DIARawSpectrumReader {
-    pub fn new(tdf_sql_reader: &SqlReader, frame_reader: FrameReader) -> Self {
-        let window_groups =
-            SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
+    pub fn new(
+        tdf_sql_reader: &SqlReader,
+        frame_reader: FrameReader,
+    ) -> Result<Self, DIARawSpectrumReaderError> {
+        let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let quadrupole_settings =
-            QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path()).unwrap();
+            QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path())?;
         let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
         for window_group in window_groups {
             let window = window_group.window_group;
@@ -40,10 +42,11 @@ impl DIARawSpectrumReader {
                 expanded_quadrupole_settings.push(sub_quad_settings)
             }
         }
-        Self {
+        let reader = Self {
             expanded_quadrupole_settings,
             frame_reader,
-        }
+        };
+        Ok(reader)
     }
 }
 
@@ -75,4 +78,12 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
         };
         raw_spectrum
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DIARawSpectrumReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }

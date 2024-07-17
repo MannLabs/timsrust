@@ -4,11 +4,15 @@ use crate::{
     io::readers::{
         file_readers::{
             parquet_reader::{
-                precursors::ParquetPrecursor, ReadableParquetTable,
+                precursors::ParquetPrecursor, ParquetError,
+                ReadableParquetTable,
             },
-            tdf_blob_reader::IndexedTdfBlobReader,
+            sql_reader::SqlError,
+            tdf_blob_reader::{
+                IndexedTdfBlobReader, IndexedTdfBlobReaderError,
+            },
         },
-        PrecursorReader,
+        PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
     utils::find_extension,
@@ -25,31 +29,36 @@ pub struct MiniTDFSpectrumReader {
 }
 
 impl MiniTDFSpectrumReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
-        let parquet_file_name =
-            find_extension(&path, "ms2spectrum.parquet").unwrap();
-        let precursor_reader =
-            PrecursorReader::new(&parquet_file_name).unwrap();
-        let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)
-            .unwrap()
+    pub fn new(
+        path: impl AsRef<Path>,
+    ) -> Result<Self, MiniTDFSpectrumReaderError> {
+        let parquet_file_name = find_extension(&path, "ms2spectrum.parquet")
+            .ok_or(MiniTDFSpectrumReaderError::FileNotFound(
+                "analysis.tdf".to_string(),
+            ))?;
+        let precursor_reader = PrecursorReader::new(&parquet_file_name)?;
+        let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)?
             .iter()
             .map(|x| x.offset as usize)
             .collect();
         let collision_energies =
-            ParquetPrecursor::from_parquet_file(&parquet_file_name)
-                .unwrap()
+            ParquetPrecursor::from_parquet_file(&parquet_file_name)?
                 .iter()
                 .map(|x| x.collision_energy)
                 .collect();
-        let bin_file_name = find_extension(&path, "bin").unwrap();
-        let blob_reader =
-            IndexedTdfBlobReader::new(&bin_file_name, offsets).unwrap();
-        Self {
+        let bin_file_name = find_extension(&path, "bin").ok_or(
+            MiniTDFSpectrumReaderError::FileNotFound(
+                "analysis.tdf".to_string(),
+            ),
+        )?;
+        let blob_reader = IndexedTdfBlobReader::new(&bin_file_name, offsets)?;
+        let reader = Self {
             path: path.as_ref().to_path_buf(),
             precursor_reader,
             blob_reader,
             collision_energies,
-        }
+        };
+        Ok(reader)
     }
 }
 
@@ -99,4 +108,18 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
     }
 
     fn calibrate(&mut self) {}
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum MiniTDFSpectrumReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    PrecursorReaderError(#[from] PrecursorReaderError),
+    #[error("{0}")]
+    ParquetError(#[from] ParquetError),
+    #[error("{0}")]
+    IndexedTdfBlobReaderError(#[from] IndexedTdfBlobReaderError),
+    #[error("{0}")]
+    FileNotFound(String),
 }

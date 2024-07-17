@@ -2,15 +2,16 @@ mod dda;
 mod dia;
 mod raw_spectra;
 
-use raw_spectra::{RawSpectrum, RawSpectrumReader};
+use raw_spectra::{RawSpectrum, RawSpectrumReader, RawSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
 
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
     io::readers::{
-        file_readers::sql_reader::SqlReader, FrameReader, MetadataReader,
-        PrecursorReader,
+        file_readers::sql_reader::{SqlError, SqlReader},
+        FrameReader, FrameReaderError, MetadataReader, MetadataReaderError,
+        PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
     utils::find_extension,
@@ -31,25 +32,30 @@ pub struct TDFSpectrumReader {
 }
 
 impl TDFSpectrumReader {
-    pub fn new(path_name: impl AsRef<Path>) -> Self {
-        let frame_reader: FrameReader = FrameReader::new(&path_name).unwrap();
-        let sql_path = find_extension(&path_name, "analysis.tdf").unwrap();
-        let metadata = MetadataReader::new(&sql_path).unwrap();
+    pub fn new(
+        path_name: impl AsRef<Path>,
+    ) -> Result<Self, TDFSpectrumReaderError> {
+        let frame_reader: FrameReader = FrameReader::new(&path_name)?;
+        let sql_path = find_extension(&path_name, "analysis.tdf").ok_or(
+            TDFSpectrumReaderError::FileNotFound("analysis.tdf".to_string()),
+        )?;
+        let metadata = MetadataReader::new(&sql_path)?;
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
-        let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
-        let precursor_reader = PrecursorReader::new(&sql_path).unwrap();
+        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let precursor_reader = PrecursorReader::new(&sql_path)?;
         let acquisition_type = frame_reader.get_acquisition();
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,
             frame_reader,
             acquisition_type,
-        );
-        Self {
+        )?;
+        let reader = Self {
             path: path_name.as_ref().to_path_buf(),
             precursor_reader,
             mz_reader,
             raw_spectrum_reader,
-        }
+        };
+        Ok(reader)
     }
 
     pub fn read_single_raw_spectrum(&self, index: usize) -> RawSpectrum {
@@ -103,4 +109,20 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
             self.mz_reader = Tof2MzConverter::regress_from_pairs(&hits);
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TDFSpectrumReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    PrecursorReaderError(#[from] PrecursorReaderError),
+    #[error("{0}")]
+    MetadaReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
+    #[error("{0}")]
+    RawSpectrumReaderError(#[from] RawSpectrumReaderError),
+    #[error("{0}")]
+    FileNotFound(String),
 }

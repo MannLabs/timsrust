@@ -2,10 +2,10 @@ mod minitdf;
 mod tdf;
 
 use core::fmt;
-use minitdf::MiniTDFSpectrumReader;
+use minitdf::{MiniTDFSpectrumReader, MiniTDFSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
-use tdf::TDFSpectrumReader;
+use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 
 use crate::ms_data::Spectrum;
 
@@ -20,14 +20,15 @@ impl fmt::Debug for SpectrumReader {
 }
 
 impl SpectrumReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, SpectrumReaderError> {
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
             match path.as_ref().extension().and_then(|e| e.to_str()) {
-                Some("ms2") => Box::new(MiniTDFSpectrumReader::new(path)),
-                Some("d") => Box::new(TDFSpectrumReader::new(path)),
+                Some("ms2") => Box::new(MiniTDFSpectrumReader::new(path)?),
+                Some("d") => Box::new(TDFSpectrumReader::new(path)?),
                 _ => panic!(),
             };
-        Self { spectrum_reader }
+        let reader = Self { spectrum_reader };
+        Ok(reader)
     }
 
     pub fn get(&self, index: usize) -> Spectrum {
@@ -61,4 +62,12 @@ trait SpectrumReaderTrait: Sync {
     fn get_path(&self) -> PathBuf;
     fn len(&self) -> usize;
     fn calibrate(&mut self);
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SpectrumReaderError {
+    #[error("{0}")]
+    MiniTDFSpectrumReaderError(#[from] MiniTDFSpectrumReaderError),
+    #[error("{0}")]
+    TDFSpectrumReaderError(#[from] TDFSpectrumReaderError),
 }

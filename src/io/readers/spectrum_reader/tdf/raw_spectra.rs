@@ -7,7 +7,10 @@ use crate::{
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
 };
 
-use super::{dda::DDARawSpectrumReader, dia::DIARawSpectrumReader};
+use super::{
+    dda::{DDARawSpectrumReader, DDARawSpectrumReaderError},
+    dia::{DIARawSpectrumReader, DIARawSpectrumReaderError},
+};
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub(crate) struct RawSpectrum {
@@ -91,20 +94,25 @@ impl RawSpectrumReader {
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
         acquisition_type: AcquisitionType,
-    ) -> Self {
+    ) -> Result<Self, RawSpectrumReaderError> {
         let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
             match acquisition_type {
                 AcquisitionType::DDAPASEF => Box::new(
-                    DDARawSpectrumReader::new(tdf_sql_reader, frame_reader),
+                    DDARawSpectrumReader::new(tdf_sql_reader, frame_reader)?,
                 ),
                 AcquisitionType::DIAPASEF => Box::new(
-                    DIARawSpectrumReader::new(tdf_sql_reader, frame_reader),
+                    DIARawSpectrumReader::new(tdf_sql_reader, frame_reader)?,
                 ),
-                _ => panic!(),
+                acquisition_type => {
+                    return Err(RawSpectrumReaderError::UnsupportedAcquisition(
+                        format!("{:?}", acquisition_type),
+                    ))
+                },
             };
-        Self {
+        let reader = Self {
             raw_spectrum_reader,
-        }
+        };
+        Ok(reader)
     }
 
     pub fn get(&self, index: usize) -> RawSpectrum {
@@ -114,4 +122,14 @@ impl RawSpectrumReader {
 
 pub trait RawSpectrumReaderTrait: Sync {
     fn get(&self, index: usize) -> RawSpectrum;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RawSpectrumReaderError {
+    #[error("{0}")]
+    DDARawSpectrumReaderError(#[from] DDARawSpectrumReaderError),
+    #[error("{0}")]
+    DIARawSpectrumReaderError(#[from] DIARawSpectrumReaderError),
+    #[error("Invalid acquistion type for Raw spectrum reader: {0}")]
+    UnsupportedAcquisition(String),
 }
