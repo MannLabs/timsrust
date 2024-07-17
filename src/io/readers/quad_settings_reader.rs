@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{ms_data::QuadrupoleSettings, utils::vec_utils::argsort};
 
 use super::file_readers::sql_reader::{
-    quad_settings::SqlQuadSettings, ReadableSqlTable, SqlReader,
+    quad_settings::SqlQuadSettings, ReadableSqlTable, SqlError, SqlReader,
 };
 
 pub struct QuadrupoleSettingsReader {
@@ -12,16 +12,18 @@ pub struct QuadrupoleSettingsReader {
 }
 
 impl QuadrupoleSettingsReader {
-    pub fn new(path: impl AsRef<Path>) -> Vec<QuadrupoleSettings> {
+    pub fn new(
+        path: impl AsRef<Path>,
+    ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
         let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
+        let tdf_sql_reader = SqlReader::open(&sql_path)?;
         let sql_quadrupole_settings =
-            SqlQuadSettings::from_sql_reader(&tdf_sql_reader).unwrap();
+            SqlQuadSettings::from_sql_reader(&tdf_sql_reader)?;
         let window_group_count = sql_quadrupole_settings
             .iter()
             .map(|x| x.window_group)
             .max()
-            .unwrap() as usize;
+            .unwrap() as usize; // SqlReader cannot return empty vecs, so always succeeds
         let quadrupole_settings = (0..window_group_count)
             .map(|window_group| {
                 let mut quad = QuadrupoleSettings::default();
@@ -35,7 +37,7 @@ impl QuadrupoleSettingsReader {
         };
         quad_reader.update_from_sql_quadrupole_settings();
         quad_reader.resort_groups();
-        quad_reader.quadrupole_settings
+        Ok(quad_reader.quadrupole_settings)
     }
 
     fn update_from_sql_quadrupole_settings(&mut self) {
@@ -80,4 +82,14 @@ impl QuadrupoleSettingsReader {
             })
             .collect();
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum QuadrupoleSettingsReaderError {
+    // #[error("{0}")]
+    // MiniTDFPrecursorReaderError(#[from] MiniTDFPrecursorReaderError),
+    // #[error("{0}")]
+    // TDFPrecursorReaderError(#[from] TDFPrecursorReaderError),
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
 }

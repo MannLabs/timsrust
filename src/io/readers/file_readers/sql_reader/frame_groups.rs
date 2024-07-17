@@ -1,6 +1,6 @@
-use super::ReadableSqlTable;
+use super::{ParseDefault, ReadableSqlTable};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlWindowGroup {
     pub frame: usize,
     pub window_group: u8,
@@ -13,8 +13,8 @@ impl ReadableSqlTable for SqlWindowGroup {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
         Self {
-            frame: row.get(0).unwrap_or_default(),
-            window_group: row.get(1).unwrap_or_default(),
+            frame: row.parse_default(0),
+            window_group: row.parse_default(1),
         }
     }
 }

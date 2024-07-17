@@ -15,11 +15,12 @@ use super::{
     file_readers::{
         sql_reader::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
-            SqlReader,
+            SqlError, SqlReader,
         },
-        tdf_blob_reader::{TdfBlob, TdfBlobReader},
+        tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
     FrameWindowSplittingStrategy, QuadrupoleSettingsReader,
+    QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
@@ -37,17 +38,20 @@ impl FrameReader {
     pub fn new(
         path: impl AsRef<Path>,
         config: FrameWindowSplittingStrategy,
-    ) -> Self {
-        let sql_path = find_extension(&path, "analysis.tdf").unwrap();
-        let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
-        let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader).unwrap();
-        let bin_path = find_extension(&path, "analysis.tdf_bin").unwrap();
-        let tdf_bin_reader = TdfBlobReader::new(bin_path).unwrap();
+    ) -> Result<Self, FrameReaderError> {
+        let sql_path = find_extension(&path, "analysis.tdf").ok_or(
+            FrameReaderError::FileNotFound("analysis.tdf".to_string()),
+        )?;
+        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
+        let bin_path = find_extension(&path, "analysis.tdf_bin").ok_or(
+            FrameReaderError::FileNotFound("analysis.tdf_bin".to_string()),
+        )?;
+        let tdf_bin_reader = TdfBlobReader::new(bin_path)?;
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
             AcquisitionType::DIAPASEF
-            // TODO: can also be diagonalpasef
         } else {
             AcquisitionType::Unknown
         };
@@ -55,17 +59,17 @@ impl FrameReader {
         let quadrupole_settings;
         if acquisition == AcquisitionType::DIAPASEF {
             for window_group in
-                SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap()
+                SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?
             {
                 window_groups[window_group.frame - 1] =
                     window_group.window_group;
             }
             quadrupole_settings =
-                QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
+                QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
         } else {
             quadrupole_settings = vec![];
         }
-        Self {
+        let reader = Self {
             path: path.as_ref().to_path_buf(),
             tdf_bin_reader,
             sql_frames,
@@ -76,37 +80,37 @@ impl FrameReader {
                 .map(|x| Arc::new(x))
                 .collect(),
             splitting_strategy: config,
-        }
+        };
+        Ok(reader)
     }
 
     pub fn parallel_filter<'a, F: Fn(&SqlFrame) -> bool + Sync + Send + 'a>(
         &'a self,
         predicate: F,
-    ) -> impl ParallelIterator<Item = Frame> + 'a {
+    ) -> impl ParallelIterator<Item = Result<Frame, FrameReaderError>> + 'a
+    {
         (0..self.len())
             .into_par_iter()
             .filter(move |x| predicate(&self.sql_frames[*x]))
             .map(move |x| self.get(x))
     }
 
-    pub fn get(&self, index: usize) -> Frame {
+    pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
         let mut frame: Frame = Frame::default();
         let sql_frame = &self.sql_frames[index];
         frame.index = sql_frame.id;
-        let blob = match self.tdf_bin_reader.get_blob(sql_frame.binary_offset) {
-            Ok(blob) => blob,
-            Err(_) => return frame,
-        };
-        let scan_count: usize = blob.get(0) as usize;
+        let blob = self.tdf_bin_reader.get(sql_frame.binary_offset)?;
+        let scan_count: usize =
+            blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
-        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob);
-        frame.intensities = read_intensities(scan_count, peak_count, &blob);
+        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
+        frame.intensities = read_intensities(scan_count, peak_count, &blob)?;
         frame.tof_indices = read_tof_indices(
             scan_count,
             peak_count,
             &blob,
             &frame.scan_offsets,
-        );
+        )?;
         frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
         frame.rt = sql_frame.rt;
         frame.acquisition_type = self.acquisition;
@@ -119,7 +123,19 @@ impl FrameReader {
             frame.quadrupole_settings =
                 self.quadrupole_settings[window_group as usize - 1].clone();
         }
-        frame
+        Ok(frame)
+    }
+
+    pub fn get_all(&self) -> Vec<Result<Frame, FrameReaderError>> {
+        self.parallel_filter(|_| true).collect()
+    }
+
+    pub fn get_all_ms1(&self) -> Vec<Result<Frame, FrameReaderError>> {
+        self.parallel_filter(|x| x.msms_type == 0).collect()
+    }
+
+    pub fn get_all_ms2(&self) -> Vec<Result<Frame, FrameReaderError>> {
+        self.parallel_filter(|x| x.msms_type != 0).collect()
     }
 
     pub fn get_acquisition(&self) -> AcquisitionType {
@@ -139,29 +155,32 @@ fn read_scan_offsets(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Vec<usize> {
+) -> Result<Vec<usize>, FrameReaderError> {
     let mut scan_offsets: Vec<usize> = Vec::with_capacity(scan_count + 1);
     scan_offsets.push(0);
     for scan_index in 0..scan_count - 1 {
         let index = scan_index + 1;
-        let scan_size: usize = (blob.get(index) / 2) as usize;
+        let scan_size: usize =
+            (blob.get(index).ok_or(FrameReaderError::CorruptFrame)? / 2)
+                as usize;
         scan_offsets.push(scan_offsets[scan_index] + scan_size);
     }
     scan_offsets.push(peak_count);
-    scan_offsets
+    Ok(scan_offsets)
 }
 
 fn read_intensities(
     scan_count: usize,
     peak_count: usize,
     blob: &TdfBlob,
-) -> Vec<u32> {
+) -> Result<Vec<u32>, FrameReaderError> {
     let mut intensities: Vec<u32> = Vec::with_capacity(peak_count);
     for peak_index in 0..peak_count {
         let index: usize = scan_count + 1 + 2 * peak_index;
-        intensities.push(blob.get(index));
+        intensities
+            .push(blob.get(index).ok_or(FrameReaderError::CorruptFrame)?);
     }
-    intensities
+    Ok(intensities)
 }
 
 fn read_tof_indices(
@@ -169,7 +188,7 @@ fn read_tof_indices(
     peak_count: usize,
     blob: &TdfBlob,
     scan_offsets: &Vec<usize>,
-) -> Vec<u32> {
+) -> Result<Vec<u32>, FrameReaderError> {
     let mut tof_indices: Vec<u32> = Vec::with_capacity(peak_count);
     for scan_index in 0..scan_count {
         let start_offset: usize = scan_offsets[scan_index];
@@ -177,10 +196,25 @@ fn read_tof_indices(
         let mut current_sum: u32 = 0;
         for peak_index in start_offset..end_offset {
             let index = scan_count + 2 * peak_index;
-            let tof_index: u32 = blob.get(index);
+            let tof_index: u32 =
+                blob.get(index).ok_or(FrameReaderError::CorruptFrame)?;
             current_sum += tof_index;
             tof_indices.push(current_sum - 1);
         }
     }
-    tof_indices
+    Ok(tof_indices)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FrameReaderError {
+    #[error("{0}")]
+    TdfBlobReaderError(#[from] TdfBlobReaderError),
+    #[error("{0}")]
+    FileNotFound(String),
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("Corrupt Frame")]
+    CorruptFrame,
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }

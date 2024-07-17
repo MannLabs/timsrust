@@ -33,15 +33,17 @@ impl TDFSpectrumReader {
         config: SpectrumReaderConfig,
     ) -> Self {
         let frame_reader: FrameReader =
-            FrameReader::new(&path_name, config.frame_splitting_params);
+            FrameReader::new(&path_name, config.frame_splitting_params)
+                .unwrap();
         let sql_path = find_extension(&path_name, "analysis.tdf").unwrap();
-        let metadata = MetadataReader::new(&sql_path);
+        let metadata = MetadataReader::new(&sql_path).unwrap();
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
         let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
         let precursor_reader = PrecursorReader::new(
             &sql_path,
             Some(config.frame_splitting_params),
-        );
+        )
+        .unwrap();
         let acquisition_type = frame_reader.get_acquisition();
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,
@@ -68,8 +70,10 @@ impl TDFSpectrumReader {
 impl SpectrumReaderTrait for TDFSpectrumReader {
     fn get(&self, index: usize) -> Spectrum {
         let raw_spectrum = self.read_single_raw_spectrum(index);
-        let spectrum = raw_spectrum
-            .finalize(self.precursor_reader.get(index), &self.mz_reader);
+        let spectrum = raw_spectrum.finalize(
+            self.precursor_reader.get(index).unwrap(),
+            &self.mz_reader,
+        );
         spectrum
     }
 
@@ -90,7 +94,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
             .into_par_iter()
             .map(|index| {
                 let spectrum = self.read_single_raw_spectrum(index);
-                let precursor = self.precursor_reader.get(index);
+                let precursor = self.precursor_reader.get(index).unwrap();
                 let precursor_mz: f64 = precursor.mz;
                 let mut result: Vec<(f64, u32)> = vec![];
                 for &tof_index in spectrum.tof_indices.iter() {
@@ -112,7 +116,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
                 acc
             });
         if hits.len() >= 2 {
-            self.mz_reader = Tof2MzConverter::from_pairs(&hits);
+            self.mz_reader = Tof2MzConverter::regress_from_pairs(&hits);
         }
     }
 }

@@ -38,7 +38,7 @@ pub trait ReadableParquetTable {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParquetError {
-    #[error("Cannot read file {0}")]
+    #[error("{0}")]
     IO(#[from] io::Error),
     #[error("Cannot iterate over row {0}")]
     ParquetIO(#[from] parquet::errors::ParquetError),

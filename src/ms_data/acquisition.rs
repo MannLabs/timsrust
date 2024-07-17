@@ -1,5 +1,5 @@
 /// The kind of acquisition that was used.
-#[derive(Debug, PartialEq, Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum AcquisitionType {
     DDAPASEF,
     DIAPASEF,

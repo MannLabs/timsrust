@@ -1,8 +1,9 @@
 use std::{path::Path, sync::Arc};
 use timsrust::{
-    io::readers::SpectrumReaderConfig,
+    io::readers::{
+        FrameReader, FrameWindowSplittingStrategy, SpectrumReaderConfig,
+    },
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
-    FileReader,
 };
 
 fn get_local_directory() -> &'static Path {
@@ -20,9 +21,12 @@ fn tdf_reader_frames1() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> =
-        FileReader::new(&file_path, SpectrumReaderConfig::default())
+        FrameReader::new(&file_path, FrameWindowSplittingStrategy::default())
             .unwrap()
-            .read_all_ms1_frames();
+            .get_all_ms1()
+            .into_iter()
+            .map(|x| x.unwrap())
+            .collect();
     let expected: Vec<Frame> = vec![
         Frame {
             scan_offsets: vec![0, 1, 3, 6, 10],
@@ -65,9 +69,12 @@ fn tdf_reader_frames2() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> =
-        FileReader::new(&file_path, SpectrumReaderConfig::default())
+        FrameReader::new(&file_path, FrameWindowSplittingStrategy::default())
             .unwrap()
-            .read_all_ms2_frames();
+            .get_all_ms2()
+            .into_iter()
+            .map(|x| x.unwrap())
+            .collect();
     let expected: Vec<Frame> = vec![
         // Frame::default(),
         Frame {

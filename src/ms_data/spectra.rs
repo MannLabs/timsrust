@@ -5,7 +5,7 @@ use super::Precursor;
 pub struct Spectrum {
     pub mz_values: Vec<f64>,
     pub intensities: Vec<f64>,
-    pub precursor: Precursor,
+    pub precursor: Option<Precursor>,
     pub index: usize,
     pub collision_energy: f64,
     pub isolation_mz: f64,

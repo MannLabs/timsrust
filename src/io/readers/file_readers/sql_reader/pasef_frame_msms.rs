@@ -1,6 +1,6 @@
-use super::ReadableSqlTable;
+use super::{ParseDefault, ReadableSqlTable};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlPasefFrameMsMs {
     pub frame: usize,
     pub scan_start: usize,
@@ -18,13 +18,13 @@ impl ReadableSqlTable for SqlPasefFrameMsMs {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
         Self {
-            frame: row.get(0).unwrap_or_default(),
-            scan_start: row.get(1).unwrap_or_default(),
-            scan_end: row.get(2).unwrap_or_default(),
-            isolation_mz: row.get(3).unwrap_or_default(),
-            isolation_width: row.get(4).unwrap_or_default(),
-            collision_energy: row.get(5).unwrap_or_default(),
-            precursor: row.get(6).unwrap_or_default(),
+            frame: row.parse_default(0),
+            scan_start: row.parse_default(1),
+            scan_end: row.parse_default(2),
+            isolation_mz: row.parse_default(3),
+            isolation_width: row.parse_default(4),
+            collision_energy: row.parse_default(5),
+            precursor: row.parse_default(6),
         }
     }
 }

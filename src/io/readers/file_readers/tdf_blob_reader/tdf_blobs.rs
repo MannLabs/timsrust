@@ -1,23 +1,30 @@
-const U32_SIZE: usize = std::mem::size_of::<u32>();
+const BLOB_TYPE_SIZE: usize = std::mem::size_of::<u32>();
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TdfBlob {
     bytes: Vec<u8>,
 }
 
 impl TdfBlob {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Self { bytes }
+    pub fn new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
+        if bytes.len() % BLOB_TYPE_SIZE != 0 {
+            Err(TdfBlobError(bytes.len()))
+        } else {
+            Ok(Self { bytes })
+        }
     }
 
-    pub fn get(&self, index: usize) -> u32 {
-        debug_assert!(index < self.len());
-        Self::concatenate_bytes(
-            self.bytes[index],
-            self.bytes[index + self.len()],
-            self.bytes[index + 2 * self.len()],
-            self.bytes[index + 3 * self.len()],
-        )
+    pub fn get(&self, index: usize) -> Option<u32> {
+        if index >= self.len() {
+            None
+        } else {
+            Some(Self::concatenate_bytes(
+                self.bytes[index],
+                self.bytes[index + self.len()],
+                self.bytes[index + 2 * self.len()],
+                self.bytes[index + 3 * self.len()],
+            ))
+        }
     }
 
     fn concatenate_bytes(b1: u8, b2: u8, b3: u8, b4: u8) -> u32 {
@@ -28,10 +35,14 @@ impl TdfBlob {
     }
 
     pub fn len(&self) -> usize {
-        self.bytes.len() / U32_SIZE
+        self.bytes.len() / BLOB_TYPE_SIZE
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("Length {0} is not a multiple of {BLOB_TYPE_SIZE}")]
+pub struct TdfBlobError(usize);

@@ -79,7 +79,7 @@ impl SpectrumReader {
             .into_par_iter()
             .map(|index| self.get(index))
             .collect();
-        spectra.sort_by_key(|x| x.precursor.index);
+        spectra.sort_by_key(|x| x.precursor.unwrap().index);
         spectra
     }
 

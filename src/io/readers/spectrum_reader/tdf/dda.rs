@@ -67,7 +67,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
             isolation_mz = pasef_frame.isolation_mz;
             isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame - 1;
-            let frame = self.frame_reader.get(frame_index);
+            let frame = self.frame_reader.get(frame_index).unwrap();
             if frame.intensities.len() == 0 {
                 continue;
             }

@@ -2,7 +2,7 @@ use super::{AcquisitionType, QuadrupoleSettings};
 use std::sync::Arc;
 
 /// A frame with all unprocessed data as it was acquired.
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frame {
     pub scan_offsets: Vec<usize>,
     pub tof_indices: Vec<u32>,

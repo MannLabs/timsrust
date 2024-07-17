@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::io::readers::tdf_utils::{
     expand_quadrupole_settings, expand_window_settings,
@@ -10,9 +10,10 @@ use crate::{
     },
     io::readers::{
         file_readers::sql_reader::{
-            frame_groups::SqlWindowGroup, ReadableSqlTable, SqlReader,
+            frame_groups::SqlWindowGroup, ReadableSqlTable, SqlError, SqlReader,
         },
-        MetadataReader, QuadrupoleSettingsReader,
+        MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
+        QuadrupoleSettingsReaderError,
     },
     ms_data::{Precursor, QuadrupoleSettings},
 };
@@ -21,7 +22,6 @@ use super::PrecursorReaderTrait;
 
 #[derive(Debug)]
 pub struct DIATDFPrecursorReader {
-    path: PathBuf,
     expanded_quadrupole_settings: Vec<QuadrupoleSettings>,
     rt_converter: Frame2RtConverter,
     im_converter: Scan2ImConverter,
@@ -31,16 +31,15 @@ impl DIATDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
         splitting_strat: FrameWindowSplittingStrategy,
-    ) -> Self {
+    ) -> Result<Self, DIATDFPrecursorReaderError> {
         let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
-        let metadata = MetadataReader::new(&path);
+        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let metadata = MetadataReader::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
-        let window_groups =
-            SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
+        let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let quadrupole_settings =
-            QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
+            QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
         let expanded_quadrupole_settings = match splitting_strat {
             FrameWindowSplittingStrategy::None => quadrupole_settings,
             FrameWindowSplittingStrategy::Quadrupole(x) => {
@@ -54,22 +53,23 @@ impl DIATDFPrecursorReader {
                 expand_window_settings(&window_groups, &quadrupole_settings, &x)
             },
         };
-        Self {
-            path: path.as_ref().to_path_buf(),
+
+        let reader = Self {
             expanded_quadrupole_settings,
             rt_converter,
             im_converter,
-        }
+        };
+        Ok(reader)
     }
 }
 
 impl PrecursorReaderTrait for DIATDFPrecursorReader {
-    fn get(&self, index: usize) -> Precursor {
-        let quad_settings = &self.expanded_quadrupole_settings[index];
+    fn get(&self, index: usize) -> Option<Precursor> {
+        let quad_settings = &self.expanded_quadrupole_settings.get(index)?;
         let scan_id = (quad_settings.scan_starts[0]
             + quad_settings.scan_ends[0]) as f32
             / 2.0;
-        Precursor {
+        let precursor = Precursor {
             mz: quad_settings.isolation_mz[0],
             rt: self.rt_converter.convert(quad_settings.index as u32 - 1),
             im: self.im_converter.convert(scan_id),
@@ -77,14 +77,21 @@ impl PrecursorReaderTrait for DIATDFPrecursorReader {
             intensity: None,
             index: index,
             frame_index: quad_settings.index,
-        }
+        };
+        Some(precursor)
     }
 
     fn len(&self) -> usize {
         self.expanded_quadrupole_settings.len()
     }
+}
 
-    fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum DIATDFPrecursorReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    MetadataReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }

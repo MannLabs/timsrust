@@ -28,7 +28,8 @@ impl MiniTDFSpectrumReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let parquet_file_name =
             find_extension(&path, "ms2spectrum.parquet").unwrap();
-        let precursor_reader = PrecursorReader::new(&parquet_file_name, None);
+        let precursor_reader =
+            PrecursorReader::new(&parquet_file_name, None).unwrap();
         let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)
             .unwrap()
             .iter()
@@ -56,11 +57,11 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
     fn get(&self, index: usize) -> Spectrum {
         let mut spectrum = Spectrum::default();
         spectrum.index = index;
-        let blob = self.blob_reader.get_blob(index).unwrap();
+        let blob = self.blob_reader.get(index).unwrap();
         if !blob.is_empty() {
             let size: usize = blob.len();
             let spectrum_data: Vec<u32> =
-                (0..size).map(|i| blob.get(i)).collect();
+                (0..size).map(|i| blob.get(i).unwrap()).collect();
             let scan_count: usize = blob.len() / 3;
             let tof_indices_bytes: &[u32] =
                 &spectrum_data[..scan_count as usize * 2];
@@ -74,8 +75,8 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
                 intensity_values.iter().map(|&x| x as f64).collect();
             spectrum.mz_values = mz_values.to_vec();
         }
-        let precursor = self.precursor_reader.get(index);
-        spectrum.precursor = precursor;
+        let precursor = self.precursor_reader.get(index).unwrap();
+        spectrum.precursor = Some(precursor);
         spectrum.index = precursor.index;
         spectrum.collision_energy = self.collision_energies[index];
         spectrum.isolation_mz = precursor.mz; //FIX?

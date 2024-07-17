@@ -1,5 +1,5 @@
 /// A converter from Frame -> retention time.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Frame2RtConverter {
     rt_values: Vec<f64>,
 }
