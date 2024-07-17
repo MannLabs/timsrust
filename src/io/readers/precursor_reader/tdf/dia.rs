@@ -1,6 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use crate::io::readers::tdf_utils::expand_quadrupole_settings;
+use crate::io::readers::tdf_utils::{
+    expand_quadrupole_settings, expand_window_settings,
+};
+use crate::io::readers::FrameWindowSplittingStrategy;
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
@@ -25,7 +28,10 @@ pub struct DIATDFPrecursorReader {
 }
 
 impl DIATDFPrecursorReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(
+        path: impl AsRef<Path>,
+        splitting_strat: FrameWindowSplittingStrategy,
+    ) -> Self {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
         let metadata = MetadataReader::new(&path);
@@ -35,8 +41,19 @@ impl DIATDFPrecursorReader {
             SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(tdf_sql_reader.get_path());
-        let expanded_quadrupole_settings =
-            expand_quadrupole_settings(&window_groups, &quadrupole_settings);
+        let expanded_quadrupole_settings = match splitting_strat {
+            FrameWindowSplittingStrategy::None => quadrupole_settings,
+            FrameWindowSplittingStrategy::Quadrupole(x) => {
+                expand_quadrupole_settings(
+                    &window_groups,
+                    &quadrupole_settings,
+                    &x,
+                )
+            },
+            FrameWindowSplittingStrategy::Window(x) => {
+                expand_window_settings(&window_groups, &quadrupole_settings, &x)
+            },
+        };
         Self {
             path: path.as_ref().to_path_buf(),
             expanded_quadrupole_settings,

@@ -1,4 +1,7 @@
-use crate::io::readers::tdf_utils::expand_quadrupole_settings;
+use crate::io::readers::tdf_utils::{
+    expand_quadrupole_settings, expand_window_settings,
+};
+use crate::io::readers::FrameWindowSplittingStrategy;
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
@@ -24,8 +27,20 @@ impl DIARawSpectrumReader {
             SqlWindowGroup::from_sql_reader(&tdf_sql_reader).unwrap();
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path());
-        let expanded_quadrupole_settings =
-            expand_quadrupole_settings(&window_groups, &quadrupole_settings);
+        let expanded_quadrupole_settings = match frame_reader.splitting_strategy
+        {
+            FrameWindowSplittingStrategy::None => quadrupole_settings,
+            FrameWindowSplittingStrategy::Quadrupole(x) => {
+                expand_quadrupole_settings(
+                    &window_groups,
+                    &quadrupole_settings,
+                    &x,
+                )
+            },
+            FrameWindowSplittingStrategy::Window(x) => {
+                expand_window_settings(&window_groups, &quadrupole_settings, &x)
+            },
+        };
         Self {
             expanded_quadrupole_settings,
             frame_reader,

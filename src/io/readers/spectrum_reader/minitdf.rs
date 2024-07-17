@@ -28,7 +28,7 @@ impl MiniTDFSpectrumReader {
     pub fn new(path: impl AsRef<Path>) -> Self {
         let parquet_file_name =
             find_extension(&path, "ms2spectrum.parquet").unwrap();
-        let precursor_reader = PrecursorReader::new(&parquet_file_name);
+        let precursor_reader = PrecursorReader::new(&parquet_file_name, None);
         let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)
             .unwrap()
             .iter()

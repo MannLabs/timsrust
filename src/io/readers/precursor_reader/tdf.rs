@@ -7,7 +7,9 @@ use dda::DDATDFPrecursorReader;
 use dia::DIATDFPrecursorReader;
 
 use crate::{
-    io::readers::file_readers::sql_reader::SqlReader,
+    io::readers::{
+        file_readers::sql_reader::SqlReader, FrameWindowSplittingStrategy,
+    },
     ms_data::{AcquisitionType, Precursor},
 };
 
@@ -18,7 +20,10 @@ pub struct TDFPrecursorReader {
 }
 
 impl TDFPrecursorReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(
+        path: impl AsRef<Path>,
+        splitting_strategy: Option<FrameWindowSplittingStrategy>,
+    ) -> Self {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
         let sql_frames: Vec<u8> = tdf_sql_reader
@@ -32,14 +37,33 @@ impl TDFPrecursorReader {
             AcquisitionType::Unknown
         };
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
-            match acquisition_type {
-                AcquisitionType::DDAPASEF => {
+            match (acquisition_type, splitting_strategy) {
+                (AcquisitionType::DDAPASEF, None) => {
                     Box::new(DDATDFPrecursorReader::new(path))
                 },
-                AcquisitionType::DIAPASEF => {
-                    Box::new(DIATDFPrecursorReader::new(path))
+                (
+                    AcquisitionType::DDAPASEF,
+                    Some(FrameWindowSplittingStrategy::None),
+                ) => {
+                    // Not 100% sure when this happens ...
+                    // By this I mean generating a Some(None)
+                    // ./tests/frame_readers.rs:60:25 generates it.
+                    // JSPP - 2024-Jul-16
+                    Box::new(DDATDFPrecursorReader::new(path))
                 },
-                _ => panic!(),
+                (AcquisitionType::DIAPASEF, Some(splitting_strat)) => {
+                    Box::new(DIATDFPrecursorReader::new(path, splitting_strat))
+                },
+                (AcquisitionType::DIAPASEF, None) => {
+                    Box::new(DIATDFPrecursorReader::new(
+                        path,
+                        FrameWindowSplittingStrategy::None,
+                    ))
+                },
+                _ => panic!(
+                    "No idea how to handle {:?} - {:?}",
+                    acquisition_type, splitting_strategy
+                ),
             };
         Self { precursor_reader }
     }

@@ -1,5 +1,6 @@
 use std::{path::Path, sync::Arc};
 use timsrust::{
+    io::readers::SpectrumReaderConfig,
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
     FileReader,
 };
@@ -19,7 +20,9 @@ fn tdf_reader_frames1() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> =
-        FileReader::new(&file_path).unwrap().read_all_ms1_frames();
+        FileReader::new(&file_path, SpectrumReaderConfig::default())
+            .unwrap()
+            .read_all_ms1_frames();
     let expected: Vec<Frame> = vec![
         Frame {
             scan_offsets: vec![0, 1, 3, 6, 10],
@@ -62,7 +65,9 @@ fn tdf_reader_frames2() {
         .unwrap()
         .to_string();
     let frames: Vec<Frame> =
-        FileReader::new(&file_path).unwrap().read_all_ms2_frames();
+        FileReader::new(&file_path, SpectrumReaderConfig::default())
+            .unwrap()
+            .read_all_ms2_frames();
     let expected: Vec<Frame> = vec![
         // Frame::default(),
         Frame {

@@ -9,6 +9,8 @@ use tdf::TDFPrecursorReader;
 
 use crate::ms_data::Precursor;
 
+use super::FrameWindowSplittingStrategy;
+
 pub struct PrecursorReader {
     precursor_reader: Box<dyn PrecursorReaderTrait>,
 }
@@ -20,11 +22,19 @@ impl fmt::Debug for PrecursorReader {
 }
 
 impl PrecursorReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(
+        path: impl AsRef<Path>,
+        config: Option<FrameWindowSplittingStrategy>,
+    ) -> Self {
+        let tmp = path.as_ref().extension().and_then(|e| e.to_str());
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
-            match path.as_ref().extension().and_then(|e| e.to_str()) {
-                Some("parquet") => Box::new(MiniTDFPrecursorReader::new(path)),
-                Some("tdf") => Box::new(TDFPrecursorReader::new(path)),
+            match (tmp, config) {
+                (Some("parquet"), None) => {
+                    Box::new(MiniTDFPrecursorReader::new(path))
+                },
+                (Some("tdf"), strat) => {
+                    Box::new(TDFPrecursorReader::new(path, strat))
+                },
                 _ => panic!(),
             };
         Self { precursor_reader }

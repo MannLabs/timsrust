@@ -1,5 +1,6 @@
 use std::path::Path;
 use timsrust::{
+    io::readers::SpectrumReaderConfig,
     ms_data::{Precursor, Spectrum},
     FileReader,
 };
@@ -19,7 +20,9 @@ fn minitdf_reader() {
         .unwrap()
         .to_string();
     let spectra: Vec<Spectrum> =
-        FileReader::new(file_path).unwrap().read_all_spectra();
+        FileReader::new(file_path, SpectrumReaderConfig::default())
+            .unwrap()
+            .read_all_spectra();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![100.0, 200.002, 300.03, 400.4],
@@ -70,7 +73,9 @@ fn tdf_reader_dda() {
         .unwrap()
         .to_string();
     let spectra: Vec<Spectrum> =
-        FileReader::new(file_path).unwrap().read_all_spectra();
+        FileReader::new(file_path, SpectrumReaderConfig::default())
+            .unwrap()
+            .read_all_spectra();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![199.7633445943076],

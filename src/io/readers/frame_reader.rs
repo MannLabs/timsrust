@@ -19,7 +19,7 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader},
     },
-    QuadrupoleSettingsReader,
+    FrameWindowSplittingStrategy, QuadrupoleSettingsReader,
 };
 
 #[derive(Debug)]
@@ -30,10 +30,14 @@ pub struct FrameReader {
     acquisition: AcquisitionType,
     window_groups: Vec<u8>,
     quadrupole_settings: Vec<Arc<QuadrupoleSettings>>,
+    pub splitting_strategy: FrameWindowSplittingStrategy,
 }
 
 impl FrameReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(
+        path: impl AsRef<Path>,
+        config: FrameWindowSplittingStrategy,
+    ) -> Self {
         let sql_path = find_extension(&path, "analysis.tdf").unwrap();
         let tdf_sql_reader = SqlReader::open(sql_path).unwrap();
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader).unwrap();
@@ -71,6 +75,7 @@ impl FrameReader {
                 .into_iter()
                 .map(|x| Arc::new(x))
                 .collect(),
+            splitting_strategy: config,
         }
     }
 

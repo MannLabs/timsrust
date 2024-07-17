@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use crate::io::readers::file_readers::sql_reader::frames::SqlFrame;
-use crate::io::readers::SpectrumReader;
+use crate::io::readers::{SpectrumReader, SpectrumReaderConfig};
 use crate::{io::readers::FrameReader, Error};
 
 use crate::ms_data::{Frame, Spectrum};
@@ -17,19 +17,27 @@ impl FileReader {
     // TODO refactor out
     // TODO proper error handling
     // TODO update docs
-    pub fn new<T: AsRef<std::path::Path>>(path_name: T) -> Result<Self, Error> {
+    pub fn new<T: AsRef<std::path::Path>>(
+        path_name: T,
+        reader_config: SpectrumReaderConfig,
+    ) -> Result<Self, Error> {
         let format: FileFormat = FileFormat::parse(path_name)?;
         let frame_reader = match &format {
-            FileFormat::DFolder(path) => Some(FrameReader::new(&path)),
+            FileFormat::DFolder(path) => Some(FrameReader::new(
+                &path,
+                reader_config.frame_splitting_params,
+            )),
             FileFormat::MS2Folder(_) => None,
         };
         let spectrum_reader = match &format {
             FileFormat::DFolder(path) => {
-                let reader = SpectrumReader::new(path);
+                let reader = SpectrumReader::new(path, reader_config);
                 // reader.calibrate();
                 Some(reader)
             },
-            FileFormat::MS2Folder(path) => Some(SpectrumReader::new(path)),
+            FileFormat::MS2Folder(path) => {
+                Some(SpectrumReader::new(path, reader_config))
+            },
         };
         Ok(Self {
             frame_reader,
