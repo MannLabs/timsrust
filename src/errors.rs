@@ -21,3 +21,16 @@ pub enum Error {
     // #[error("BinError: {0}")]
     // BinError(#[from] TdfBlobError),
 }
+
+#[macro_export]
+macro_rules! propagated_error_enum {
+    ($name:ident, $($variant:ident),+) => {
+        #[derive(Debug, thiserror::Error)]
+        pub enum $name {
+            $(
+                #[error(transparent)]
+                $variant(#[from] $variant),
+            )+
+        }
+    };
+}
