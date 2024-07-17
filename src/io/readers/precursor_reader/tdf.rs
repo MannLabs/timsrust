@@ -41,9 +41,11 @@ impl TDFPrecursorReader {
                     Box::new(DIATDFPrecursorReader::new(path)?)
                 },
                 acquisition_type => {
-                    return Err(TDFPrecursorReaderError::UnknownPrecursorType(
-                        format!("{:?}", acquisition_type),
-                    ))
+                    return Err(
+                        TDFPrecursorReaderError::UnsupportedAcquisition(
+                            format!("{:?}", acquisition_type),
+                        ),
+                    )
                 },
             };
         let reader = Self { precursor_reader };
@@ -70,5 +72,5 @@ pub enum TDFPrecursorReaderError {
     #[error("{0}")]
     DIATDFPrecursorReaderError(#[from] DIATDFPrecursorReaderError),
     #[error("Invalid acquistion type for precursor reader: {0}")]
-    UnknownPrecursorType(String),
+    UnsupportedAcquisition(String),
 }
