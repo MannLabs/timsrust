@@ -58,36 +58,6 @@ fn scan_range_subsplit(
     out
 }
 
-fn expansion_strategy_from_env() -> QuadWindowExpansionStrategy {
-    let splits = match std::env::var("NUM_SUB_SUB_SPLITS") {
-        Ok(s) => match s.parse::<usize>() {
-            Ok(n) => {
-                println!("Number of splits: {} from env", n);
-                QuadWindowExpansionStrategy::Even(n)
-            },
-            Err(_) => {
-                println!("Invalid number of splits: {}", s);
-                QuadWindowExpansionStrategy::None
-            },
-        },
-        Err(_) => match std::env::var("SUB_SPLITS_SPAN") {
-            Ok(s) => match s.parse::<usize>() {
-                Ok(n) => {
-                    println!("Number of scans per split: {} from env", n);
-                    QuadWindowExpansionStrategy::Uniform((n, n / 2))
-                },
-                Err(_) => {
-                    println!("Invalid number of splits: {}", s);
-                    QuadWindowExpansionStrategy::None
-                },
-            },
-            Err(_) => QuadWindowExpansionStrategy::None,
-        },
-    };
-
-    splits
-}
-
 pub fn expand_window_settings(
     window_groups: &[SqlWindowGroup],
     quadrupole_settings: &[QuadrupoleSettings],
@@ -142,10 +112,6 @@ pub fn expand_window_settings(
             expanded_quadrupole_settings.push(sub_quad_settings)
         }
     }
-    println!(
-        "Number of expanded quad settings {}",
-        expanded_quadrupole_settings.len()
-    );
     expanded_quadrupole_settings
 }
 
@@ -182,9 +148,5 @@ pub fn expand_quadrupole_settings(
             }
         }
     }
-    println!(
-        "Number of expanded quad settings {}",
-        expanded_quadrupole_settings.len()
-    );
     expanded_quadrupole_settings
 }

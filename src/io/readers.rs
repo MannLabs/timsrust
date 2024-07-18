@@ -11,3 +11,4 @@ pub use metadata_reader::*;
 pub use precursor_reader::*;
 pub use quad_settings_reader::*;
 pub use spectrum_reader::*;
+pub use tdf_utils::QuadWindowExpansionStrategy;
