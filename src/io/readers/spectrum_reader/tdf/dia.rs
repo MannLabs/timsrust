@@ -51,14 +51,6 @@ impl DIARawSpectrumReader {
 impl RawSpectrumReaderTrait for DIARawSpectrumReader {
     fn get(&self, index: usize) -> RawSpectrum {
         let quad_settings = &self.expanded_quadrupole_settings[index];
-        if index < 10 {
-            println!("{}", index);
-            println!("{:?}", quad_settings);
-        }
-        if index > (self.expanded_quadrupole_settings.len() - 10) {
-            println!("{}", index);
-            println!("{:?}", quad_settings);
-        }
 
         let collision_energy = quad_settings.collision_energy[0];
         let isolation_mz = quad_settings.isolation_mz[0];

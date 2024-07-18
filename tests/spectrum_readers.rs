@@ -1,7 +1,9 @@
 use std::path::Path;
 use timsrust::{
-    io::readers::SpectrumReader,
-    io::readers::SpectrumReaderConfig,
+    io::readers::{
+        FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
+        SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig,
+    },
     ms_data::{Precursor, Spectrum},
 };
 
@@ -129,5 +131,68 @@ fn tdf_reader_dda() {
     ];
     for i in 0..spectra.len() {
         assert_eq!(spectra[i], expected[i]);
+    }
+}
+
+#[test]
+fn test_dia_even() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    for i in 1..3 {
+        let frames: Vec<Spectrum> = SpectrumReader::new(
+            &file_path,
+            SpectrumReaderConfig {
+                frame_splitting_params:
+                    FrameWindowSplittingStrategy::Quadrupole(
+                        QuadWindowExpansionStrategy::Even(i),
+                    ),
+                spectrum_processing_params: SpectrumProcessingParams::default(),
+            },
+        )
+        .get_all();
+
+        println!(">>>>> EVEN {:?}", frames.len());
+
+        // 4 frames, 2 windows in each, i splits/window
+        assert_eq!(frames.len(), 4 * 2 * i);
+    }
+}
+
+#[test]
+fn test_dia_uniform() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    for i in [100, 200, 300] {
+        let frames: Vec<Spectrum> = SpectrumReader::new(
+            &file_path,
+            SpectrumReaderConfig {
+                frame_splitting_params: FrameWindowSplittingStrategy::Window(
+                    QuadWindowExpansionStrategy::Uniform((i, i)),
+                ),
+                spectrum_processing_params: SpectrumProcessingParams::default(),
+            },
+        )
+        .get_all();
+
+        println!(">>>>> UNIFORM {} > {:?}", i, frames.len());
+        for f in frames.iter() {
+            println!("{:?}", f.precursor);
+        }
+
+        // Not all frames have scan windows from 0 to 709 ... so ... I need to think
+        // on how to express this in the test
+        // assert_eq!(frames.len(), 4 * ((709 / i) + 1));
+        assert!(frames.len() > (709 / i));
+        assert!(frames.len() < 3 * ((709 / i) + 1));
     }
 }

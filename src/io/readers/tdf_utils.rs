@@ -3,6 +3,24 @@ use crate::ms_data::QuadrupoleSettings;
 
 type SpanStep = (usize, usize);
 
+/// Strategy for expanding quadrupole settings
+///
+/// This enum is used to determine how to expand quadrupole settings
+/// when reading in DIA data. And exporting spectra (not frames RN).
+///
+/// # Variants
+///
+/// For example if we have a window with scan start 50 and end 500
+///
+/// * `None` - Do not expand quadrupole settings; use the original settings
+/// * `Even(usize)` - Split the quadrupole settings into `usize` evenly spaced
+/// subwindows; e.g. if `usize` is 2, the window will be split into 2 subwindows
+/// of equal width.
+/// * `Uniform(SpanStep)` - Split the quadrupole settings into subwindows of
+/// width `SpanStep.0` and step `SpanStep.1`; e.g. if `SpanStep` is (100, 50),
+/// the window will be split into subwindows of width 100 and step 50 between their
+/// scan start and end.
+///
 #[derive(Debug, Copy, Clone)]
 pub enum QuadWindowExpansionStrategy {
     None,
@@ -40,6 +58,9 @@ fn scan_range_subsplit(
                 out.push((curr_start, curr_end));
                 curr_start += step;
                 curr_end += step;
+            }
+            if curr_start < end {
+                out.push((curr_start, end));
             }
             out
         },
