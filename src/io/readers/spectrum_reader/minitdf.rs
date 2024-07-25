@@ -36,7 +36,7 @@ impl MiniTDFSpectrumReader {
             .ok_or(MiniTDFSpectrumReaderError::FileNotFound(
                 "analysis.tdf".to_string(),
             ))?;
-        let precursor_reader = PrecursorReader::new(&parquet_file_name)?;
+        let precursor_reader = PrecursorReader::new(&parquet_file_name, None)?;
         let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)?
             .iter()
             .map(|x| x.offset as usize)

@@ -7,10 +7,42 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
 use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 
+use crate::io::readers::tdf_utils::QuadWindowExpansionStrategy;
 use crate::ms_data::Spectrum;
 
 pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
+}
+
+#[derive(Debug)]
+pub struct SpectrumProcessingParams {
+    smoothing_window: u32,
+    centroiding_window: u32,
+    calibration_tolerance: f64,
+}
+
+impl Default for SpectrumProcessingParams {
+    fn default() -> Self {
+        Self {
+            smoothing_window: 1,
+            centroiding_window: 1,
+            calibration_tolerance: 0.1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum FrameWindowSplittingStrategy {
+    #[default]
+    None,
+    Quadrupole(QuadWindowExpansionStrategy),
+    Window(QuadWindowExpansionStrategy),
+}
+
+#[derive(Debug, Default)]
+pub struct SpectrumReaderConfig {
+    pub spectrum_processing_params: SpectrumProcessingParams,
+    pub frame_splitting_params: FrameWindowSplittingStrategy,
 }
 
 impl fmt::Debug for SpectrumReader {
@@ -20,11 +52,14 @@ impl fmt::Debug for SpectrumReader {
 }
 
 impl SpectrumReader {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, SpectrumReaderError> {
+    pub fn new(
+        path: impl AsRef<Path>,
+        config: SpectrumReaderConfig,
+    ) -> Result<Self, SpectrumReaderError> {
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
             match path.as_ref().extension().and_then(|e| e.to_str()) {
                 Some("ms2") => Box::new(MiniTDFSpectrumReader::new(path)?),
-                Some("d") => Box::new(TDFSpectrumReader::new(path)?),
+                Some("d") => Box::new(TDFSpectrumReader::new(path, config)?),
                 _ => panic!(),
             };
         let reader = Self { spectrum_reader };

@@ -1,5 +1,9 @@
 use std::path::Path;
 
+use crate::io::readers::tdf_utils::{
+    expand_quadrupole_settings, expand_window_settings,
+};
+use crate::io::readers::FrameWindowSplittingStrategy;
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
@@ -26,6 +30,7 @@ pub struct DIATDFPrecursorReader {
 impl DIATDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
+        splitting_strat: FrameWindowSplittingStrategy,
     ) -> Result<Self, DIATDFPrecursorReaderError> {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path)?;
@@ -35,23 +40,20 @@ impl DIATDFPrecursorReader {
         let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
-        let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
-        for window_group in window_groups {
-            let window = window_group.window_group;
-            let frame = window_group.frame;
-            let group = &quadrupole_settings[window as usize - 1];
-            for sub_window in 0..group.isolation_mz.len() {
-                let sub_quad_settings = QuadrupoleSettings {
-                    index: frame,
-                    scan_starts: vec![group.scan_starts[sub_window]],
-                    scan_ends: vec![group.scan_ends[sub_window]],
-                    isolation_mz: vec![group.isolation_mz[sub_window]],
-                    isolation_width: vec![group.isolation_width[sub_window]],
-                    collision_energy: vec![group.collision_energy[sub_window]],
-                };
-                expanded_quadrupole_settings.push(sub_quad_settings)
-            }
-        }
+        let expanded_quadrupole_settings = match splitting_strat {
+            FrameWindowSplittingStrategy::None => quadrupole_settings,
+            FrameWindowSplittingStrategy::Quadrupole(x) => {
+                expand_quadrupole_settings(
+                    &window_groups,
+                    &quadrupole_settings,
+                    &x,
+                )
+            },
+            FrameWindowSplittingStrategy::Window(x) => {
+                expand_window_settings(&window_groups, &quadrupole_settings, &x)
+            },
+        };
+
         let reader = Self {
             expanded_quadrupole_settings,
             rt_converter,

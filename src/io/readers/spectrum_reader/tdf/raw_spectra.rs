@@ -118,10 +118,15 @@ impl RawSpectrumReader {
     pub fn get(&self, index: usize) -> RawSpectrum {
         self.raw_spectrum_reader.get(index)
     }
+
+    pub fn len(&self) -> usize {
+        self.raw_spectrum_reader.len()
+    }
 }
 
 pub trait RawSpectrumReaderTrait: Sync {
     fn get(&self, index: usize) -> RawSpectrum;
+    fn len(&self) -> usize;
 }
 
 #[derive(Debug, thiserror::Error)]

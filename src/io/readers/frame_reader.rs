@@ -19,7 +19,8 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
+    FrameWindowSplittingStrategy, QuadrupoleSettingsReader,
+    QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
@@ -30,10 +31,14 @@ pub struct FrameReader {
     acquisition: AcquisitionType,
     window_groups: Vec<u8>,
     quadrupole_settings: Vec<Arc<QuadrupoleSettings>>,
+    pub splitting_strategy: FrameWindowSplittingStrategy,
 }
 
 impl FrameReader {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, FrameReaderError> {
+    pub fn new(
+        path: impl AsRef<Path>,
+        config: FrameWindowSplittingStrategy,
+    ) -> Result<Self, FrameReaderError> {
         let sql_path = find_extension(&path, "analysis.tdf").ok_or(
             FrameReaderError::FileNotFound("analysis.tdf".to_string()),
         )?;
@@ -74,6 +79,7 @@ impl FrameReader {
                 .into_iter()
                 .map(|x| Arc::new(x))
                 .collect(),
+            splitting_strategy: config,
         };
         Ok(reader)
     }
