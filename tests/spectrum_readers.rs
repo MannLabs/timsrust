@@ -156,6 +156,7 @@ fn test_dia_even() {
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             },
         )
+        .unwrap()
         .get_all();
 
         println!(">>>>> EVEN {:?}", frames.len());
@@ -184,6 +185,7 @@ fn test_dia_uniform() {
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             },
         )
+        .unwrap()
         .get_all();
 
         println!(">>>>> UNIFORM {} > {:?}", i, frames.len());
