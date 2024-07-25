@@ -1,9 +1,6 @@
 use std::{path::Path, sync::Arc};
 use timsrust::{
-    io::readers::{
-        FrameReader, FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
-        SpectrumReaderConfig,
-    },
+    io::readers::FrameReader,
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
 };
 
@@ -21,13 +18,12 @@ fn tdf_reader_frames1() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> =
-        FrameReader::new(&file_path, FrameWindowSplittingStrategy::default())
-            .unwrap()
-            .get_all_ms1()
-            .into_iter()
-            .map(|x| x.unwrap())
-            .collect();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .unwrap()
+        .get_all_ms1()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
     let expected: Vec<Frame> = vec![
         Frame {
             scan_offsets: vec![0, 1, 3, 6, 10],
@@ -69,13 +65,12 @@ fn tdf_reader_frames2() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> =
-        FrameReader::new(&file_path, FrameWindowSplittingStrategy::default())
-            .unwrap()
-            .get_all_ms2()
-            .into_iter()
-            .map(|x| x.unwrap())
-            .collect();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .unwrap()
+        .get_all_ms2()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
     let expected: Vec<Frame> = vec![
         // Frame::default(),
         Frame {
@@ -117,13 +112,12 @@ fn tdf_reader_frames_dia() {
         .to_str()
         .unwrap()
         .to_string();
-    let frames: Vec<Frame> =
-        FrameReader::new(&file_path, FrameWindowSplittingStrategy::default())
-            .unwrap()
-            .get_all_ms2()
-            .into_iter()
-            .map(|x| x.unwrap())
-            .collect();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .unwrap()
+        .get_all_ms2()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
 
     assert_eq!(frames.len(), 4);
     for i in 0..frames.len() {

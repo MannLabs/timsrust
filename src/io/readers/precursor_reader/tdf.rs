@@ -63,10 +63,7 @@ impl TDFPrecursorReader {
                 (acq_type, acq_config) => {
                     return Err(
                         TDFPrecursorReaderError::UnsupportedAcquisition(
-                            format!(
-                                "{:?} + {:?}",
-                                acquisition_type, acq_config
-                            ),
+                            format!("{:?} + {:?}", acq_type, acq_config),
                         ),
                     )
                 },
