@@ -1,11 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rayon::iter::ParallelIterator;
-use timsrust::{
-    io::readers::{
-        FrameReader, FrameWindowSplittingStrategy, SpectrumReader,
-        SpectrumReaderConfig,
-    },
-    ms_data::Frame,
+use timsrust::io::readers::{
+    FrameReader, SpectrumReader, SpectrumReaderConfig,
 };
 
 const DDA_TEST: &str =
@@ -36,9 +32,7 @@ fn criterion_benchmark_dda(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = DDA_TEST;
-    let frame_reader =
-        FrameReader::new(d_folder_name, FrameWindowSplittingStrategy::None)
-            .unwrap();
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader =
         SpectrumReader::new(d_folder_name, SpectrumReaderConfig::default())
             .unwrap();
@@ -62,9 +56,7 @@ fn criterion_benchmark_dia(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = DIA_TEST;
-    let frame_reader =
-        FrameReader::new(d_folder_name, FrameWindowSplittingStrategy::None)
-            .unwrap();
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader =
         SpectrumReader::new(d_folder_name, SpectrumReaderConfig::default())
             .unwrap();
@@ -85,9 +77,7 @@ fn criterion_benchmark_syp(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.001).sample_size(10);
     let d_folder_name: &str = SYP_TEST;
-    let frame_reader =
-        FrameReader::new(d_folder_name, FrameWindowSplittingStrategy::None)
-            .unwrap();
+    let frame_reader = FrameReader::new(d_folder_name).unwrap();
     let spectrum_reader =
         SpectrumReader::new(d_folder_name, SpectrumReaderConfig::default())
             .unwrap();
