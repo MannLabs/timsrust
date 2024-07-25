@@ -14,7 +14,7 @@ pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SpectrumProcessingParams {
     smoothing_window: u32,
     centroiding_window: u32,
@@ -39,7 +39,7 @@ pub enum FrameWindowSplittingStrategy {
     Window(QuadWindowExpansionStrategy),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct SpectrumReaderConfig {
     pub spectrum_processing_params: SpectrumProcessingParams,
     pub frame_splitting_params: FrameWindowSplittingStrategy,
@@ -51,7 +51,39 @@ impl fmt::Debug for SpectrumReader {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct SpectrumReaderBuilder {
+    path: PathBuf,
+    config: SpectrumReaderConfig,
+}
+
+impl SpectrumReaderBuilder {
+    pub fn with_path(&self, path: impl AsRef<Path>) -> Self {
+        Self {
+            path: path.as_ref().to_path_buf(),
+            config: self.config.clone(),
+        }
+    }
+
+    pub fn with_config(&self, config: SpectrumReaderConfig) -> Self {
+        Self {
+            path: self.path.clone(),
+            config: config,
+        }
+    }
+
+    pub fn finalize(&self) -> Result<SpectrumReader, SpectrumReaderError> {
+        let reader =
+            SpectrumReader::new(self.path.clone(), self.config.clone())?;
+        Ok(reader)
+    }
+}
+
 impl SpectrumReader {
+    pub fn build() -> SpectrumReaderBuilder {
+        SpectrumReaderBuilder::default()
+    }
+
     pub fn new(
         path: impl AsRef<Path>,
         config: SpectrumReaderConfig,

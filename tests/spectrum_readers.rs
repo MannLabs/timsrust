@@ -21,10 +21,11 @@ fn minitdf_reader() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> =
-        SpectrumReader::new(file_path, SpectrumReaderConfig::default())
-            .unwrap()
-            .get_all();
+    let spectra: Vec<Spectrum> = SpectrumReader::build()
+        .with_path(file_path)
+        .finalize()
+        .unwrap()
+        .get_all();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![100.0, 200.002, 300.03, 400.4],
@@ -74,10 +75,11 @@ fn tdf_reader_dda() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> =
-        SpectrumReader::new(file_path, SpectrumReaderConfig::default())
-            .unwrap()
-            .get_all();
+    let spectra: Vec<Spectrum> = SpectrumReader::build()
+        .with_path(file_path)
+        .finalize()
+        .unwrap()
+        .get_all();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![199.7633445943076],
@@ -146,18 +148,18 @@ fn test_dia_even() {
         .to_string();
 
     for i in 1..3 {
-        let frames: Vec<Spectrum> = SpectrumReader::new(
-            &file_path,
-            SpectrumReaderConfig {
+        let frames: Vec<Spectrum> = SpectrumReader::build()
+            .with_path(&file_path)
+            .with_config(SpectrumReaderConfig {
                 frame_splitting_params:
                     FrameWindowSplittingStrategy::Quadrupole(
                         QuadWindowExpansionStrategy::Even(i),
                     ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
-            },
-        )
-        .unwrap()
-        .get_all();
+            })
+            .finalize()
+            .unwrap()
+            .get_all();
 
         println!(">>>>> EVEN {:?}", frames.len());
 
@@ -176,17 +178,17 @@ fn test_dia_uniform() {
         .to_string();
 
     for i in [100, 200, 300] {
-        let frames: Vec<Spectrum> = SpectrumReader::new(
-            &file_path,
-            SpectrumReaderConfig {
+        let frames: Vec<Spectrum> = SpectrumReader::build()
+            .with_path(&file_path)
+            .with_config(SpectrumReaderConfig {
                 frame_splitting_params: FrameWindowSplittingStrategy::Window(
                     QuadWindowExpansionStrategy::Uniform((i, i)),
                 ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
-            },
-        )
-        .unwrap()
-        .get_all();
+            })
+            .finalize()
+            .unwrap()
+            .get_all();
 
         println!(">>>>> UNIFORM {} > {:?}", i, frames.len());
         for f in frames.iter() {
