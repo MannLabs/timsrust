@@ -62,13 +62,14 @@ impl MiniTDFSpectrumReader {
         };
         Ok(reader)
     }
-}
 
-impl SpectrumReaderTrait for MiniTDFSpectrumReader {
-    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
+    fn _get(
+        &self,
+        index: usize,
+    ) -> Result<Spectrum, MiniTDFSpectrumReaderError> {
         let mut spectrum = Spectrum::default();
         spectrum.index = index;
-        let blob = self.blob_reader.get(index).unwrap();
+        let blob = self.blob_reader.get(index)?;
         if !blob.is_empty() {
             let size: usize = blob.len();
             let spectrum_data: Vec<u32> =
@@ -86,7 +87,10 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
                 intensity_values.iter().map(|&x| x as f64).collect();
             spectrum.mz_values = mz_values.to_vec();
         }
-        let precursor = self.precursor_reader.get(index).unwrap();
+        let precursor = self
+            .precursor_reader
+            .get(index)
+            .ok_or(MiniTDFSpectrumReaderError::NoPrecursor)?;
         spectrum.precursor = Some(precursor);
         spectrum.index = precursor.index;
         spectrum.collision_energy = self.collision_energies[index];
@@ -99,6 +103,12 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
             2.0 + (precursor.mz - 700.0) / 100.0
         }; //FIX?
         Ok(spectrum)
+    }
+}
+
+impl SpectrumReaderTrait for MiniTDFSpectrumReader {
+    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
+        Ok(self._get(index)?)
     }
 
     fn len(&self) -> usize {
@@ -124,4 +134,6 @@ pub enum MiniTDFSpectrumReaderError {
     IndexedTdfBlobReaderError(#[from] IndexedTdfBlobReaderError),
     #[error("{0}")]
     FileNotFound(String),
+    #[error("No precursor")]
+    NoPrecursor,
 }

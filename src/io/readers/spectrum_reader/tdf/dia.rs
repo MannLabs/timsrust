@@ -1,7 +1,7 @@
 use crate::io::readers::tdf_utils::{
     expand_quadrupole_settings, expand_window_settings,
 };
-use crate::io::readers::FrameWindowSplittingStrategy;
+use crate::io::readers::{FrameReaderError, FrameWindowSplittingStrategy};
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
@@ -50,10 +50,11 @@ impl DIARawSpectrumReader {
         };
         Ok(reader)
     }
-}
 
-impl RawSpectrumReaderTrait for DIARawSpectrumReader {
-    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
+    fn _get(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, DIARawSpectrumReaderError> {
         let quad_settings = &self.expanded_quadrupole_settings[index];
 
         let collision_energy = quad_settings.collision_energy[0];
@@ -62,7 +63,7 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
         let scan_start = quad_settings.scan_starts[0];
         let scan_end = quad_settings.scan_ends[0];
         let frame_index = quad_settings.index - 1;
-        let frame = self.frame_reader.get(frame_index).unwrap();
+        let frame = self.frame_reader.get(frame_index)?;
         let offset_start = frame.scan_offsets[scan_start] as usize;
         let offset_end = frame.scan_offsets[scan_end] as usize;
         let tof_indices = &frame.tof_indices[offset_start..offset_end];
@@ -81,6 +82,12 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
         };
         Ok(raw_spectrum)
     }
+}
+
+impl RawSpectrumReaderTrait for DIARawSpectrumReader {
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
+        Ok(self._get(index)?)
+    }
 
     fn len(&self) -> usize {
         self.expanded_quadrupole_settings.len()
@@ -93,4 +100,6 @@ pub enum DIARawSpectrumReaderError {
     SqlError(#[from] SqlError),
     #[error("{0}")]
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
 }

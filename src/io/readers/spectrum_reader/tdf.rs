@@ -74,16 +74,22 @@ impl TDFSpectrumReader {
             );
         Ok(raw_spectrum)
     }
+
+    fn _get(&self, index: usize) -> Result<Spectrum, TDFSpectrumReaderError> {
+        let raw_spectrum = self.read_single_raw_spectrum(index)?;
+        let spectrum = raw_spectrum.finalize(
+            self.precursor_reader
+                .get(index)
+                .ok_or(TDFSpectrumReaderError::NoPrecursor)?,
+            &self.mz_reader,
+        );
+        Ok(spectrum)
+    }
 }
 
 impl SpectrumReaderTrait for TDFSpectrumReader {
     fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
-        let raw_spectrum = self.read_single_raw_spectrum(index).unwrap();
-        let spectrum = raw_spectrum.finalize(
-            self.precursor_reader.get(index).unwrap(),
-            &self.mz_reader,
-        );
-        Ok(spectrum)
+        Ok(self._get(index)?)
     }
 
     fn len(&self) -> usize {
@@ -144,4 +150,6 @@ pub enum TDFSpectrumReaderError {
     RawSpectrumReaderError(#[from] RawSpectrumReaderError),
     #[error("{0}")]
     FileNotFound(String),
+    #[error("No precursor")]
+    NoPrecursor,
 }

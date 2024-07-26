@@ -4,7 +4,7 @@ use crate::{
             pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlError,
             SqlReader,
         },
-        FrameReader,
+        FrameReader, FrameReaderError,
     },
     utils::vec_utils::{argsort, group_and_sum},
 };
@@ -59,10 +59,11 @@ impl DDARawSpectrumReader {
             .iter()
             .map(|&x| &self.pasef_frames[x])
     }
-}
 
-impl RawSpectrumReaderTrait for DDARawSpectrumReader {
-    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
+    fn _get(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, DDARawSpectrumReaderError> {
         let mut collision_energy = 0.0;
         let mut isolation_mz = 0.0;
         let mut isolation_width = 0.0;
@@ -73,7 +74,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
             isolation_mz = pasef_frame.isolation_mz;
             isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame - 1;
-            let frame = self.frame_reader.get(frame_index).unwrap();
+            let frame = self.frame_reader.get(frame_index)?;
             if frame.intensities.len() == 0 {
                 continue;
             }
@@ -102,6 +103,12 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
         };
         Ok(raw_spectrum)
     }
+}
+
+impl RawSpectrumReaderTrait for DDARawSpectrumReader {
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
+        Ok(self._get(index)?)
+    }
 
     fn len(&self) -> usize {
         self.offsets.len() - 1
@@ -112,4 +119,6 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
 pub enum DDARawSpectrumReaderError {
     #[error("{0}")]
     SqlError(#[from] SqlError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
 }
