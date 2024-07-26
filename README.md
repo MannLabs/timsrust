@@ -43,3 +43,12 @@ Two file formats are supported:
 ## Python bindings
 
 The [timsrust_pyo3](https://github.com/jspaezp/timsrust_pyo3) package is an example of how the performance of TimsRust can be utilized in Python
+
+## Planned changes for future versions
+
+* Improve docs
+* Improve tests
+* Pase CompressionType1
+* Error propagation for SpectrumReader(Trait).get
+* Make Path of TimsTOF data into special type
+* ...
