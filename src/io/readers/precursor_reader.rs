@@ -27,7 +27,7 @@ impl PrecursorReader {
     }
 
     pub fn new(path: impl AsRef<Path>) -> Result<Self, PrecursorReaderError> {
-        Ok(Self::build().with_path(path).finalize()?)
+        Self::build().with_path(path).finalize()
     }
 
     pub fn get(&self, index: usize) -> Option<Precursor> {
