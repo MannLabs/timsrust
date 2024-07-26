@@ -9,7 +9,9 @@ use crate::{
     utils::vec_utils::{argsort, group_and_sum},
 };
 
-use super::raw_spectra::{RawSpectrum, RawSpectrumReaderTrait};
+use super::raw_spectra::{
+    RawSpectrum, RawSpectrumReaderError, RawSpectrumReaderTrait,
+};
 
 #[derive(Debug)]
 pub struct DDARawSpectrumReader {
@@ -60,7 +62,7 @@ impl DDARawSpectrumReader {
 }
 
 impl RawSpectrumReaderTrait for DDARawSpectrumReader {
-    fn get(&self, index: usize) -> RawSpectrum {
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
         let mut collision_energy = 0.0;
         let mut isolation_mz = 0.0;
         let mut isolation_width = 0.0;
@@ -98,7 +100,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
             isolation_mz,
             isolation_width,
         };
-        raw_spectrum
+        Ok(raw_spectrum)
     }
 
     fn len(&self) -> usize {

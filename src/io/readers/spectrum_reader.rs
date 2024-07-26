@@ -26,10 +26,10 @@ impl SpectrumReader {
     }
 
     pub fn new(path: impl AsRef<Path>) -> Result<Self, SpectrumReaderError> {
-        Ok(Self::build().with_path(path).finalize()?)
+        Self::build().with_path(path).finalize()
     }
 
-    pub fn get(&self, index: usize) -> Spectrum {
+    pub fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
         self.spectrum_reader.get(index)
     }
 
@@ -41,12 +41,13 @@ impl SpectrumReader {
         self.spectrum_reader.len()
     }
 
-    pub fn get_all(&self) -> Vec<Spectrum> {
-        let mut spectra: Vec<Spectrum> = (0..self.len())
+    pub fn get_all(&self) -> Vec<Result<Spectrum, SpectrumReaderError>> {
+        let mut spectra: Vec<Result<Spectrum, SpectrumReaderError>> = (0..self
+            .len())
             .into_par_iter()
             .map(|index| self.get(index))
             .collect();
-        spectra.sort_by_key(|x| x.precursor.unwrap().index);
+        spectra.sort_by_key(|x| x.as_ref().unwrap().precursor.unwrap().index);
         spectra
     }
 
@@ -86,7 +87,11 @@ impl SpectrumReaderBuilder {
                     self.path.clone(),
                     self.config.clone(),
                 )?),
-                _ => panic!(),
+                _ => {
+                    return Err(SpectrumReaderError::SpectrumReaderFileError(
+                        self.path.clone(),
+                    ))
+                },
             };
         let reader = SpectrumReader { spectrum_reader };
         Ok(reader)
@@ -94,7 +99,7 @@ impl SpectrumReaderBuilder {
 }
 
 trait SpectrumReaderTrait: Sync {
-    fn get(&self, index: usize) -> Spectrum;
+    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError>;
     fn get_path(&self) -> PathBuf;
     fn len(&self) -> usize;
     fn calibrate(&mut self);
@@ -106,6 +111,8 @@ pub enum SpectrumReaderError {
     MiniTDFSpectrumReaderError(#[from] MiniTDFSpectrumReaderError),
     #[error("{0}")]
     TDFSpectrumReaderError(#[from] TDFSpectrumReaderError),
+    #[error("File {0} not valid")]
+    SpectrumReaderFileError(PathBuf),
 }
 
 #[derive(Debug, Clone)]

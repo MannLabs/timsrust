@@ -25,7 +25,10 @@ fn minitdf_reader() {
         .with_path(file_path)
         .finalize()
         .unwrap()
-        .get_all();
+        .get_all()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![100.0, 200.002, 300.03, 400.4],
@@ -79,7 +82,10 @@ fn tdf_reader_dda() {
         .with_path(file_path)
         .finalize()
         .unwrap()
-        .get_all();
+        .get_all()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![199.7633445943076],
@@ -159,7 +165,10 @@ fn test_dia_even() {
             })
             .finalize()
             .unwrap()
-            .get_all();
+            .get_all()
+            .into_iter()
+            .map(|x| x.unwrap())
+            .collect();
 
         println!(">>>>> EVEN {:?}", frames.len());
 
@@ -188,7 +197,10 @@ fn test_dia_uniform() {
             })
             .finalize()
             .unwrap()
-            .get_all();
+            .get_all()
+            .into_iter()
+            .map(|x| x.unwrap())
+            .collect();
 
         println!(">>>>> UNIFORM {} > {:?}", i, frames.len());
         for f in frames.iter() {

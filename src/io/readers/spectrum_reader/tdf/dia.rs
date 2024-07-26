@@ -13,7 +13,9 @@ use crate::{
     utils::vec_utils::group_and_sum,
 };
 
-use super::raw_spectra::{RawSpectrum, RawSpectrumReaderTrait};
+use super::raw_spectra::{
+    RawSpectrum, RawSpectrumReaderError, RawSpectrumReaderTrait,
+};
 
 #[derive(Debug)]
 pub struct DIARawSpectrumReader {
@@ -51,7 +53,7 @@ impl DIARawSpectrumReader {
 }
 
 impl RawSpectrumReaderTrait for DIARawSpectrumReader {
-    fn get(&self, index: usize) -> RawSpectrum {
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
         let quad_settings = &self.expanded_quadrupole_settings[index];
 
         let collision_energy = quad_settings.collision_energy[0];
@@ -77,7 +79,7 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
             isolation_mz,
             isolation_width,
         };
-        raw_spectrum
+        Ok(raw_spectrum)
     }
 
     fn len(&self) -> usize {

@@ -18,7 +18,7 @@ use crate::{
     utils::find_extension,
 };
 
-use super::SpectrumReaderTrait;
+use super::{SpectrumReaderError, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct MiniTDFSpectrumReader {
@@ -65,7 +65,7 @@ impl MiniTDFSpectrumReader {
 }
 
 impl SpectrumReaderTrait for MiniTDFSpectrumReader {
-    fn get(&self, index: usize) -> Spectrum {
+    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
         let mut spectrum = Spectrum::default();
         spectrum.index = index;
         let blob = self.blob_reader.get(index).unwrap();
@@ -98,7 +98,7 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
         } else {
             2.0 + (precursor.mz - 700.0) / 100.0
         }; //FIX?
-        spectrum
+        Ok(spectrum)
     }
 
     fn len(&self) -> usize {

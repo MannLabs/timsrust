@@ -17,7 +17,7 @@ use crate::{
     utils::find_extension,
 };
 
-use super::{SpectrumReaderConfig, SpectrumReaderTrait};
+use super::{SpectrumReaderConfig, SpectrumReaderError, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct TDFSpectrumReader {
@@ -61,22 +61,29 @@ impl TDFSpectrumReader {
         Ok(reader)
     }
 
-    pub fn read_single_raw_spectrum(&self, index: usize) -> RawSpectrum {
-        let raw_spectrum = self.raw_spectrum_reader.get(index);
-        raw_spectrum
+    pub fn read_single_raw_spectrum(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, RawSpectrumReaderError> {
+        let raw_spectrum = self
+            .raw_spectrum_reader
+            .get(index)?
             .smooth(self.config.spectrum_processing_params.smoothing_window)
-            .centroid(self.config.spectrum_processing_params.centroiding_window)
+            .centroid(
+                self.config.spectrum_processing_params.centroiding_window,
+            );
+        Ok(raw_spectrum)
     }
 }
 
 impl SpectrumReaderTrait for TDFSpectrumReader {
-    fn get(&self, index: usize) -> Spectrum {
-        let raw_spectrum = self.read_single_raw_spectrum(index);
+    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
+        let raw_spectrum = self.read_single_raw_spectrum(index).unwrap();
         let spectrum = raw_spectrum.finalize(
             self.precursor_reader.get(index).unwrap(),
             &self.mz_reader,
         );
-        spectrum
+        Ok(spectrum)
     }
 
     fn len(&self) -> usize {
@@ -95,7 +102,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
         let hits: Vec<(f64, u32)> = (0..self.precursor_reader.len())
             .into_par_iter()
             .map(|index| {
-                let spectrum = self.read_single_raw_spectrum(index);
+                let spectrum = self.read_single_raw_spectrum(index).unwrap();
                 let precursor = self.precursor_reader.get(index).unwrap();
                 let precursor_mz: f64 = precursor.mz;
                 let mut result: Vec<(f64, u32)> = vec![];
