@@ -41,7 +41,6 @@ impl DIATDFPrecursorReader {
         let quadrupole_settings =
             QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
         let expanded_quadrupole_settings = match splitting_strat {
-            FrameWindowSplittingStrategy::None => quadrupole_settings,
             FrameWindowSplittingStrategy::Quadrupole(x) => {
                 expand_quadrupole_settings(
                     &window_groups,

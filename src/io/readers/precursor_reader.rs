@@ -24,17 +24,12 @@ impl fmt::Debug for PrecursorReader {
 impl PrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
-        config: Option<FrameWindowSplittingStrategy>,
+        config: FrameWindowSplittingStrategy,
     ) -> Result<Self, PrecursorReaderError> {
-        let tmp = path.as_ref().extension().and_then(|e| e.to_str());
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
-            match (tmp, config) {
-                (Some("parquet"), None) => {
-                    Box::new(MiniTDFPrecursorReader::new(path)?)
-                },
-                (Some("tdf"), strat) => {
-                    Box::new(TDFPrecursorReader::new(path, strat)?)
-                },
+            match path.as_ref().extension().and_then(|e| e.to_str()) {
+                Some("parquet") => Box::new(MiniTDFPrecursorReader::new(path)?),
+                Some("tdf") => Box::new(TDFPrecursorReader::new(path, config)?),
                 _ => panic!(),
             };
         let reader = Self { precursor_reader };

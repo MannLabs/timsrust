@@ -31,12 +31,16 @@ impl Default for SpectrumProcessingParams {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub enum FrameWindowSplittingStrategy {
-    #[default]
-    None,
     Quadrupole(QuadWindowExpansionStrategy),
     Window(QuadWindowExpansionStrategy),
+}
+
+impl Default for FrameWindowSplittingStrategy {
+    fn default() -> Self {
+        Self::Quadrupole(QuadWindowExpansionStrategy::Even(1))
+    }
 }
 
 #[derive(Debug, Default, Clone)]

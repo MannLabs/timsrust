@@ -18,7 +18,7 @@ use crate::{
     utils::find_extension,
 };
 
-use super::SpectrumReaderTrait;
+use super::{FrameWindowSplittingStrategy, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct MiniTDFSpectrumReader {
@@ -36,7 +36,10 @@ impl MiniTDFSpectrumReader {
             .ok_or(MiniTDFSpectrumReaderError::FileNotFound(
                 "analysis.tdf".to_string(),
             ))?;
-        let precursor_reader = PrecursorReader::new(&parquet_file_name, None)?;
+        let precursor_reader = PrecursorReader::new(
+            &parquet_file_name,
+            FrameWindowSplittingStrategy::default(),
+        )?;
         let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)?
             .iter()
             .map(|x| x.offset as usize)

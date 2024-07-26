@@ -41,10 +41,8 @@ impl TDFSpectrumReader {
         let metadata = MetadataReader::new(&sql_path)?;
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
         let tdf_sql_reader = SqlReader::open(&sql_path)?;
-        let precursor_reader = PrecursorReader::new(
-            &sql_path,
-            Some(config.frame_splitting_params),
-        )?;
+        let precursor_reader =
+            PrecursorReader::new(&sql_path, config.frame_splitting_params)?;
         let acquisition_type = frame_reader.get_acquisition();
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,

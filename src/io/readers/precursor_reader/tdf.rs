@@ -23,7 +23,7 @@ pub struct TDFPrecursorReader {
 impl TDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
-        splitting_strategy: Option<FrameWindowSplittingStrategy>,
+        splitting_strategy: FrameWindowSplittingStrategy,
     ) -> Result<Self, TDFPrecursorReaderError> {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path)?;
@@ -37,33 +37,17 @@ impl TDFPrecursorReader {
             AcquisitionType::Unknown
         };
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
-            match (acquisition_type, splitting_strategy) {
-                (AcquisitionType::DDAPASEF, None) => {
+            match acquisition_type {
+                AcquisitionType::DDAPASEF => {
                     Box::new(DDATDFPrecursorReader::new(path)?)
                 },
-                (
-                    AcquisitionType::DDAPASEF,
-                    Some(FrameWindowSplittingStrategy::None),
-                ) => {
-                    // Not 100% sure when this happens ...
-                    // By this I mean generating a Some(None)
-                    // ./tests/frame_readers.rs:60:25 generates it.
-                    // JSPP - 2024-Jul-16
-                    Box::new(DDATDFPrecursorReader::new(path)?)
-                },
-                (AcquisitionType::DIAPASEF, Some(splitting_strat)) => {
-                    Box::new(DIATDFPrecursorReader::new(path, splitting_strat)?)
-                },
-                (AcquisitionType::DIAPASEF, None) => {
-                    Box::new(DIATDFPrecursorReader::new(
-                        path,
-                        FrameWindowSplittingStrategy::None,
-                    )?)
-                },
-                (acq_type, acq_config) => {
+                AcquisitionType::DIAPASEF => Box::new(
+                    DIATDFPrecursorReader::new(path, splitting_strategy)?,
+                ),
+                acquisition_type => {
                     return Err(
                         TDFPrecursorReaderError::UnsupportedAcquisition(
-                            format!("{:?} + {:?}", acq_type, acq_config),
+                            format!("{:?}", acquisition_type),
                         ),
                     )
                 },

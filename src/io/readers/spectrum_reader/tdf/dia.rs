@@ -31,7 +31,6 @@ impl DIARawSpectrumReader {
             QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path())?;
         let expanded_quadrupole_settings = match frame_reader.splitting_strategy
         {
-            FrameWindowSplittingStrategy::None => quadrupole_settings,
             FrameWindowSplittingStrategy::Quadrupole(x) => {
                 expand_quadrupole_settings(
                     &window_groups,
