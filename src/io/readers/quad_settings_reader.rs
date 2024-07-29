@@ -86,10 +86,6 @@ impl QuadrupoleSettingsReader {
 
 #[derive(Debug, thiserror::Error)]
 pub enum QuadrupoleSettingsReaderError {
-    // #[error("{0}")]
-    // MiniTDFPrecursorReaderError(#[from] MiniTDFPrecursorReaderError),
-    // #[error("{0}")]
-    // TDFPrecursorReaderError(#[from] TDFPrecursorReaderError),
     #[error("{0}")]
     SqlError(#[from] SqlError),
 }
