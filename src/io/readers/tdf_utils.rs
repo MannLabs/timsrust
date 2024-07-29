@@ -90,8 +90,8 @@ pub fn expand_window_settings(
         let frame = window_group.frame;
         let group = &quadrupole_settings[window as usize - 1];
         let window_group_start =
-            group.scan_starts.iter().min().unwrap().clone();
-        let window_group_end = group.scan_ends.iter().max().unwrap().clone();
+            group.scan_starts.iter().min().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
+        let window_group_end = group.scan_ends.iter().max().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
 
         for (sws, swe) in
             scan_range_subsplit(window_group_start, window_group_end, &strategy)

@@ -108,6 +108,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
         let hits: Vec<(f64, u32)> = (0..self.precursor_reader.len())
             .into_par_iter()
             .map(|index| {
+                // TODO
                 let spectrum = self.read_single_raw_spectrum(index).unwrap();
                 let precursor = self.precursor_reader.get(index).unwrap();
                 let precursor_mz: f64 = precursor.mz;
