@@ -92,7 +92,10 @@ impl SpectrumReaderBuilder {
                     ))
                 },
             };
-        let reader = SpectrumReader { spectrum_reader };
+        let mut reader = SpectrumReader { spectrum_reader };
+        if self.config.spectrum_processing_params.calibrate {
+            reader.calibrate();
+        }
         Ok(reader)
     }
 }
@@ -119,6 +122,7 @@ pub struct SpectrumProcessingParams {
     smoothing_window: u32,
     centroiding_window: u32,
     calibration_tolerance: f64,
+    calibrate: bool,
 }
 
 impl Default for SpectrumProcessingParams {
@@ -127,6 +131,7 @@ impl Default for SpectrumProcessingParams {
             smoothing_window: 1,
             centroiding_window: 1,
             calibration_tolerance: 0.1,
+            calibrate: false,
         }
     }
 }
