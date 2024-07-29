@@ -9,7 +9,7 @@ use dia::{DIATDFPrecursorReader, DIATDFPrecursorReaderError};
 use crate::{
     io::readers::{
         file_readers::sql_reader::{SqlError, SqlReader},
-        FrameWindowSplittingStrategy,
+        quad_settings_reader::FrameWindowSplittingStrategy,
     },
     ms_data::{AcquisitionType, Precursor},
 };

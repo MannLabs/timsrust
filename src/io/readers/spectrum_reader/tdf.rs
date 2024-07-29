@@ -33,8 +33,7 @@ impl TDFSpectrumReader {
         path_name: impl AsRef<Path>,
         config: SpectrumReaderConfig,
     ) -> Result<Self, TDFSpectrumReaderError> {
-        let mut frame_reader: FrameReader = FrameReader::new(&path_name)?;
-        frame_reader.set_splitting_strategy(&config.frame_splitting_params);
+        let frame_reader: FrameReader = FrameReader::new(&path_name)?;
         let sql_path = find_extension(&path_name, "analysis.tdf").ok_or(
             TDFSpectrumReaderError::FileNotFound("analysis.tdf".to_string()),
         )?;
@@ -50,6 +49,7 @@ impl TDFSpectrumReader {
             &tdf_sql_reader,
             frame_reader,
             acquisition_type,
+            config.frame_splitting_params,
         )?;
         let reader = Self {
             path: path_name.as_ref().to_path_buf(),

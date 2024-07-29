@@ -2,7 +2,10 @@ use core::fmt;
 
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
-    io::readers::{file_readers::sql_reader::SqlReader, FrameReader},
+    io::readers::{
+        file_readers::sql_reader::SqlReader,
+        quad_settings_reader::FrameWindowSplittingStrategy, FrameReader,
+    },
     ms_data::{AcquisitionType, Precursor, Spectrum},
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
 };
@@ -94,15 +97,20 @@ impl RawSpectrumReader {
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
         acquisition_type: AcquisitionType,
+        splitting_strategy: FrameWindowSplittingStrategy,
     ) -> Result<Self, RawSpectrumReaderError> {
         let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
             match acquisition_type {
                 AcquisitionType::DDAPASEF => Box::new(
                     DDARawSpectrumReader::new(tdf_sql_reader, frame_reader)?,
                 ),
-                AcquisitionType::DIAPASEF => Box::new(
-                    DIARawSpectrumReader::new(tdf_sql_reader, frame_reader)?,
-                ),
+                AcquisitionType::DIAPASEF => {
+                    Box::new(DIARawSpectrumReader::new(
+                        tdf_sql_reader,
+                        frame_reader,
+                        splitting_strategy,
+                    )?)
+                },
                 acquisition_type => {
                     return Err(RawSpectrumReaderError::UnsupportedAcquisition(
                         format!("{:?}", acquisition_type),

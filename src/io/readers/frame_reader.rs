@@ -19,8 +19,7 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    FrameWindowSplittingStrategy, QuadrupoleSettingsReader,
-    QuadrupoleSettingsReaderError,
+    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
@@ -31,7 +30,6 @@ pub struct FrameReader {
     acquisition: AcquisitionType,
     window_groups: Vec<u8>,
     quadrupole_settings: Vec<Arc<QuadrupoleSettings>>,
-    pub splitting_strategy: FrameWindowSplittingStrategy,
 }
 
 impl FrameReader {
@@ -76,16 +74,8 @@ impl FrameReader {
                 .into_iter()
                 .map(|x| Arc::new(x))
                 .collect(),
-            splitting_strategy: FrameWindowSplittingStrategy::default(),
         };
         Ok(reader)
-    }
-
-    pub fn set_splitting_strategy(
-        &mut self,
-        config: &FrameWindowSplittingStrategy,
-    ) {
-        self.splitting_strategy = *config;
     }
 
     pub fn parallel_filter<'a, F: Fn(&SqlFrame) -> bool + Sync + Send + 'a>(

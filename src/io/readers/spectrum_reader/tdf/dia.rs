@@ -1,12 +1,8 @@
-use crate::io::readers::tdf_utils::{
-    expand_quadrupole_settings, expand_window_settings,
-};
-use crate::io::readers::{FrameReaderError, FrameWindowSplittingStrategy};
+use crate::io::readers::quad_settings_reader::FrameWindowSplittingStrategy;
+use crate::io::readers::FrameReaderError;
 use crate::{
     io::readers::{
-        file_readers::sql_reader::{
-            frame_groups::SqlWindowGroup, ReadableSqlTable, SqlError, SqlReader,
-        },
+        file_readers::sql_reader::{SqlError, SqlReader},
         FrameReader, QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
     },
     ms_data::QuadrupoleSettings,
@@ -27,23 +23,13 @@ impl DIARawSpectrumReader {
     pub fn new(
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
+        splitting_strategy: FrameWindowSplittingStrategy,
     ) -> Result<Self, DIARawSpectrumReaderError> {
-        let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
-        let quadrupole_settings =
-            QuadrupoleSettingsReader::new(&tdf_sql_reader.get_path())?;
-        let expanded_quadrupole_settings = match frame_reader.splitting_strategy
-        {
-            FrameWindowSplittingStrategy::Quadrupole(x) => {
-                expand_quadrupole_settings(
-                    &window_groups,
-                    &quadrupole_settings,
-                    &x,
-                )
-            },
-            FrameWindowSplittingStrategy::Window(x) => {
-                expand_window_settings(&window_groups, &quadrupole_settings, &x)
-            },
-        };
+        let expanded_quadrupole_settings =
+            QuadrupoleSettingsReader::from_splitting(
+                tdf_sql_reader.get_path(),
+                splitting_strategy,
+            )?;
         let reader = Self {
             expanded_quadrupole_settings,
             frame_reader,

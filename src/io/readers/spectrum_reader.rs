@@ -7,8 +7,9 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
 use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 
-use crate::io::readers::tdf_utils::QuadWindowExpansionStrategy;
 use crate::ms_data::Spectrum;
+
+use super::FrameWindowSplittingStrategy;
 
 pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
@@ -133,18 +134,6 @@ impl Default for SpectrumProcessingParams {
             calibration_tolerance: 0.1,
             calibrate: false,
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum FrameWindowSplittingStrategy {
-    Quadrupole(QuadWindowExpansionStrategy),
-    Window(QuadWindowExpansionStrategy),
-}
-
-impl Default for FrameWindowSplittingStrategy {
-    fn default() -> Self {
-        Self::Quadrupole(QuadWindowExpansionStrategy::Even(1))
     }
 }
 

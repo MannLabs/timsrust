@@ -4,11 +4,9 @@ mod metadata_reader;
 mod precursor_reader;
 mod quad_settings_reader;
 mod spectrum_reader;
-mod tdf_utils;
 
 pub use frame_reader::*;
 pub use metadata_reader::*;
 pub use precursor_reader::*;
 pub use quad_settings_reader::*;
 pub use spectrum_reader::*;
-pub use tdf_utils::QuadWindowExpansionStrategy;
