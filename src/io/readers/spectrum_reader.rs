@@ -42,13 +42,20 @@ impl SpectrumReader {
         self.spectrum_reader.len()
     }
 
-    pub fn get_all(&self) -> Result<Vec<Spectrum>, SpectrumReaderError> {
-        let mut spectra: Vec<Spectrum> = (0..self.len())
+    pub fn get_all(&self) -> Vec<Result<Spectrum, SpectrumReaderError>> {
+        let mut spectra: Vec<Result<Spectrum, SpectrumReaderError>> = (0..self
+            .len())
             .into_par_iter()
             .map(|index| self.get(index))
-            .collect::<Result<Vec<Spectrum>, _>>()?;
-        spectra.sort_by_key(|x| x.precursor.unwrap_or_default().index);
-        Ok(spectra)
+            .collect();
+        spectra.sort_by_key(|x| match x {
+            Ok(spectrum) => match spectrum.precursor {
+                Some(precursor) => precursor.index,
+                None => spectrum.index,
+            },
+            Err(_) => 0,
+        });
+        spectra
     }
 
     pub fn calibrate(&mut self) {
