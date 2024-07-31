@@ -22,7 +22,12 @@ impl Scan2ImConverter {
 
 impl super::ConvertableDomain for Scan2ImConverter {
     fn convert<T: Into<f64> + Copy>(&self, value: T) -> f64 {
-        let scan_index_f64: f64 = value.into();
-        self.scan_intercept + self.scan_slope * scan_index_f64
+        let scan_index: f64 = value.into();
+        self.scan_intercept + self.scan_slope * scan_index
+    }
+
+    fn invert<T: Into<f64> + Copy>(&self, value: T) -> f64 {
+        let im_value: f64 = value.into();
+        (im_value - self.scan_intercept) / self.scan_slope
     }
 }

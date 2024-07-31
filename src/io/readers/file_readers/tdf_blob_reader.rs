@@ -75,7 +75,7 @@ impl IndexedTdfBlobReader {
     pub fn new(
         file_name: impl AsRef<Path>,
         binary_offsets: Vec<usize>,
-    ) -> Result<Self, TdfBlobReaderError> {
+    ) -> Result<Self, IndexedTdfBlobReaderError> {
         let blob_reader = TdfBlobReader::new(file_name)?;
         let reader = Self {
             binary_offsets,

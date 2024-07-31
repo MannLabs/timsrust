@@ -8,3 +8,9 @@ pub struct QuadrupoleSettings {
     pub isolation_width: Vec<f64>,
     pub collision_energy: Vec<f64>,
 }
+
+impl QuadrupoleSettings {
+    pub fn len(&self) -> usize {
+        self.isolation_mz.len()
+    }
+}

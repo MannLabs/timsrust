@@ -2,12 +2,18 @@ use core::fmt;
 
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
-    io::readers::{file_readers::sql_reader::SqlReader, FrameReader},
+    io::readers::{
+        file_readers::sql_reader::SqlReader,
+        quad_settings_reader::FrameWindowSplittingStrategy, FrameReader,
+    },
     ms_data::{AcquisitionType, Precursor, Spectrum},
     utils::vec_utils::{filter_with_mask, find_sparse_local_maxima_mask},
 };
 
-use super::{dda::DDARawSpectrumReader, dia::DIARawSpectrumReader};
+use super::{
+    dda::{DDARawSpectrumReader, DDARawSpectrumReaderError},
+    dia::{DIARawSpectrumReader, DIARawSpectrumReaderError},
+};
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub(crate) struct RawSpectrum {
@@ -91,27 +97,55 @@ impl RawSpectrumReader {
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
         acquisition_type: AcquisitionType,
-    ) -> Self {
+        splitting_strategy: FrameWindowSplittingStrategy,
+    ) -> Result<Self, RawSpectrumReaderError> {
         let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
             match acquisition_type {
                 AcquisitionType::DDAPASEF => Box::new(
-                    DDARawSpectrumReader::new(tdf_sql_reader, frame_reader),
+                    DDARawSpectrumReader::new(tdf_sql_reader, frame_reader)?,
                 ),
-                AcquisitionType::DIAPASEF => Box::new(
-                    DIARawSpectrumReader::new(tdf_sql_reader, frame_reader),
-                ),
-                _ => panic!(),
+                AcquisitionType::DIAPASEF => {
+                    Box::new(DIARawSpectrumReader::new(
+                        tdf_sql_reader,
+                        frame_reader,
+                        splitting_strategy,
+                    )?)
+                },
+                acquisition_type => {
+                    return Err(RawSpectrumReaderError::UnsupportedAcquisition(
+                        format!("{:?}", acquisition_type),
+                    ))
+                },
             };
-        Self {
+        let reader = Self {
             raw_spectrum_reader,
-        }
+        };
+        Ok(reader)
     }
 
-    pub fn get(&self, index: usize) -> RawSpectrum {
+    pub fn get(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, RawSpectrumReaderError> {
         self.raw_spectrum_reader.get(index)
+    }
+
+    pub fn len(&self) -> usize {
+        self.raw_spectrum_reader.len()
     }
 }
 
 pub trait RawSpectrumReaderTrait: Sync {
-    fn get(&self, index: usize) -> RawSpectrum;
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError>;
+    fn len(&self) -> usize;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RawSpectrumReaderError {
+    #[error("{0}")]
+    DDARawSpectrumReaderError(#[from] DDARawSpectrumReaderError),
+    #[error("{0}")]
+    DIARawSpectrumReaderError(#[from] DIARawSpectrumReaderError),
+    #[error("Invalid acquistion type for Raw spectrum reader: {0}")]
+    UnsupportedAcquisition(String),
 }

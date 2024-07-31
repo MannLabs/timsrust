@@ -1,23 +1,19 @@
-#[derive(thiserror::Error, Debug)]
-pub enum FileFormatError {
-    #[error("DirectoryDoesNotExist")]
-    DirectoryDoesNotExist,
-    #[error("NoParentWithBrukerExtension")]
-    NoParentWithBrukerExtension,
-    #[error("BinaryFilesAreMissing")]
-    BinaryFilesAreMissing,
-    #[error("MetadataFilesAreMissing")]
-    MetadataFilesAreMissing,
-}
+use crate::io::readers::{
+    FrameReaderError, MetadataReaderError, PrecursorReaderError,
+    QuadrupoleSettingsReaderError, SpectrumReaderError,
+};
 
 /// An error that is produced by timsrust (uses [thiserror]).
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// An error to indicate a path is not a Bruker File Format.
-    #[error("FileFormatError: {0}")]
-    FileFormatError(#[from] FileFormatError),
-    // #[error("SqlError: {0}")]
-    // SqlError(#[from] SqlError),
-    // #[error("BinError: {0}")]
-    // BinError(#[from] TdfBlobError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
+    #[error("{0}")]
+    SpectrumReaderError(#[from] SpectrumReaderError),
+    #[error("{0}")]
+    MetadataReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    PrecursorReaderError(#[from] PrecursorReaderError),
+    #[error("{0}")]
+    QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
 }

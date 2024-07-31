@@ -1,6 +1,9 @@
 use std::path::Path;
 use timsrust::{
-    io::readers::SpectrumReader,
+    io::readers::{
+        FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
+        SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig,
+    },
     ms_data::{Precursor, Spectrum},
 };
 
@@ -18,7 +21,11 @@ fn minitdf_reader() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> = SpectrumReader::new(file_path).get_all();
+    let spectra: Vec<Result<Spectrum, _>> = SpectrumReader::build()
+        .with_path(file_path)
+        .finalize()
+        .unwrap()
+        .get_all();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![100.0, 200.002, 300.03, 400.4],
@@ -55,8 +62,8 @@ fn minitdf_reader() {
             isolation_width: 3.0,
         },
     ];
-    for i in 0..spectra.len() {
-        assert_eq!(spectra[i], expected[i]);
+    for (i, spectrum) in spectra.into_iter().enumerate() {
+        assert_eq!(spectrum.unwrap(), expected[i]);
     }
 }
 
@@ -68,7 +75,11 @@ fn tdf_reader_dda() {
         .to_str()
         .unwrap()
         .to_string();
-    let spectra: Vec<Spectrum> = SpectrumReader::new(file_path).get_all();
+    let spectra: Vec<Result<Spectrum, _>> = SpectrumReader::build()
+        .with_path(file_path)
+        .finalize()
+        .unwrap()
+        .get_all();
     let expected: Vec<Spectrum> = vec![
         Spectrum {
             mz_values: vec![199.7633445943076],
@@ -122,7 +133,64 @@ fn tdf_reader_dda() {
             isolation_width: 2.0,
         },
     ];
-    for i in 0..spectra.len() {
-        assert_eq!(spectra[i], expected[i]);
+    for (i, spectrum) in spectra.into_iter().enumerate() {
+        assert_eq!(spectrum.unwrap(), expected[i]);
+    }
+}
+
+#[test]
+fn test_dia_even() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+    for i in 1..3 {
+        let spectra = SpectrumReader::build()
+            .with_path(&file_path)
+            .with_config(SpectrumReaderConfig {
+                frame_splitting_params:
+                    FrameWindowSplittingStrategy::Quadrupole(
+                        QuadWindowExpansionStrategy::Even(i),
+                    ),
+                spectrum_processing_params: SpectrumProcessingParams::default(),
+            })
+            .finalize()
+            .unwrap()
+            .get_all();
+        // 4 frames, 2 windows in each, i splits/window
+        assert_eq!(spectra.len(), 4 * 2 * i);
+    }
+}
+
+#[test]
+fn test_dia_uniform() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+    for i in [100, 200, 300] {
+        let spectra = SpectrumReader::build()
+            .with_path(&file_path)
+            .with_config(SpectrumReaderConfig {
+                frame_splitting_params: FrameWindowSplittingStrategy::Window(
+                    QuadWindowExpansionStrategy::Uniform((i, i)),
+                ),
+                spectrum_processing_params: SpectrumProcessingParams::default(),
+            })
+            .finalize()
+            .unwrap()
+            .get_all();
+        for f in spectra.iter() {
+            println!("{:?}", f.as_ref().unwrap().precursor);
+        }
+        // Not all frames have scan windows from 0 to 709 ... so ... I need to think
+        // on how to express this in the test
+        // assert_eq!(frames.len(), 4 * ((709 / i) + 1));
+        assert!(spectra.len() > (709 / i));
+        assert!(spectra.len() < 3 * ((709 / i) + 1));
     }
 }

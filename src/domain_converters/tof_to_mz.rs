@@ -36,7 +36,11 @@ impl Tof2MzConverter {
 
 impl super::ConvertableDomain for Tof2MzConverter {
     fn convert<T: Into<f64> + Copy>(&self, value: T) -> f64 {
-        let tof_index_f64: f64 = value.into();
-        (self.tof_intercept + self.tof_slope * tof_index_f64).powi(2)
+        let tof_index: f64 = value.into();
+        (self.tof_intercept + self.tof_slope * tof_index).powi(2)
+    }
+    fn invert<T: Into<f64> + Copy>(&self, value: T) -> f64 {
+        let mz_value: f64 = value.into();
+        (mz_value.sqrt() - self.tof_intercept) / self.tof_slope
     }
 }

@@ -1,14 +1,17 @@
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
-            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlReader,
+            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlError,
+            SqlReader,
         },
-        FrameReader,
+        FrameReader, FrameReaderError,
     },
     utils::vec_utils::{argsort, group_and_sum},
 };
 
-use super::raw_spectra::{RawSpectrum, RawSpectrumReaderTrait};
+use super::raw_spectra::{
+    RawSpectrum, RawSpectrumReaderError, RawSpectrumReaderTrait,
+};
 
 #[derive(Debug)]
 pub struct DDARawSpectrumReader {
@@ -19,13 +22,15 @@ pub struct DDARawSpectrumReader {
 }
 
 impl DDARawSpectrumReader {
-    pub fn new(tdf_sql_reader: &SqlReader, frame_reader: FrameReader) -> Self {
-        let pasef_frames =
-            SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader).unwrap();
+    pub fn new(
+        tdf_sql_reader: &SqlReader,
+        frame_reader: FrameReader,
+    ) -> Result<Self, DDARawSpectrumReaderError> {
+        let pasef_frames = SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader)?;
         let pasef_precursors =
             &pasef_frames.iter().map(|x| x.precursor).collect();
         let order: Vec<usize> = argsort(&pasef_precursors);
-        let max_precursor = pasef_precursors.iter().max().unwrap();
+        let max_precursor = pasef_precursors.iter().max().unwrap(); // SqlReader cannot return empty vecs, so always succeeds
         let mut offsets: Vec<usize> = Vec::with_capacity(max_precursor + 1);
         offsets.push(0);
         for (offset, &index) in order.iter().enumerate().take(order.len() - 1) {
@@ -35,12 +40,13 @@ impl DDARawSpectrumReader {
             }
         }
         offsets.push(order.len());
-        Self {
+        let reader = Self {
             order,
             offsets,
             pasef_frames,
             frame_reader,
-        }
+        };
+        Ok(reader)
     }
 
     pub fn iterate_over_pasef_frames(
@@ -53,10 +59,11 @@ impl DDARawSpectrumReader {
             .iter()
             .map(|&x| &self.pasef_frames[x])
     }
-}
 
-impl RawSpectrumReaderTrait for DDARawSpectrumReader {
-    fn get(&self, index: usize) -> RawSpectrum {
+    fn _get(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, DDARawSpectrumReaderError> {
         let mut collision_energy = 0.0;
         let mut isolation_mz = 0.0;
         let mut isolation_width = 0.0;
@@ -67,7 +74,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
             isolation_mz = pasef_frame.isolation_mz;
             isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame - 1;
-            let frame = self.frame_reader.get(frame_index).unwrap();
+            let frame = self.frame_reader.get(frame_index)?;
             if frame.intensities.len() == 0 {
                 continue;
             }
@@ -94,6 +101,24 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
             isolation_mz,
             isolation_width,
         };
-        raw_spectrum
+        Ok(raw_spectrum)
     }
+}
+
+impl RawSpectrumReaderTrait for DDARawSpectrumReader {
+    fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError> {
+        Ok(self._get(index)?)
+    }
+
+    fn len(&self) -> usize {
+        self.offsets.len() - 1
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DDARawSpectrumReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
 }

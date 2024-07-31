@@ -104,4 +104,48 @@ fn tdf_reader_frames2() {
     }
 }
 
-// TODO test for DIA
+#[test]
+fn tdf_reader_frames_dia() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+    let frames: Vec<Frame> = FrameReader::new(&file_path)
+        .unwrap()
+        .get_all_ms2()
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect();
+
+    assert_eq!(frames.len(), 4);
+    for i in 0..frames.len() {
+        assert_eq!(frames[i].scan_offsets.len(), 710);
+        assert_eq!(frames[i].scan_offsets[0], 0);
+        assert_eq!(
+            frames[i].scan_offsets.last().unwrap(),
+            &frames[i].intensities.len()
+        );
+        assert_eq!(frames[i].tof_indices.len(), frames[i].intensities.len());
+    }
+    assert_eq!(&frames[0].tof_indices[0], &251695u32);
+    assert_eq!(&frames[0].intensities[0], &503392u32);
+    assert_eq!(&frames[0].tof_indices.len(), &754376);
+    assert_eq!(&frames[0].intensities.len(), &754376);
+
+    assert_eq!(&frames[1].tof_indices[0], &1006071u32);
+    assert_eq!(&frames[1].intensities[0], &2012144u32);
+    assert_eq!(&frames[1].tof_indices.len(), &1257057);
+    assert_eq!(&frames[1].intensities.len(), &1257057);
+
+    assert_eq!(&frames[2].tof_indices[0], &4022866u32);
+    assert_eq!(&frames[2].intensities[0], &8045734u32);
+    assert_eq!(&frames[2].tof_indices.len(), &2262419);
+    assert_eq!(&frames[2].intensities.len(), &2262419);
+
+    assert_eq!(&frames[3].tof_indices[0], &6285285u32);
+    assert_eq!(&frames[3].intensities[0], &12570572u32);
+    assert_eq!(&frames[3].tof_indices.len(), &2765100);
+    assert_eq!(&frames[3].intensities.len(), &2765100);
+}

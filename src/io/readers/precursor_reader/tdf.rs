@@ -7,7 +7,10 @@ use dda::{DDATDFPrecursorReader, DDATDFPrecursorReaderError};
 use dia::{DIATDFPrecursorReader, DIATDFPrecursorReaderError};
 
 use crate::{
-    io::readers::file_readers::sql_reader::{SqlError, SqlReader},
+    io::readers::{
+        file_readers::sql_reader::{SqlError, SqlReader},
+        quad_settings_reader::FrameWindowSplittingStrategy,
+    },
     ms_data::{AcquisitionType, Precursor},
 };
 
@@ -20,6 +23,7 @@ pub struct TDFPrecursorReader {
 impl TDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
+        splitting_strategy: FrameWindowSplittingStrategy,
     ) -> Result<Self, TDFPrecursorReaderError> {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path)?;
@@ -37,13 +41,15 @@ impl TDFPrecursorReader {
                 AcquisitionType::DDAPASEF => {
                     Box::new(DDATDFPrecursorReader::new(path)?)
                 },
-                AcquisitionType::DIAPASEF => {
-                    Box::new(DIATDFPrecursorReader::new(path)?)
-                },
+                AcquisitionType::DIAPASEF => Box::new(
+                    DIATDFPrecursorReader::new(path, splitting_strategy)?,
+                ),
                 acquisition_type => {
-                    return Err(TDFPrecursorReaderError::UnknownPrecursorType(
-                        format!("{:?}", acquisition_type),
-                    ))
+                    return Err(
+                        TDFPrecursorReaderError::UnsupportedAcquisition(
+                            format!("{:?}", acquisition_type),
+                        ),
+                    )
                 },
             };
         let reader = Self { precursor_reader };
@@ -70,5 +76,5 @@ pub enum TDFPrecursorReaderError {
     #[error("{0}")]
     DIATDFPrecursorReaderError(#[from] DIATDFPrecursorReaderError),
     #[error("Invalid acquistion type for precursor reader: {0}")]
-    UnknownPrecursorType(String),
+    UnsupportedAcquisition(String),
 }
