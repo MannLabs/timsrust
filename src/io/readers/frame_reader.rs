@@ -26,10 +26,9 @@ use super::{
 pub struct FrameReader {
     path: PathBuf,
     tdf_bin_reader: TdfBlobReader,
-    sql_frames: Vec<SqlFrame>,
+    frames: Vec<Frame>,
     acquisition: AcquisitionType,
-    window_groups: Vec<u8>,
-    quadrupole_settings: Vec<Arc<QuadrupoleSettings>>,
+    offsets: Vec<usize>,
 }
 
 impl FrameReader {
@@ -50,6 +49,7 @@ impl FrameReader {
         } else {
             AcquisitionType::Unknown
         };
+        // TODO should be refactored out to quadrupole reader
         let mut window_groups = vec![0; sql_frames.len()];
         let quadrupole_settings;
         if acquisition == AcquisitionType::DIAPASEF {
@@ -64,36 +64,48 @@ impl FrameReader {
         } else {
             quadrupole_settings = vec![];
         }
+        let quadrupole_settings = quadrupole_settings
+            .into_iter()
+            .map(|x| Arc::new(x))
+            .collect();
+        let frames = (0..sql_frames.len())
+            .into_par_iter()
+            .map(|index| {
+                get_frame_without_data(
+                    index,
+                    &sql_frames,
+                    acquisition,
+                    &window_groups,
+                    &quadrupole_settings,
+                )
+            })
+            .collect();
+        let offsets = sql_frames.iter().map(|x| x.binary_offset).collect();
         let reader = Self {
             path: path.as_ref().to_path_buf(),
             tdf_bin_reader,
-            sql_frames,
+            frames,
             acquisition,
-            window_groups,
-            quadrupole_settings: quadrupole_settings
-                .into_iter()
-                .map(|x| Arc::new(x))
-                .collect(),
+            offsets,
         };
         Ok(reader)
     }
 
-    pub fn parallel_filter<'a, F: Fn(&SqlFrame) -> bool + Sync + Send + 'a>(
+    pub fn parallel_filter<'a, F: Fn(&Frame) -> bool + Sync + Send + 'a>(
         &'a self,
         predicate: F,
     ) -> impl ParallelIterator<Item = Result<Frame, FrameReaderError>> + 'a
     {
         (0..self.len())
             .into_par_iter()
-            .filter(move |x| predicate(&self.sql_frames[*x]))
+            .filter(move |x| predicate(&self.frames[*x]))
             .map(move |x| self.get(x))
     }
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
-        let mut frame: Frame = Frame::default();
-        let sql_frame = &self.sql_frames[index];
-        frame.index = sql_frame.id;
-        let blob = self.tdf_bin_reader.get(sql_frame.binary_offset)?;
+        let mut frame = self.frames[index].clone();
+        let offset = self.offsets[index];
+        let blob = self.tdf_bin_reader.get(offset)?;
         let scan_count: usize =
             blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
@@ -105,18 +117,6 @@ impl FrameReader {
             &blob,
             &frame.scan_offsets,
         )?;
-        frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
-        frame.rt = sql_frame.rt;
-        frame.acquisition_type = self.acquisition;
-        frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
-        if (self.acquisition == AcquisitionType::DIAPASEF)
-            & (frame.ms_level == MSLevel::MS2)
-        {
-            let window_group = self.window_groups[index];
-            frame.window_group = window_group;
-            frame.quadrupole_settings =
-                self.quadrupole_settings[window_group as usize - 1].clone();
-        }
         Ok(frame)
     }
 
@@ -125,11 +125,13 @@ impl FrameReader {
     }
 
     pub fn get_all_ms1(&self) -> Vec<Result<Frame, FrameReaderError>> {
-        self.parallel_filter(|x| x.msms_type == 0).collect()
+        self.parallel_filter(|x| x.ms_level == MSLevel::MS1)
+            .collect()
     }
 
     pub fn get_all_ms2(&self) -> Vec<Result<Frame, FrameReaderError>> {
-        self.parallel_filter(|x| x.msms_type != 0).collect()
+        self.parallel_filter(|x| x.ms_level == MSLevel::MS2)
+            .collect()
     }
 
     pub fn get_acquisition(&self) -> AcquisitionType {
@@ -137,7 +139,7 @@ impl FrameReader {
     }
 
     pub fn len(&self) -> usize {
-        self.sql_frames.len()
+        self.frames.len()
     }
 
     pub fn get_path(&self) -> PathBuf {
@@ -197,6 +199,32 @@ fn read_tof_indices(
         }
     }
     Ok(tof_indices)
+}
+
+fn get_frame_without_data(
+    index: usize,
+    sql_frames: &Vec<SqlFrame>,
+    acquisition: AcquisitionType,
+    window_groups: &Vec<u8>,
+    quadrupole_settings: &Vec<Arc<QuadrupoleSettings>>,
+) -> Frame {
+    let mut frame: Frame = Frame::default();
+    let sql_frame = &sql_frames[index];
+    frame.index = sql_frame.id;
+    frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
+    frame.rt = sql_frame.rt;
+    frame.acquisition_type = acquisition;
+    frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
+    if (acquisition == AcquisitionType::DIAPASEF)
+        & (frame.ms_level == MSLevel::MS2)
+    {
+        // TODO should be refactored out to quadrupole reader
+        let window_group = window_groups[index];
+        frame.window_group = window_group;
+        frame.quadrupole_settings =
+            quadrupole_settings[window_group as usize - 1].clone();
+    }
+    frame
 }
 
 #[derive(Debug, thiserror::Error)]
