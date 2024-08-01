@@ -1,6 +1,10 @@
 use std::path::Path;
 
-use crate::{ms_data::QuadrupoleSettings, utils::vec_utils::argsort};
+use crate::{
+    domain_converters::{ConvertableDomain, Scan2ImConverter},
+    ms_data::QuadrupoleSettings,
+    utils::vec_utils::argsort,
+};
 
 use super::file_readers::sql_reader::{
     frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
@@ -48,11 +52,11 @@ impl QuadrupoleSettingsReader {
     }
 
     pub fn from_splitting(
-        path: impl AsRef<Path>,
+        tdf_sql_reader: &SqlReader,
         splitting_strat: FrameWindowSplittingStrategy,
+        scan_converter: Option<&Scan2ImConverter>,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let sql_path = tdf_sql_reader.get_path();
         let quadrupole_settings = Self::from_sql_settings(&tdf_sql_reader)?;
         let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let expanded_quadrupole_settings = match splitting_strat {
@@ -61,11 +65,15 @@ impl QuadrupoleSettingsReader {
                     &window_groups,
                     &quadrupole_settings,
                     &x,
+                    scan_converter,
                 )
             },
-            FrameWindowSplittingStrategy::Window(x) => {
-                expand_window_settings(&window_groups, &quadrupole_settings, &x)
-            },
+            FrameWindowSplittingStrategy::Window(x) => expand_window_settings(
+                &window_groups,
+                &quadrupole_settings,
+                &x,
+                scan_converter,
+            ),
         };
         Ok(expanded_quadrupole_settings)
     }
@@ -120,7 +128,7 @@ pub enum QuadrupoleSettingsReaderError {
     SqlError(#[from] SqlError),
 }
 
-type SpanStep = (usize, usize);
+type SpanStep = (f64, f64);
 
 /// Strategy for expanding quadrupole settings
 ///
@@ -136,9 +144,9 @@ type SpanStep = (usize, usize);
 /// subwindows; e.g. if `usize` is 2, the window will be split into 2 subwindows
 /// of equal width.
 /// * `Uniform(SpanStep)` - Split the quadrupole settings into subwindows of
-/// width `SpanStep.0` and step `SpanStep.1`; e.g. if `SpanStep` is (100, 50),
-/// the window will be split into subwindows of width 100 and step 50 between their
-/// scan start and end.
+/// width `SpanStep.0` and step `SpanStep.1`; e.g. if `SpanStep` is (0.05, 0.02),
+/// the window will be split into subwindows of width 0.05 and step 0.02 between their
+/// in the mobility dimension.
 ///
 #[derive(Debug, Copy, Clone)]
 pub enum QuadWindowExpansionStrategy {
@@ -163,8 +171,9 @@ fn scan_range_subsplit(
     start: usize,
     end: usize,
     strategy: &QuadWindowExpansionStrategy,
+    converter: Option<&Scan2ImConverter>,
 ) -> Vec<(usize, usize)> {
-    let out = match strategy {
+    let out: Vec<(usize, usize)> = match strategy {
         QuadWindowExpansionStrategy::None => {
             vec![(start, end)]
         },
@@ -182,16 +191,29 @@ fn scan_range_subsplit(
             out
         },
         QuadWindowExpansionStrategy::Uniform((span, step)) => {
-            let mut curr_start = start.clone();
-            let mut curr_end = start + span;
+            let converter = converter
+                .as_ref()
+                .expect("Uniform expansion requires a scan to IM converter");
+
+            // Since scan start < scan end but low scans are high IMs, we need to
+            // subtract instead of adding.
+            let mut curr_start_offset = start.clone();
+            let mut curr_start_im = converter.convert(curr_start_offset as f64);
+
+            let mut curr_end_im = curr_start_im - span;
+            let mut curr_end_offset = converter.invert(curr_end_im) as usize;
             let mut out = Vec::new();
-            while curr_end < end {
-                out.push((curr_start, curr_end));
-                curr_start += step;
-                curr_end += step;
+            while curr_end_offset < end {
+                out.push((curr_start_offset, curr_end_offset));
+
+                curr_start_im = curr_start_im - step;
+                curr_start_offset = converter.invert(curr_start_im) as usize;
+
+                curr_end_im = curr_start_im - span;
+                curr_end_offset = converter.invert(curr_end_im) as usize;
             }
-            if curr_start < end {
-                out.push((curr_start, end));
+            if curr_start_offset < end {
+                out.push((curr_start_offset, end));
             }
             out
         },
@@ -214,6 +236,7 @@ fn expand_window_settings(
     window_groups: &[SqlWindowGroup],
     quadrupole_settings: &[QuadrupoleSettings],
     strategy: &QuadWindowExpansionStrategy,
+    converter: Option<&Scan2ImConverter>,
 ) -> Vec<QuadrupoleSettings> {
     let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
     for window_group in window_groups {
@@ -223,9 +246,12 @@ fn expand_window_settings(
         let window_group_start =
             group.scan_starts.iter().min().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
         let window_group_end = group.scan_ends.iter().max().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
-        for (sws, swe) in
-            scan_range_subsplit(window_group_start, window_group_end, &strategy)
-        {
+        for (sws, swe) in scan_range_subsplit(
+            window_group_start,
+            window_group_end,
+            &strategy,
+            converter,
+        ) {
             let mut mz_min = std::f64::MAX;
             let mut mz_max = std::f64::MIN;
             let mut nce_sum = 0.0;
@@ -262,6 +288,7 @@ fn expand_quadrupole_settings(
     window_groups: &[SqlWindowGroup],
     quadrupole_settings: &[QuadrupoleSettings],
     strategy: &QuadWindowExpansionStrategy,
+    converter: Option<&Scan2ImConverter>,
 ) -> Vec<QuadrupoleSettings> {
     let mut expanded_quadrupole_settings: Vec<QuadrupoleSettings> = vec![];
     for window_group in window_groups {
@@ -275,6 +302,7 @@ fn expand_quadrupole_settings(
                 subwindow_scan_start,
                 subwindow_scan_end,
                 &strategy,
+                converter,
             ) {
                 let sub_quad_settings = QuadrupoleSettings {
                     index: frame,

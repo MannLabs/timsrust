@@ -50,6 +50,7 @@ impl TDFSpectrumReader {
             frame_reader,
             acquisition_type,
             config.frame_splitting_params,
+            Some(&metadata.im_converter),
         )?;
         let reader = Self {
             path: path_name.as_ref().to_path_buf(),
