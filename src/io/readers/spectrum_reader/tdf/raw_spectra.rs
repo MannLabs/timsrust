@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::{
-    domain_converters::{ConvertableDomain, Tof2MzConverter},
+    domain_converters::{ConvertableDomain, Scan2ImConverter, Tof2MzConverter},
     io::readers::{
         file_readers::sql_reader::SqlReader,
         quad_settings_reader::FrameWindowSplittingStrategy, FrameReader,
@@ -98,6 +98,7 @@ impl RawSpectrumReader {
         frame_reader: FrameReader,
         acquisition_type: AcquisitionType,
         splitting_strategy: FrameWindowSplittingStrategy,
+        converter: Option<&Scan2ImConverter>,
     ) -> Result<Self, RawSpectrumReaderError> {
         let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
             match acquisition_type {
@@ -109,6 +110,7 @@ impl RawSpectrumReader {
                         tdf_sql_reader,
                         frame_reader,
                         splitting_strategy,
+                        converter,
                     )?)
                 },
                 acquisition_type => {
