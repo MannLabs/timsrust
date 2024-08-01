@@ -14,7 +14,6 @@ keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-byteorder = "1.4.3"
 zstd = "0.13.2"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 rayon = "1.10.0"
