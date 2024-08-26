@@ -29,6 +29,7 @@ pub struct FrameReader {
     frames: Vec<Frame>,
     acquisition: AcquisitionType,
     offsets: Vec<usize>,
+    dia_windows: Option<Vec<Arc<QuadrupoleSettings>>>,
 }
 
 impl FrameReader {
@@ -87,6 +88,10 @@ impl FrameReader {
             frames,
             acquisition,
             offsets,
+            dia_windows: match acquisition {
+                AcquisitionType::DIAPASEF => Some(quadrupole_settings),
+                _ => None,
+            },
         };
         Ok(reader)
     }
@@ -100,6 +105,10 @@ impl FrameReader {
             .into_par_iter()
             .filter(move |x| predicate(&self.frames[*x]))
             .map(move |x| self.get(x))
+    }
+
+    pub fn get_dia_windows(&self) -> Option<Vec<Arc<QuadrupoleSettings>>> {
+        self.dia_windows.clone()
     }
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
