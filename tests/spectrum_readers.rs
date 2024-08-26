@@ -1,10 +1,11 @@
 use std::path::Path;
+#[cfg(feature = "tdf")]
+use timsrust::readers::{
+    FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
+};
 use timsrust::{
-    io::readers::{
-        FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
-        SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig,
-    },
-    ms_data::{Precursor, Spectrum},
+    readers::{SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig},
+    Precursor, Spectrum,
 };
 
 fn get_local_directory() -> &'static Path {
@@ -13,6 +14,7 @@ fn get_local_directory() -> &'static Path {
         .expect("Failed to get parent directory")
 }
 
+#[cfg(feature = "minitdf")]
 #[test]
 fn minitdf_reader() {
     let file_name = "test2.ms2";
@@ -67,6 +69,7 @@ fn minitdf_reader() {
     }
 }
 
+#[cfg(feature = "tdf")]
 #[test]
 fn tdf_reader_dda() {
     let file_name = "test.d";
@@ -138,6 +141,7 @@ fn tdf_reader_dda() {
     }
 }
 
+#[cfg(feature = "tdf")]
 #[test]
 fn test_dia_even() {
     let file_name = "dia_test.d";
@@ -164,6 +168,7 @@ fn test_dia_even() {
     }
 }
 
+#[cfg(feature = "tdf")]
 #[test]
 fn test_dia_uniform() {
     let file_name = "dia_test.d";

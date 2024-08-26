@@ -1,14 +1,19 @@
+#[cfg(feature = "minitdf")]
 mod minitdf;
+#[cfg(feature = "tdf")]
 mod tdf;
 
 use core::fmt;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFPrecursorReader, MiniTDFPrecursorReaderError};
+#[cfg(feature = "tdf")]
 use tdf::{TDFPrecursorReader, TDFPrecursorReaderError};
 
 use crate::ms_data::Precursor;
 
+#[cfg(feature = "tdf")]
 use super::quad_settings_reader::FrameWindowSplittingStrategy;
 
 pub struct PrecursorReader {
@@ -42,6 +47,7 @@ impl PrecursorReader {
 #[derive(Debug, Default, Clone)]
 pub struct PrecursorReaderBuilder {
     path: PathBuf,
+    #[cfg(feature = "tdf")]
     config: FrameWindowSplittingStrategy,
 }
 
@@ -53,6 +59,7 @@ impl PrecursorReaderBuilder {
         }
     }
 
+    #[cfg(feature = "tdf")]
     pub fn with_config(&self, config: FrameWindowSplittingStrategy) -> Self {
         Self {
             config: config,
@@ -63,9 +70,11 @@ impl PrecursorReaderBuilder {
     pub fn finalize(&self) -> Result<PrecursorReader, PrecursorReaderError> {
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
             match self.path.extension().and_then(|e| e.to_str()) {
+                #[cfg(feature = "minitdf")]
                 Some("parquet") => {
                     Box::new(MiniTDFPrecursorReader::new(self.path.clone())?)
                 },
+                #[cfg(feature = "tdf")]
                 Some("tdf") => Box::new(TDFPrecursorReader::new(
                     self.path.clone(),
                     self.config.clone(),
@@ -88,8 +97,10 @@ trait PrecursorReaderTrait: Sync {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PrecursorReaderError {
+    #[cfg(feature = "minitdf")]
     #[error("{0}")]
     MiniTDFPrecursorReaderError(#[from] MiniTDFPrecursorReaderError),
+    #[cfg(feature = "tdf")]
     #[error("{0}")]
     TDFPrecursorReaderError(#[from] TDFPrecursorReaderError),
     #[error("File {0} not valid")]

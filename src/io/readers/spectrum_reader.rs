@@ -1,14 +1,20 @@
+#[cfg(feature = "minitdf")]
 mod minitdf;
+#[cfg(feature = "tdf")]
 mod tdf;
 
 use core::fmt;
+
+#[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFSpectrumReader, MiniTDFSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "tdf")]
 use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 
 use crate::ms_data::Spectrum;
 
+#[cfg(feature = "tdf")]
 use super::FrameWindowSplittingStrategy;
 
 pub struct SpectrumReader {
@@ -87,9 +93,11 @@ impl SpectrumReaderBuilder {
     pub fn finalize(&self) -> Result<SpectrumReader, SpectrumReaderError> {
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
             match self.path.extension().and_then(|e| e.to_str()) {
+                #[cfg(feature = "minitdf")]
                 Some("ms2") => {
                     Box::new(MiniTDFSpectrumReader::new(self.path.clone())?)
                 },
+                #[cfg(feature = "tdf")]
                 Some("d") => Box::new(TDFSpectrumReader::new(
                     self.path.clone(),
                     self.config.clone(),
@@ -117,8 +125,10 @@ trait SpectrumReaderTrait: Sync {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SpectrumReaderError {
+    #[cfg(feature = "minitdf")]
     #[error("{0}")]
     MiniTDFSpectrumReaderError(#[from] MiniTDFSpectrumReaderError),
+    #[cfg(feature = "tdf")]
     #[error("{0}")]
     TDFSpectrumReaderError(#[from] TDFSpectrumReaderError),
     #[error("File {0} not valid")]
@@ -127,10 +137,10 @@ pub enum SpectrumReaderError {
 
 #[derive(Debug, Clone)]
 pub struct SpectrumProcessingParams {
-    smoothing_window: u32,
-    centroiding_window: u32,
-    calibration_tolerance: f64,
-    calibrate: bool,
+    pub smoothing_window: u32,
+    pub centroiding_window: u32,
+    pub calibration_tolerance: f64,
+    pub calibrate: bool,
 }
 
 impl Default for SpectrumProcessingParams {
@@ -147,5 +157,6 @@ impl Default for SpectrumProcessingParams {
 #[derive(Debug, Default, Clone)]
 pub struct SpectrumReaderConfig {
     pub spectrum_processing_params: SpectrumProcessingParams,
+    #[cfg(feature = "tdf")]
     pub frame_splitting_params: FrameWindowSplittingStrategy,
 }
