@@ -50,4 +50,6 @@ TODO
 * Improve tests
 * Pase CompressionType1
 * Make Path of TimsTOF data into special type
+* Single access point for all readers?
+* Few unchecked unwraps left
 * ...

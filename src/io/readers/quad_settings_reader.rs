@@ -13,6 +13,7 @@ pub struct QuadrupoleSettingsReader {
 }
 
 impl QuadrupoleSettingsReader {
+    // TODO: refactor due to large size
     pub fn new(
         path: impl AsRef<Path>,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
