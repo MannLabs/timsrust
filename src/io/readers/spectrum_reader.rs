@@ -15,7 +15,7 @@ use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 use crate::ms_data::Spectrum;
 
 #[cfg(feature = "tdf")]
-use super::FrameWindowSplittingStrategy;
+use super::FrameWindowSplittingConfiguration;
 
 pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
@@ -158,5 +158,5 @@ impl Default for SpectrumProcessingParams {
 pub struct SpectrumReaderConfig {
     pub spectrum_processing_params: SpectrumProcessingParams,
     #[cfg(feature = "tdf")]
-    pub frame_splitting_params: FrameWindowSplittingStrategy,
+    pub frame_splitting_params: FrameWindowSplittingConfiguration,
 }

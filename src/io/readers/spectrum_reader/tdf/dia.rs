@@ -27,7 +27,7 @@ impl DIARawSpectrumReader {
     ) -> Result<Self, DIARawSpectrumReaderError> {
         let expanded_quadrupole_settings =
             QuadrupoleSettingsReader::from_splitting(
-                tdf_sql_reader.get_path(),
+                &tdf_sql_reader,
                 splitting_strategy,
             )?;
         let reader = Self {
