@@ -25,13 +25,11 @@ impl DIARawSpectrumReader {
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
         splitting_strategy: FrameWindowSplittingStrategy,
-        im_converter: Option<&Scan2ImConverter>,
     ) -> Result<Self, DIARawSpectrumReaderError> {
         let expanded_quadrupole_settings =
             QuadrupoleSettingsReader::from_splitting(
                 &tdf_sql_reader,
                 splitting_strategy,
-                im_converter,
             )?;
         let reader = Self {
             expanded_quadrupole_settings,

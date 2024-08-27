@@ -45,12 +45,14 @@ impl TDFSpectrumReader {
             .with_config(config.frame_splitting_params)
             .finalize()?;
         let acquisition_type = frame_reader.get_acquisition();
+        let splitting_strategy = config
+            .frame_splitting_params
+            .finalize(metadata.im_converter);
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,
             frame_reader,
             acquisition_type,
-            config.frame_splitting_params,
-            Some(&metadata.im_converter),
+            splitting_strategy,
         )?;
         let reader = Self {
             path: path_name.as_ref().to_path_buf(),

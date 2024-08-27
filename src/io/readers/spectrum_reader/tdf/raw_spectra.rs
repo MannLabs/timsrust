@@ -98,7 +98,6 @@ impl RawSpectrumReader {
         frame_reader: FrameReader,
         acquisition_type: AcquisitionType,
         splitting_strategy: FrameWindowSplittingStrategy,
-        converter: Option<&Scan2ImConverter>,
     ) -> Result<Self, RawSpectrumReaderError> {
         let raw_spectrum_reader: Box<dyn RawSpectrumReaderTrait> =
             match acquisition_type {
@@ -110,7 +109,6 @@ impl RawSpectrumReader {
                         tdf_sql_reader,
                         frame_reader,
                         splitting_strategy,
-                        converter,
                     )?)
                 },
                 acquisition_type => {

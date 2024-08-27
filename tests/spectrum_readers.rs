@@ -1,7 +1,7 @@
 use std::path::Path;
 use timsrust::{
     io::readers::{
-        FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
+        FrameWindowSplittingConfiguration, QuadWindowExpansionConfiguration,
         SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig,
     },
     ms_data::{Precursor, Spectrum},
@@ -151,8 +151,8 @@ fn test_dia_even() {
             .with_path(&file_path)
             .with_config(SpectrumReaderConfig {
                 frame_splitting_params:
-                    FrameWindowSplittingStrategy::Quadrupole(
-                        QuadWindowExpansionStrategy::Even(i),
+                    FrameWindowSplittingConfiguration::Quadrupole(
+                        QuadWindowExpansionConfiguration::Even(i),
                     ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             })
@@ -165,7 +165,7 @@ fn test_dia_even() {
 }
 
 #[test]
-fn test_dia_uniform() {
+fn test_dia_uniform_mobility() {
     let file_name = "dia_test.d";
     let file_path = get_local_directory()
         .join(file_name)
@@ -176,9 +176,12 @@ fn test_dia_uniform() {
         let spectra = SpectrumReader::build()
             .with_path(&file_path)
             .with_config(SpectrumReaderConfig {
-                frame_splitting_params: FrameWindowSplittingStrategy::Window(
-                    QuadWindowExpansionStrategy::Uniform((i, i)),
-                ),
+                frame_splitting_params:
+                    FrameWindowSplittingConfiguration::Window(
+                        QuadWindowExpansionConfiguration::UniformMobility((
+                            i, i,
+                        )),
+                    ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             })
             .finalize()
@@ -197,5 +200,34 @@ fn test_dia_uniform() {
 
         // TODO make a more accurate test where we measure the differences in ion
         // mobilities and see if they are within the expected range
+    }
+}
+
+#[test]
+fn test_dia_uniform_scans() {
+    let file_name = "dia_test.d";
+    let file_path = get_local_directory()
+        .join(file_name)
+        .to_str()
+        .unwrap()
+        .to_string();
+    for i in [50, 100, 200] {
+        let spectra = SpectrumReader::build()
+            .with_path(&file_path)
+            .with_config(SpectrumReaderConfig {
+                frame_splitting_params:
+                    FrameWindowSplittingConfiguration::Window(
+                        QuadWindowExpansionConfiguration::UniformScan((i, i)),
+                    ),
+                spectrum_processing_params: SpectrumProcessingParams::default(),
+            })
+            .finalize()
+            .unwrap()
+            .get_all();
+        for f in spectra.iter() {
+            println!("i={} -> {:?}", i, f.as_ref().unwrap().precursor);
+        }
+
+        panic!("not implemented");
     }
 }

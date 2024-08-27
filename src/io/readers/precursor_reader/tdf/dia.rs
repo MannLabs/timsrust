@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::io::readers::quad_settings_reader::FrameWindowSplittingStrategy;
+use crate::io::readers::FrameWindowSplittingConfiguration;
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
@@ -25,18 +26,18 @@ pub struct DIATDFPrecursorReader {
 impl DIATDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
-        splitting_strategy: FrameWindowSplittingStrategy,
+        splitting_config: FrameWindowSplittingConfiguration,
     ) -> Result<Self, DIATDFPrecursorReaderError> {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path)?;
         let metadata = MetadataReader::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
+        let splitting_strategy = splitting_config.finalize(im_converter);
         let expanded_quadrupole_settings =
             QuadrupoleSettingsReader::from_splitting(
                 &tdf_sql_reader,
                 splitting_strategy,
-                Some(&im_converter),
             )?;
         let reader = Self {
             expanded_quadrupole_settings,

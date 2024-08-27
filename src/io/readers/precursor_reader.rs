@@ -9,7 +9,7 @@ use tdf::{TDFPrecursorReader, TDFPrecursorReaderError};
 
 use crate::ms_data::Precursor;
 
-use super::quad_settings_reader::FrameWindowSplittingStrategy;
+use super::FrameWindowSplittingConfiguration;
 
 pub struct PrecursorReader {
     precursor_reader: Box<dyn PrecursorReaderTrait>,
@@ -42,7 +42,7 @@ impl PrecursorReader {
 #[derive(Debug, Default, Clone)]
 pub struct PrecursorReaderBuilder {
     path: PathBuf,
-    config: FrameWindowSplittingStrategy,
+    config: FrameWindowSplittingConfiguration,
 }
 
 impl PrecursorReaderBuilder {
@@ -53,7 +53,10 @@ impl PrecursorReaderBuilder {
         }
     }
 
-    pub fn with_config(&self, config: FrameWindowSplittingStrategy) -> Self {
+    pub fn with_config(
+        &self,
+        config: FrameWindowSplittingConfiguration,
+    ) -> Self {
         Self {
             config: config,
             ..self.clone()

@@ -9,7 +9,7 @@ use dia::{DIATDFPrecursorReader, DIATDFPrecursorReaderError};
 use crate::{
     io::readers::{
         file_readers::sql_reader::{SqlError, SqlReader},
-        quad_settings_reader::FrameWindowSplittingStrategy,
+        FrameWindowSplittingConfiguration,
     },
     ms_data::{AcquisitionType, Precursor},
 };
@@ -23,7 +23,7 @@ pub struct TDFPrecursorReader {
 impl TDFPrecursorReader {
     pub fn new(
         path: impl AsRef<Path>,
-        splitting_strategy: FrameWindowSplittingStrategy,
+        splitting_strategy: FrameWindowSplittingConfiguration,
     ) -> Result<Self, TDFPrecursorReaderError> {
         let sql_path = path.as_ref();
         let tdf_sql_reader = SqlReader::open(sql_path)?;
