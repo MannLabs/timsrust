@@ -282,14 +282,15 @@ fn scan_range_subsplit(
         },
         QuadWindowExpansionStrategy::UniformScan((span, step)) => {
             let mut curr_start_offset = start;
-            let mut curr_end_offset = end + span;
+            let mut curr_end_offset = start + span;
             let mut out = Vec::new();
+
             while curr_end_offset < end {
                 out.push((curr_start_offset, curr_end_offset));
                 curr_start_offset += step;
                 curr_end_offset += step;
             }
-            if curr_start_offset > end {
+            if curr_start_offset < end {
                 out.push((curr_start_offset, end));
             }
             out

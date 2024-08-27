@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::{
-    domain_converters::{ConvertableDomain, Scan2ImConverter, Tof2MzConverter},
+    domain_converters::{ConvertableDomain, Tof2MzConverter},
     io::readers::{
         file_readers::sql_reader::SqlReader,
         quad_settings_reader::FrameWindowSplittingStrategy, FrameReader,

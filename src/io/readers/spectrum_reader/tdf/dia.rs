@@ -1,4 +1,3 @@
-use crate::domain_converters::Scan2ImConverter;
 use crate::io::readers::quad_settings_reader::FrameWindowSplittingStrategy;
 use crate::io::readers::FrameReaderError;
 use crate::{

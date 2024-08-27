@@ -211,7 +211,7 @@ fn test_dia_uniform_scans() {
         .to_str()
         .unwrap()
         .to_string();
-    for i in [50, 100, 200] {
+    for i in [20, 100, 200] {
         let spectra = SpectrumReader::build()
             .with_path(&file_path)
             .with_config(SpectrumReaderConfig {
@@ -228,6 +228,16 @@ fn test_dia_uniform_scans() {
             println!("i={} -> {:?}", i, f.as_ref().unwrap().precursor);
         }
 
-        panic!("not implemented");
+        // Since there are 709 scans in the test data ... we can expect
+        // the number of breaks to be (709 / i) + 1  ... if we had a single
+        // window that spanned the entire scan range.
+        // ... A more strict test would filter for each frame index and
+        // within each make sure the number matches the ratio ... here I am
+        // Just checking the overall number.
+        const NUM_FRAMES: usize = 4;
+        const NUM_SCANS: usize = 709;
+
+        assert!(spectra.len() >= (NUM_SCANS / i) as usize + 1);
+        assert!(spectra.len() < NUM_FRAMES * (NUM_SCANS / i) as usize + 1);
     }
 }

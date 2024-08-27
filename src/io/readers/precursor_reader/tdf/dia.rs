@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use crate::io::readers::quad_settings_reader::FrameWindowSplittingStrategy;
 use crate::io::readers::FrameWindowSplittingConfiguration;
 use crate::{
     domain_converters::{
