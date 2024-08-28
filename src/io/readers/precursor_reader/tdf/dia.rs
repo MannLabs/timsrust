@@ -32,7 +32,7 @@ impl DIATDFPrecursorReader {
         let metadata = MetadataReader::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
-        let splitting_strategy = splitting_config.finalize(im_converter);
+        let splitting_strategy = splitting_config.finalize(Some(im_converter));
         let expanded_quadrupole_settings =
             QuadrupoleSettingsReader::from_splitting(
                 &tdf_sql_reader,

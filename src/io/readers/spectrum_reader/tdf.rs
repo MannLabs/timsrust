@@ -47,7 +47,7 @@ impl TDFSpectrumReader {
         let acquisition_type = frame_reader.get_acquisition();
         let splitting_strategy = config
             .frame_splitting_params
-            .finalize(metadata.im_converter);
+            .finalize(Some(metadata.im_converter));
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,
             frame_reader,

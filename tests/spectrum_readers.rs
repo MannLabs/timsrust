@@ -1,12 +1,10 @@
 use std::path::Path;
 #[cfg(feature = "tdf")]
-use timsrust::readers::{
-    FrameWindowSplittingStrategy, QuadWindowExpansionStrategy,
-};
+use timsrust::readers::QuadWindowExpansionStrategy;
 use timsrust::{
     readers::{
-        FrameWindowSplittingConfiguration, QuadWindowExpansionConfiguration,
-        SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig,
+        FrameWindowSplittingConfiguration, SpectrumProcessingParams,
+        SpectrumReader, SpectrumReaderConfig,
     },
     Precursor, Spectrum,
 };
@@ -159,7 +157,7 @@ fn test_dia_even() {
             .with_config(SpectrumReaderConfig {
                 frame_splitting_params:
                     FrameWindowSplittingConfiguration::Quadrupole(
-                        QuadWindowExpansionConfiguration::Even(i),
+                        QuadWindowExpansionStrategy::Even(i),
                     ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             })
@@ -186,9 +184,10 @@ fn test_dia_uniform_mobility() {
             .with_config(SpectrumReaderConfig {
                 frame_splitting_params:
                     FrameWindowSplittingConfiguration::Window(
-                        QuadWindowExpansionConfiguration::UniformMobility((
-                            i, i,
-                        )),
+                        QuadWindowExpansionStrategy::UniformMobility(
+                            (i, i),
+                            None,
+                        ),
                     ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             })
@@ -225,7 +224,7 @@ fn test_dia_uniform_scans() {
             .with_config(SpectrumReaderConfig {
                 frame_splitting_params:
                     FrameWindowSplittingConfiguration::Window(
-                        QuadWindowExpansionConfiguration::UniformScan((i, i)),
+                        QuadWindowExpansionStrategy::UniformScan((i, i)),
                     ),
                 spectrum_processing_params: SpectrumProcessingParams::default(),
             })

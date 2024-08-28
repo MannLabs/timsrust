@@ -154,46 +154,13 @@ type ScanSpanStep = (usize, usize);
 pub enum QuadWindowExpansionStrategy {
     None,
     Even(usize),
-    UniformMobility(MobilitySpanStep, Scan2ImConverter),
+    UniformMobility(MobilitySpanStep, Option<Scan2ImConverter>),
     UniformScan(ScanSpanStep),
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum QuadWindowExpansionConfiguration {
-    None,
-    Even(usize),
-    UniformMobility(MobilitySpanStep),
-    UniformScan(ScanSpanStep),
-}
-
-impl Default for QuadWindowExpansionConfiguration {
+impl Default for QuadWindowExpansionStrategy {
     fn default() -> Self {
         Self::Even(1)
-    }
-}
-
-impl QuadWindowExpansionConfiguration {
-    pub fn finalize(
-        self,
-        scan_converter: Scan2ImConverter,
-    ) -> QuadWindowExpansionStrategy {
-        match self {
-            QuadWindowExpansionConfiguration::None => {
-                QuadWindowExpansionStrategy::None
-            },
-            QuadWindowExpansionConfiguration::Even(x) => {
-                QuadWindowExpansionStrategy::Even(x)
-            },
-            QuadWindowExpansionConfiguration::UniformMobility((span, step)) => {
-                QuadWindowExpansionStrategy::UniformMobility(
-                    (span, step),
-                    scan_converter,
-                )
-            },
-            QuadWindowExpansionConfiguration::UniformScan((span, step)) => {
-                QuadWindowExpansionStrategy::UniformScan((span, step))
-            },
-        }
     }
 }
 
@@ -205,30 +172,43 @@ pub enum FrameWindowSplittingStrategy {
 
 #[derive(Debug, Clone, Copy)]
 pub enum FrameWindowSplittingConfiguration {
-    Quadrupole(QuadWindowExpansionConfiguration),
-    Window(QuadWindowExpansionConfiguration),
+    Quadrupole(QuadWindowExpansionStrategy),
+    Window(QuadWindowExpansionStrategy),
 }
 
 impl Default for FrameWindowSplittingConfiguration {
     fn default() -> Self {
-        Self::Quadrupole(QuadWindowExpansionConfiguration::Even(1))
+        Self::Quadrupole(QuadWindowExpansionStrategy::Even(1))
     }
 }
 
 impl FrameWindowSplittingConfiguration {
     pub fn finalize(
         self,
-        scan_converter: Scan2ImConverter,
+        scan_converter: Option<Scan2ImConverter>,
     ) -> FrameWindowSplittingStrategy {
         match self {
-            FrameWindowSplittingConfiguration::Quadrupole(x) => {
-                FrameWindowSplittingStrategy::Quadrupole(
-                    x.finalize(scan_converter),
+            Self::Quadrupole(x) => FrameWindowSplittingStrategy::Quadrupole(
+                Self::update_im_converter(x, scan_converter),
+            ),
+            Self::Window(x) => FrameWindowSplittingStrategy::Window(
+                Self::update_im_converter(x, scan_converter),
+            ),
+        }
+    }
+
+    fn update_im_converter(
+        quad_strategy: QuadWindowExpansionStrategy,
+        scan_converter: Option<Scan2ImConverter>,
+    ) -> QuadWindowExpansionStrategy {
+        match quad_strategy {
+            QuadWindowExpansionStrategy::UniformMobility((span, step), _) => {
+                QuadWindowExpansionStrategy::UniformMobility(
+                    (span, step),
+                    scan_converter,
                 )
             },
-            FrameWindowSplittingConfiguration::Window(x) => {
-                FrameWindowSplittingStrategy::Window(x.finalize(scan_converter))
-            },
+            _ => quad_strategy.clone(),
         }
     }
 }
@@ -257,10 +237,11 @@ fn scan_range_subsplit(
         },
         QuadWindowExpansionStrategy::UniformMobility(
             (span, step),
-            converter,
+            _converter,
         ) => {
             // Since scan start < scan end but low scans are high IMs, we need to
             // subtract instead of adding.
+            let converter = _converter.unwrap(); // Should always pass if created from FrameWindowConfig
             let mut curr_start_offset = start.clone();
             let mut curr_start_im = converter.convert(curr_start_offset as f64);
 
