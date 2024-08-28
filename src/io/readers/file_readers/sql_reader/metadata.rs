@@ -1,5 +1,6 @@
 use super::ReadableSqlHashMap;
 
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SqlMetadata;
 
 impl ReadableSqlHashMap for SqlMetadata {

@@ -1,6 +1,6 @@
 use super::ReadableParquetTable;
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ParquetPrecursor {
     pub mz: f64,
     pub rt: f64,

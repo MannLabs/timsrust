@@ -6,6 +6,10 @@
 
 A crate to read Bruker TimsTof data.
 
+## Stability
+
+**NOTE**: TimsRust does not yet have a stable version! Use with caution.
+
 ## Installation
 
 Add this crate to your `Cargo.toml`:
@@ -43,3 +47,14 @@ Two file formats are supported:
 ## Python bindings
 
 The [timsrust_pyo3](https://github.com/jspaezp/timsrust_pyo3) package is an example of how the performance of TimsRust can be utilized in Python
+
+## Planned changes for future versions
+TODO
+* Improve docs
+* Improve tests
+* Pase CompressionType1
+* Make Path of TimsTOF data into special type
+* Single access point for all readers?
+* Few unchecked unwraps left
+* Queryable data in all dimensions
+* ...

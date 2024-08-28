@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::{
     io::readers::file_readers::parquet_reader::{
-        precursors::ParquetPrecursor, ReadableParquetTable,
+        precursors::ParquetPrecursor, ParquetError, ReadableParquetTable,
     },
     ms_data::Precursor,
 };
@@ -11,40 +11,39 @@ use super::PrecursorReaderTrait;
 
 #[derive(Debug)]
 pub struct MiniTDFPrecursorReader {
-    path: PathBuf,
     parquet_precursors: Vec<ParquetPrecursor>,
 }
 
 impl MiniTDFPrecursorReader {
-    pub fn new(path: impl AsRef<Path>) -> Self {
-        let parquet_precursors =
-            ParquetPrecursor::from_parquet_file(&path).unwrap();
-        Self {
-            path: path.as_ref().to_path_buf(),
-            parquet_precursors,
-        }
+    pub fn new(
+        path: impl AsRef<Path>,
+    ) -> Result<Self, MiniTDFPrecursorReaderError> {
+        let parquet_precursors = ParquetPrecursor::from_parquet_file(&path)?;
+        let reader = Self { parquet_precursors };
+        Ok(reader)
     }
 }
 
 impl PrecursorReaderTrait for MiniTDFPrecursorReader {
-    fn get(&self, index: usize) -> Precursor {
-        let x = &self.parquet_precursors[index];
-        Precursor {
-            mz: x.mz,
-            rt: x.rt,
-            im: x.im,
-            charge: Some(x.charge),
-            intensity: Some(x.intensity),
-            index: x.index,
-            frame_index: x.frame_index,
-        }
+    fn get(&self, index: usize) -> Option<Precursor> {
+        let parquet_precursor = &self.parquet_precursors.get(index)?;
+        let precursor = Precursor {
+            mz: parquet_precursor.mz,
+            rt: parquet_precursor.rt,
+            im: parquet_precursor.im,
+            charge: Some(parquet_precursor.charge),
+            intensity: Some(parquet_precursor.intensity),
+            index: parquet_precursor.index,
+            frame_index: parquet_precursor.frame_index,
+        };
+        Some(precursor)
     }
 
     fn len(&self) -> usize {
         self.parquet_precursors.len()
     }
-
-    fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
 }
+
+#[derive(thiserror::Error, Debug)]
+#[error("{0}")]
+pub struct MiniTDFPrecursorReaderError(#[from] ParquetError);

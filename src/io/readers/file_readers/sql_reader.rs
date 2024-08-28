@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rusqlite::Connection;
+use rusqlite::{types::FromSql, Connection};
 
 #[derive(Debug)]
 pub struct SqlReader {
@@ -58,7 +58,11 @@ pub trait ReadableSqlTable {
         let mut stmt = reader.connection.prepare(&query)?;
         let rows = stmt.query_map([], |row| Ok(Self::from_sql_row(row)))?;
         let result = rows.collect::<Result<Vec<_>, _>>()?;
-        Ok(result)
+        if result.len() == 0 {
+            Err(SqlError(rusqlite::Error::QueryReturnedNoRows))
+        } else {
+            Ok(result)
+        }
     }
 }
 
@@ -85,6 +89,16 @@ pub trait ReadableSqlHashMap {
     }
 }
 
+pub trait ParseDefault {
+    fn parse_default<T: Default + FromSql>(&self, index: usize) -> T;
+}
+
+impl ParseDefault for rusqlite::Row<'_> {
+    fn parse_default<T: Default + FromSql>(&self, index: usize) -> T {
+        self.get(index).unwrap_or_default()
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
-#[error("SqlError: {0}")]
+#[error("{0}")]
 pub struct SqlError(#[from] rusqlite::Error);

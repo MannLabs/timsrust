@@ -2,25 +2,22 @@ mod dda;
 mod dia;
 mod raw_spectra;
 
-use raw_spectra::{RawSpectrum, RawSpectrumReader};
+use raw_spectra::{RawSpectrum, RawSpectrumReader, RawSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::{Path, PathBuf};
 
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
     io::readers::{
-        file_readers::sql_reader::SqlReader, FrameReader, MetadataReader,
-        PrecursorReader,
+        file_readers::sql_reader::{SqlError, SqlReader},
+        FrameReader, FrameReaderError, MetadataReader, MetadataReaderError,
+        PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
     utils::find_extension,
 };
 
-use super::SpectrumReaderTrait;
-
-const SMOOTHING_WINDOW: u32 = 1;
-const CENTROIDING_WINDOW: u32 = 1;
-const CALIBRATION_TOLERANCE: f64 = 0.1;
+use super::{SpectrumReaderConfig, SpectrumReaderError, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct TDFSpectrumReader {
@@ -28,48 +25,82 @@ pub struct TDFSpectrumReader {
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
     raw_spectrum_reader: RawSpectrumReader,
+    config: SpectrumReaderConfig,
 }
 
 impl TDFSpectrumReader {
-    pub fn new(path_name: impl AsRef<Path>) -> Self {
-        let frame_reader: FrameReader = FrameReader::new(&path_name);
-        let sql_path = find_extension(&path_name, "analysis.tdf").unwrap();
-        let metadata = MetadataReader::new(&sql_path);
+    pub fn new(
+        path_name: impl AsRef<Path>,
+        config: SpectrumReaderConfig,
+    ) -> Result<Self, TDFSpectrumReaderError> {
+        let frame_reader: FrameReader = FrameReader::new(&path_name)?;
+        let sql_path = find_extension(&path_name, "analysis.tdf").ok_or(
+            TDFSpectrumReaderError::FileNotFound("analysis.tdf".to_string()),
+        )?;
+        let metadata = MetadataReader::new(&sql_path)?;
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
-        let tdf_sql_reader = SqlReader::open(&sql_path).unwrap();
-        let precursor_reader = PrecursorReader::new(&sql_path);
+        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let precursor_reader = PrecursorReader::build()
+            .with_path(&sql_path)
+            .with_config(config.frame_splitting_params)
+            .finalize()?;
         let acquisition_type = frame_reader.get_acquisition();
+        let splitting_strategy = config
+            .frame_splitting_params
+            .finalize(Some(metadata.im_converter));
         let raw_spectrum_reader = RawSpectrumReader::new(
             &tdf_sql_reader,
             frame_reader,
             acquisition_type,
-        );
-        Self {
+            splitting_strategy,
+        )?;
+        let reader = Self {
             path: path_name.as_ref().to_path_buf(),
             precursor_reader,
             mz_reader,
             raw_spectrum_reader,
-        }
+            config,
+        };
+        Ok(reader)
     }
 
-    pub fn read_single_raw_spectrum(&self, index: usize) -> RawSpectrum {
-        let raw_spectrum = self.raw_spectrum_reader.get(index);
-        raw_spectrum
-            .smooth(SMOOTHING_WINDOW)
-            .centroid(CENTROIDING_WINDOW)
+    pub fn read_single_raw_spectrum(
+        &self,
+        index: usize,
+    ) -> Result<RawSpectrum, RawSpectrumReaderError> {
+        let raw_spectrum = self
+            .raw_spectrum_reader
+            .get(index)?
+            .smooth(self.config.spectrum_processing_params.smoothing_window)
+            .centroid(
+                self.config.spectrum_processing_params.centroiding_window,
+            );
+        Ok(raw_spectrum)
+    }
+
+    fn _get(&self, index: usize) -> Result<Spectrum, TDFSpectrumReaderError> {
+        let raw_spectrum = self.read_single_raw_spectrum(index)?;
+        let spectrum = raw_spectrum.finalize(
+            self.precursor_reader
+                .get(index)
+                .ok_or(TDFSpectrumReaderError::NoPrecursor)?,
+            &self.mz_reader,
+        );
+        Ok(spectrum)
     }
 }
 
 impl SpectrumReaderTrait for TDFSpectrumReader {
-    fn get(&self, index: usize) -> Spectrum {
-        let raw_spectrum = self.read_single_raw_spectrum(index);
-        let spectrum = raw_spectrum
-            .finalize(self.precursor_reader.get(index), &self.mz_reader);
-        spectrum
+    fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
+        Ok(self._get(index)?)
     }
 
     fn len(&self) -> usize {
-        self.precursor_reader.len()
+        debug_assert_eq!(
+            self.precursor_reader.len(),
+            self.raw_spectrum_reader.len()
+        );
+        self.raw_spectrum_reader.len()
     }
 
     fn get_path(&self) -> PathBuf {
@@ -80,13 +111,19 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
         let hits: Vec<(f64, u32)> = (0..self.precursor_reader.len())
             .into_par_iter()
             .map(|index| {
-                let spectrum = self.read_single_raw_spectrum(index);
-                let precursor = self.precursor_reader.get(index);
+                // TODO
+                let spectrum = self.read_single_raw_spectrum(index).unwrap();
+                let precursor = self.precursor_reader.get(index).unwrap();
                 let precursor_mz: f64 = precursor.mz;
                 let mut result: Vec<(f64, u32)> = vec![];
                 for &tof_index in spectrum.tof_indices.iter() {
                     let mz = self.mz_reader.convert(tof_index);
-                    if (mz - precursor_mz).abs() < CALIBRATION_TOLERANCE {
+                    if (mz - precursor_mz).abs()
+                        < self
+                            .config
+                            .spectrum_processing_params
+                            .calibration_tolerance
+                    {
                         let hit = (precursor_mz, tof_index);
                         result.push(hit);
                     }
@@ -98,7 +135,25 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
                 acc
             });
         if hits.len() >= 2 {
-            self.mz_reader = Tof2MzConverter::from_pairs(&hits);
+            self.mz_reader = Tof2MzConverter::regress_from_pairs(&hits);
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TDFSpectrumReaderError {
+    #[error("{0}")]
+    SqlError(#[from] SqlError),
+    #[error("{0}")]
+    PrecursorReaderError(#[from] PrecursorReaderError),
+    #[error("{0}")]
+    MetadaReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    FrameReaderError(#[from] FrameReaderError),
+    #[error("{0}")]
+    RawSpectrumReaderError(#[from] RawSpectrumReaderError),
+    #[error("{0}")]
+    FileNotFound(String),
+    #[error("No precursor")]
+    NoPrecursor,
 }

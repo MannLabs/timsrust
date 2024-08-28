@@ -21,11 +21,23 @@
 //!     * *.ms2spectrum.bin
 //!     * *.ms2spectrum.parquet
 
-pub mod domain_converters;
-mod errors;
-mod file_readers;
-pub mod io;
-pub mod ms_data;
-mod utils;
+pub(crate) mod domain_converters;
+pub(crate) mod errors;
+pub(crate) mod io;
+pub(crate) mod ms_data;
+pub(crate) mod utils;
 
-pub use crate::{errors::*, file_readers::FileReader};
+pub mod converters {
+    //! Allows conversions between domains (e.g. Time of Flight and m/z)
+    pub use crate::domain_converters::*;
+}
+pub mod readers {
+    //! Readers for all data from Bruker compatible files.
+    pub use crate::io::readers::*;
+}
+pub mod writers {
+    //! Writers to generic file formats.
+    pub use crate::io::writers::*;
+}
+pub use crate::errors::*;
+pub use crate::ms_data::*;
