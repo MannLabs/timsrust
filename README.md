@@ -52,4 +52,5 @@ TODO
 * Make Path of TimsTOF data into special type
 * Single access point for all readers?
 * Few unchecked unwraps left
+* Queryable data in all dimensions
 * ...
