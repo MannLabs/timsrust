@@ -5,7 +5,7 @@ use timsrust::readers::FrameReader;
 use timsrust::readers::{SpectrumReader, SpectrumReaderConfig};
 
 const DDA_TEST: &str =
-    "/mnt/c/Users/Sander.Willems/Documents/data/tims05_300SPD/20230505_TIMS05_PaSk_MA_HeLa_6min_ddaP_S1-C10_1_2323.d/";
+    "/mnt/d/data/mpib/tims05_300SPD/20230505_TIMS05_PaSk_MA_HeLa_6min_ddaP_S1-C10_1_2323.d/";
 const DIA_TEST: &str =
     "/mnt/c/Users/Sander.Willems/Documents/data/20230505_TIMS05_PaSk_SA_HeLa_6min_diaP_8scans_S1-D3_1_2329.d/";
 const SYP_TEST: &str =
