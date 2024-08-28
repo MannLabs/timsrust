@@ -49,6 +49,7 @@ fn criterion_benchmark_dda_frames(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "tdf")]
 fn criterion_benchmark_dda_spectra(c: &mut Criterion) {
     // c.bench_function("fib 20", |b| b.iter(|| fibonacci(black_box(20))));
     let mut group = c.benchmark_group("sample-size-example");
@@ -101,10 +102,12 @@ fn criterion_benchmark_syp(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "tdf")]
 criterion_group!(
     benches,
     criterion_benchmark_dda_spectra,
     // criterion_benchmark_dia,
     // criterion_benchmark_syp
 );
+#[cfg(feature = "tdf")]
 criterion_main!(benches);

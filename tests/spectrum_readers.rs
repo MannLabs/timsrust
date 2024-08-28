@@ -1,11 +1,10 @@
 use std::path::Path;
 #[cfg(feature = "tdf")]
-use timsrust::readers::QuadWindowExpansionStrategy;
+use timsrust::readers::{
+    FrameWindowSplittingConfiguration, QuadWindowExpansionStrategy,
+};
 use timsrust::{
-    readers::{
-        FrameWindowSplittingConfiguration, SpectrumProcessingParams,
-        SpectrumReader, SpectrumReaderConfig,
-    },
+    readers::{SpectrumProcessingParams, SpectrumReader, SpectrumReaderConfig},
     Precursor, Spectrum,
 };
 
@@ -210,6 +209,7 @@ fn test_dia_uniform_mobility() {
     }
 }
 
+#[cfg(feature = "tdf")]
 #[test]
 fn test_dia_uniform_scans() {
     let file_name = "dia_test.d";
