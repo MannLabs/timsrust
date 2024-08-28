@@ -6,6 +6,10 @@
 
 A crate to read Bruker TimsTof data.
 
+## Stability
+
+**NOTE**: TimsRust does not yet have a stable version! Use with caution.
+
 ## Installation
 
 Add this crate to your `Cargo.toml`:
