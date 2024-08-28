@@ -23,43 +23,72 @@ impl MetadataReader {
             SqlMetadata::from_sql_reader(&tdf_sql_reader)?;
         let compression_type =
             parse_value(&sql_metadata, "TimsCompressionType")?;
+        let (mz_min, mz_max) = get_mz_bounds(&sql_metadata)?;
+        let (im_min, im_max) = get_im_bounds(&sql_metadata)?;
+        let rt_values: Vec<f64> =
+            tdf_sql_reader.read_column_from_table("Time", "Frames")?;
+        let rt_min = rt_values
+            .iter()
+            .filter(|&&v| !v.is_nan()) // Filter out NaN values
+            .cloned()
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let rt_max = rt_values
+            .iter()
+            .filter(|&&v| !v.is_nan()) // Filter out NaN values
+            .cloned()
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
         let metadata = Metadata {
             path: path.as_ref().to_path_buf(),
-            rt_converter: get_rt_converter(&tdf_sql_reader)?,
+            rt_converter: Frame2RtConverter::from_values(rt_values),
             im_converter: get_im_converter(&sql_metadata, &tdf_sql_reader)?,
             mz_converter: get_mz_converter(&sql_metadata)?,
+            lower_rt: rt_min,
+            upper_rt: rt_max,
+            lower_im: im_min,
+            upper_im: im_max,
+            lower_mz: mz_min,
+            upper_mz: mz_max,
             compression_type,
         };
         Ok(metadata)
     }
 }
 
-fn get_rt_converter(
-    tdf_sql_reader: &SqlReader,
-) -> Result<Frame2RtConverter, MetadataReaderError> {
-    let rt_values: Vec<f64> =
-        tdf_sql_reader.read_column_from_table("Time", "Frames")?;
-    Ok(Frame2RtConverter::from_values(rt_values))
-}
-
-fn get_mz_converter(
+fn get_mz_bounds(
     sql_metadata: &HashMap<String, String>,
-) -> Result<Tof2MzConverter, MetadataReaderError> {
+) -> Result<(f64, f64), MetadataReaderError> {
     let software = sql_metadata.get("AcquisitionSoftware").ok_or(
         MetadataReaderError::KeyNotFound("AcquisitionSoftware".to_string()),
     )?;
-    let tof_max_index: u32 = parse_value(sql_metadata, "DigitizerNumSamples")?;
     let mut mz_min: f64 = parse_value(sql_metadata, "MzAcqRangeLower")?;
     let mut mz_max: f64 = parse_value(sql_metadata, "MzAcqRangeUpper")?;
     if software == OTOF_CONTROL {
         mz_min -= 5.0;
         mz_max += 5.0;
     }
+    Ok((mz_min, mz_max))
+}
+
+fn get_mz_converter(
+    sql_metadata: &HashMap<String, String>,
+) -> Result<Tof2MzConverter, MetadataReaderError> {
+    let (mz_min, mz_max) = get_mz_bounds(sql_metadata)?;
+    let tof_max_index: u32 = parse_value(sql_metadata, "DigitizerNumSamples")?;
     Ok(Tof2MzConverter::from_boundaries(
         mz_min,
         mz_max,
         tof_max_index,
     ))
+}
+
+fn get_im_bounds(
+    sql_metadata: &HashMap<String, String>,
+) -> Result<(f64, f64), MetadataReaderError> {
+    let im_min: f64 = parse_value(sql_metadata, "OneOverK0AcqRangeLower")?;
+    let im_max: f64 = parse_value(sql_metadata, "OneOverK0AcqRangeUpper")?;
+    Ok((im_min, im_max))
 }
 
 fn get_im_converter(
@@ -69,8 +98,7 @@ fn get_im_converter(
     let scan_counts: Vec<u32> =
         tdf_sql_reader.read_column_from_table("NumScans", "Frames")?;
     let scan_max_index = *scan_counts.iter().max().unwrap(); // SqlReader cannot return empty vecs, so always succeeds
-    let im_min: f64 = parse_value(sql_metadata, "OneOverK0AcqRangeLower")?;
-    let im_max: f64 = parse_value(sql_metadata, "OneOverK0AcqRangeUpper")?;
+    let (im_min, im_max) = get_im_bounds(sql_metadata)?;
     Ok(Scan2ImConverter::from_boundaries(
         im_min,
         im_max,

@@ -1124,7 +1124,6 @@ name = "timsrust"
 version = "0.4.0"
 dependencies = [
  "bytemuck",
- "byteorder",
  "criterion",
  "linreg",
  "memmap2",

@@ -7,7 +7,6 @@ use crate::{
                 precursors::ParquetPrecursor, ParquetError,
                 ReadableParquetTable,
             },
-            sql_reader::SqlError,
             tdf_blob_reader::{
                 IndexedTdfBlobReader, IndexedTdfBlobReaderError,
             },
@@ -127,8 +126,6 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
 
 #[derive(Debug, thiserror::Error)]
 pub enum MiniTDFSpectrumReaderError {
-    #[error("{0}")]
-    SqlError(#[from] SqlError),
     #[error("{0}")]
     PrecursorReaderError(#[from] PrecursorReaderError),
     #[error("{0}")]

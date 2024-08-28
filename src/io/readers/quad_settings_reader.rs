@@ -1,6 +1,10 @@
 use std::path::Path;
 
-use crate::{ms_data::QuadrupoleSettings, utils::vec_utils::argsort};
+use crate::{
+    domain_converters::{ConvertableDomain, Scan2ImConverter},
+    ms_data::QuadrupoleSettings,
+    utils::vec_utils::argsort,
+};
 
 use super::file_readers::sql_reader::{
     frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
@@ -13,6 +17,7 @@ pub struct QuadrupoleSettingsReader {
 }
 
 impl QuadrupoleSettingsReader {
+    // TODO: refactor due to large size
     pub fn new(
         path: impl AsRef<Path>,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
@@ -48,11 +53,9 @@ impl QuadrupoleSettingsReader {
     }
 
     pub fn from_splitting(
-        path: impl AsRef<Path>,
+        tdf_sql_reader: &SqlReader,
         splitting_strat: FrameWindowSplittingStrategy,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
         let quadrupole_settings = Self::from_sql_settings(&tdf_sql_reader)?;
         let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
         let expanded_quadrupole_settings = match splitting_strat {
@@ -120,7 +123,8 @@ pub enum QuadrupoleSettingsReaderError {
     SqlError(#[from] SqlError),
 }
 
-type SpanStep = (usize, usize);
+type MobilitySpanStep = (f64, f64);
+type ScanSpanStep = (usize, usize);
 
 /// Strategy for expanding quadrupole settings
 ///
@@ -135,16 +139,29 @@ type SpanStep = (usize, usize);
 /// * `Even(usize)` - Split the quadrupole settings into `usize` evenly spaced
 /// subwindows; e.g. if `usize` is 2, the window will be split into 2 subwindows
 /// of equal width.
-/// * `Uniform(SpanStep)` - Split the quadrupole settings into subwindows of
-/// width `SpanStep.0` and step `SpanStep.1`; e.g. if `SpanStep` is (100, 50),
-/// the window will be split into subwindows of width 100 and step 50 between their
-/// scan start and end.
+/// * `UniformMobility(SpanStep)` - Split the quadrupole settings into subwindows of
+/// width `SpanStep.0` and step `SpanStep.1` in ion mobility space.
+/// e.g. if `SpanStep` is (0.05, 0.02),
+/// the window will be split into subwindows of width 0.05 and step 0.02 between their
+/// in the mobility dimension.
+/// * `UniformScan(SpanStep)` - Split the quadrupole settings into subwindows of
+/// width `SpanStep.0` and step `SpanStep.1` in scan number space.
+/// e.g. if `SpanStep` is (100, 80),
+/// the window will be split into subwindows of width
+/// 100 and step 80 between their in the scan number.
 ///
 #[derive(Debug, Copy, Clone)]
 pub enum QuadWindowExpansionStrategy {
     None,
     Even(usize),
-    Uniform(SpanStep),
+    UniformMobility(MobilitySpanStep, Option<Scan2ImConverter>),
+    UniformScan(ScanSpanStep),
+}
+
+impl Default for QuadWindowExpansionStrategy {
+    fn default() -> Self {
+        Self::Even(1)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -153,9 +170,46 @@ pub enum FrameWindowSplittingStrategy {
     Window(QuadWindowExpansionStrategy),
 }
 
-impl Default for FrameWindowSplittingStrategy {
+#[derive(Debug, Clone, Copy)]
+pub enum FrameWindowSplittingConfiguration {
+    Quadrupole(QuadWindowExpansionStrategy),
+    Window(QuadWindowExpansionStrategy),
+}
+
+impl Default for FrameWindowSplittingConfiguration {
     fn default() -> Self {
         Self::Quadrupole(QuadWindowExpansionStrategy::Even(1))
+    }
+}
+
+impl FrameWindowSplittingConfiguration {
+    pub fn finalize(
+        self,
+        scan_converter: Option<Scan2ImConverter>,
+    ) -> FrameWindowSplittingStrategy {
+        match self {
+            Self::Quadrupole(x) => FrameWindowSplittingStrategy::Quadrupole(
+                Self::update_im_converter(x, scan_converter),
+            ),
+            Self::Window(x) => FrameWindowSplittingStrategy::Window(
+                Self::update_im_converter(x, scan_converter),
+            ),
+        }
+    }
+
+    fn update_im_converter(
+        quad_strategy: QuadWindowExpansionStrategy,
+        scan_converter: Option<Scan2ImConverter>,
+    ) -> QuadWindowExpansionStrategy {
+        match quad_strategy {
+            QuadWindowExpansionStrategy::UniformMobility((span, step), _) => {
+                QuadWindowExpansionStrategy::UniformMobility(
+                    (span, step),
+                    scan_converter,
+                )
+            },
+            _ => quad_strategy.clone(),
+        }
     }
 }
 
@@ -164,7 +218,7 @@ fn scan_range_subsplit(
     end: usize,
     strategy: &QuadWindowExpansionStrategy,
 ) -> Vec<(usize, usize)> {
-    let out = match strategy {
+    let out: Vec<(usize, usize)> = match strategy {
         QuadWindowExpansionStrategy::None => {
             vec![(start, end)]
         },
@@ -181,17 +235,45 @@ fn scan_range_subsplit(
             }
             out
         },
-        QuadWindowExpansionStrategy::Uniform((span, step)) => {
-            let mut curr_start = start.clone();
-            let mut curr_end = start + span;
+        QuadWindowExpansionStrategy::UniformMobility(
+            (span, step),
+            _converter,
+        ) => {
+            // Since scan start < scan end but low scans are high IMs, we need to
+            // subtract instead of adding.
+            let converter = _converter.unwrap(); // Should always pass if created from FrameWindowConfig
+            let mut curr_start_offset = start.clone();
+            let mut curr_start_im = converter.convert(curr_start_offset as f64);
+
+            let mut curr_end_im = curr_start_im - span;
+            let mut curr_end_offset = converter.invert(curr_end_im) as usize;
             let mut out = Vec::new();
-            while curr_end < end {
-                out.push((curr_start, curr_end));
-                curr_start += step;
-                curr_end += step;
+            while curr_end_offset < end {
+                out.push((curr_start_offset, curr_end_offset));
+
+                curr_start_im = curr_start_im - step;
+                curr_start_offset = converter.invert(curr_start_im) as usize;
+
+                curr_end_im = curr_start_im - span;
+                curr_end_offset = converter.invert(curr_end_im) as usize;
             }
-            if curr_start < end {
-                out.push((curr_start, end));
+            if curr_start_offset < end {
+                out.push((curr_start_offset, end));
+            }
+            out
+        },
+        QuadWindowExpansionStrategy::UniformScan((span, step)) => {
+            let mut curr_start_offset = start;
+            let mut curr_end_offset = start + span;
+            let mut out = Vec::new();
+
+            while curr_end_offset < end {
+                out.push((curr_start_offset, curr_end_offset));
+                curr_start_offset += step;
+                curr_end_offset += step;
+            }
+            if curr_start_offset < end {
+                out.push((curr_start_offset, end));
             }
             out
         },
