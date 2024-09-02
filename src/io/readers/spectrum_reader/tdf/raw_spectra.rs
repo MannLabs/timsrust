@@ -135,7 +135,7 @@ impl RawSpectrumReader {
     }
 }
 
-pub trait RawSpectrumReaderTrait: Sync {
+pub trait RawSpectrumReaderTrait: Sync + Send {
     fn get(&self, index: usize) -> Result<RawSpectrum, RawSpectrumReaderError>;
     fn len(&self) -> usize;
 }

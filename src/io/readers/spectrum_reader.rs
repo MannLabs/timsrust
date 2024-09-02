@@ -64,7 +64,7 @@ impl SpectrumReader {
         spectra
     }
 
-    pub fn calibrate(&mut self) {
+    fn calibrate(&mut self) {
         self.spectrum_reader.calibrate();
     }
 }
@@ -116,7 +116,7 @@ impl SpectrumReaderBuilder {
     }
 }
 
-trait SpectrumReaderTrait: Sync {
+trait SpectrumReaderTrait: Sync + Send {
     fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError>;
     fn get_path(&self) -> PathBuf;
     fn len(&self) -> usize;
