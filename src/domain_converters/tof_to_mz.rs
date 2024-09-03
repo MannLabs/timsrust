@@ -1,7 +1,10 @@
 use linreg::linear_regression;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 /// A converter from TOF -> m/z.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Tof2MzConverter {
     tof_intercept: f64,
     tof_slope: f64,

@@ -1,5 +1,9 @@
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
+
 /// A converter from Scan -> (inversed) ion mobility.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Scan2ImConverter {
     scan_intercept: f64,
     scan_slope: f64,

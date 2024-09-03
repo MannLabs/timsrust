@@ -8,6 +8,8 @@ use core::fmt;
 #[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFSpectrumReader, MiniTDFSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 #[cfg(feature = "tdf")]
 use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
@@ -135,7 +137,8 @@ pub enum SpectrumReaderError {
     SpectrumReaderFileError(PathBuf),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SpectrumProcessingParams {
     pub smoothing_window: u32,
     pub centroiding_window: u32,
@@ -154,7 +157,8 @@ impl Default for SpectrumProcessingParams {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SpectrumReaderConfig {
     pub spectrum_processing_params: SpectrumProcessingParams,
     #[cfg(feature = "tdf")]
