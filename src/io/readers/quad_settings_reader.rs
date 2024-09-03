@@ -1,3 +1,5 @@
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::{
@@ -151,6 +153,7 @@ type ScanSpanStep = (usize, usize);
 /// 100 and step 80 between their in the scan number.
 ///
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum QuadWindowExpansionStrategy {
     None,
     Even(usize),
@@ -171,6 +174,7 @@ pub enum FrameWindowSplittingStrategy {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum FrameWindowSplittingConfiguration {
     Quadrupole(QuadWindowExpansionStrategy),
     Window(QuadWindowExpansionStrategy),

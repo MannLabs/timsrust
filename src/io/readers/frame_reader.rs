@@ -112,6 +112,7 @@ impl FrameReader {
     }
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
+        // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.frames[index].clone();
         let offset = self.offsets[index];
         let blob = self.tdf_bin_reader.get(offset)?;

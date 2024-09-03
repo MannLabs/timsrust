@@ -93,7 +93,7 @@ impl PrecursorReaderBuilder {
     }
 }
 
-trait PrecursorReaderTrait: Sync {
+trait PrecursorReaderTrait: Sync + Send {
     fn get(&self, index: usize) -> Option<Precursor>;
     fn len(&self) -> usize;
 }
