@@ -113,7 +113,7 @@ impl FrameReader {
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
-        let mut frame = self.frames[index].clone();
+        let mut frame = self.get_frame_without_coordinates(index)?;
         let offset = self.offsets[index];
         let blob = self.tdf_bin_reader.get(offset)?;
         let scan_count: usize =
@@ -127,6 +127,18 @@ impl FrameReader {
             &blob,
             &frame.scan_offsets,
         )?;
+        Ok(frame)
+    }
+
+    pub fn get_frame_without_coordinates(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
+        let frame = self
+            .frames
+            .get(index)
+            .ok_or(FrameReaderError::IndexOutOfBounds)?
+            .clone();
         Ok(frame)
     }
 
@@ -249,4 +261,6 @@ pub enum FrameReaderError {
     CorruptFrame,
     #[error("{0}")]
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
+    #[error("Index out of bounds")]
+    IndexOutOfBounds,
 }
