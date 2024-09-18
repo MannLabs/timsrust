@@ -14,6 +14,12 @@ impl TdfBlob {
         }
     }
 
+    pub fn get_all(&self) -> Vec<u32> {
+        (0..self.len())
+            .map(|index| self.get(index).unwrap())
+            .collect()
+    }
+
     pub fn get(&self, index: usize) -> Option<u32> {
         if index >= self.len() {
             None
