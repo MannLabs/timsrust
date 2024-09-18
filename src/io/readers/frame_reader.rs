@@ -19,7 +19,8 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
+    MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
+    QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
@@ -30,6 +31,7 @@ pub struct FrameReader {
     acquisition: AcquisitionType,
     offsets: Vec<usize>,
     dia_windows: Option<Vec<Arc<QuadrupoleSettings>>>,
+    compression_type: u8,
 }
 
 impl FrameReader {
@@ -37,6 +39,16 @@ impl FrameReader {
         let sql_path = find_extension(&path, "analysis.tdf").ok_or(
             FrameReaderError::FileNotFound("analysis.tdf".to_string()),
         )?;
+        let compression_type =
+            match MetadataReader::new(&sql_path)?.compression_type {
+                2 => 2,
+                compression_type => {
+                    return Err(FrameReaderError::CompressionTypeError(
+                        compression_type,
+                    ))
+                },
+            };
+
         let tdf_sql_reader = SqlReader::open(sql_path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
         let bin_path = find_extension(&path, "analysis.tdf_bin").ok_or(
@@ -92,6 +104,7 @@ impl FrameReader {
                 AcquisitionType::DIAPASEF => Some(quadrupole_settings),
                 _ => None,
             },
+            compression_type,
         };
         Ok(reader)
     }
@@ -112,6 +125,18 @@ impl FrameReader {
     }
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
+        match self.compression_type {
+            2 => self.get_from_compression_type_2(index),
+            _ => Err(FrameReaderError::CompressionTypeError(
+                self.compression_type,
+            )),
+        }
+    }
+
+    pub fn get_from_compression_type_2(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.get_frame_without_coordinates(index)?;
         let offset = self.offsets[index];
