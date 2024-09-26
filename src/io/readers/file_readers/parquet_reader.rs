@@ -19,20 +19,19 @@ pub trait ReadableParquetTable {
         let file: File = File::open(file_name)?;
         let reader: SerializedFileReader<File> =
             SerializedFileReader::new(file)?;
-        let results: Vec<Self> = reader
+        reader
             .get_row_iter(None)?
             .map(|record| {
                 let mut result = Self::default();
-                for (name, field) in record.get_column_iter() {
+                for (name, field) in record?.get_column_iter() {
                     result.update_from_parquet_file(
                         name.to_string().as_str(),
                         field.to_string(),
                     );
                 }
-                result
+                Ok(result)
             })
-            .collect();
-        Ok(results)
+            .collect()
     }
 }
 
