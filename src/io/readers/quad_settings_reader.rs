@@ -37,7 +37,8 @@ impl QuadrupoleSettingsReader {
             .iter()
             .map(|x| x.window_group)
             .max()
-            .unwrap() as usize; // SqlReader cannot return empty vecs, so always succeeds
+            .expect("SqlReader cannot return empty vecs, so there is always a max window_group")
+            as usize;
         let quadrupole_settings = (0..window_group_count)
             .map(|window_group| {
                 let mut quad = QuadrupoleSettings::default();
@@ -306,9 +307,18 @@ fn expand_window_settings(
         let window = window_group.window_group;
         let frame = window_group.frame;
         let group = &quadrupole_settings[window as usize - 1];
-        let window_group_start =
-            group.scan_starts.iter().min().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
-        let window_group_end = group.scan_ends.iter().max().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
+        let window_group_start = group
+            .scan_starts
+            .iter()
+            .min()
+            .expect("SqlReader cannot return empty vecs, so there is always min window_group index")
+            .clone();
+        let window_group_end = group
+            .scan_ends
+            .iter()
+            .max()
+            .expect("SqlReader cannot return empty vecs, so there is always max window_group index")
+            .clone();
         for (sws, swe) in
             scan_range_subsplit(window_group_start, window_group_end, &strategy)
         {

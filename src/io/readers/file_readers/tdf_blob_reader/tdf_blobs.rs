@@ -16,7 +16,9 @@ impl TdfBlob {
 
     pub fn get_all(&self) -> Vec<u32> {
         (0..self.len())
-            .map(|index| self.get(index).unwrap())
+            .map(|index| self.get(index).expect(
+                "When iterating over the length of a tdf blob, you cannot go out of bounds"
+            ))
             .collect()
     }
 
