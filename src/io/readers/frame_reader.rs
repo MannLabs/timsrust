@@ -5,6 +5,10 @@ use std::{
 };
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(feature = "timscompress")]
+use timscompress::reader::{
+    CompressedTdfBlobReader, CompressedTdfBlobReaderError,
+};
 
 use crate::{
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
@@ -27,11 +31,15 @@ use super::{
 pub struct FrameReader {
     path: PathBuf,
     tdf_bin_reader: TdfBlobReader,
+    #[cfg(feature = "timscompress")]
+    compressed_reader: CompressedTdfBlobReader,
     frames: Vec<Frame>,
     acquisition: AcquisitionType,
     offsets: Vec<usize>,
     dia_windows: Option<Vec<Arc<QuadrupoleSettings>>>,
     compression_type: u8,
+    #[cfg(feature = "timscompress")]
+    scan_count: usize,
 }
 
 impl FrameReader {
@@ -42,6 +50,8 @@ impl FrameReader {
         let compression_type =
             match MetadataReader::new(&sql_path)?.compression_type {
                 2 => 2,
+                #[cfg(feature = "timscompress")]
+                3 => 3,
                 compression_type => {
                     return Err(FrameReaderError::CompressionTypeError(
                         compression_type,
@@ -54,7 +64,9 @@ impl FrameReader {
         let bin_path = find_extension(&path, "analysis.tdf_bin").ok_or(
             FrameReaderError::FileNotFound("analysis.tdf_bin".to_string()),
         )?;
-        let tdf_bin_reader = TdfBlobReader::new(bin_path)?;
+        let tdf_bin_reader = TdfBlobReader::new(&bin_path)?;
+        #[cfg(feature = "timscompress")]
+        let compressed_reader = CompressedTdfBlobReader::new(&bin_path)?;
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
@@ -93,6 +105,13 @@ impl FrameReader {
                 )
             })
             .collect();
+        #[cfg(feature = "timscompress")]
+        let scan_count = sql_frames
+            .iter()
+            .map(|frame| frame.scan_count)
+            .max()
+            .expect("Frame table cannot be empty")
+            as usize;
         let offsets = sql_frames.iter().map(|x| x.binary_offset).collect();
         let reader = Self {
             path: path.as_ref().to_path_buf(),
@@ -105,6 +124,10 @@ impl FrameReader {
                 _ => None,
             },
             compression_type,
+            #[cfg(feature = "timscompress")]
+            compressed_reader,
+            #[cfg(feature = "timscompress")]
+            scan_count,
         };
         Ok(reader)
     }
@@ -140,6 +163,8 @@ impl FrameReader {
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
         match self.compression_type {
             2 => self.get_from_compression_type_2(index),
+            #[cfg(feature = "timscompress")]
+            3 => self.get_from_compression_type_3(index),
             _ => Err(FrameReaderError::CompressionTypeError(
                 self.compression_type,
             )),
@@ -165,6 +190,24 @@ impl FrameReader {
             &blob,
             &frame.scan_offsets,
         )?;
+        Ok(frame)
+    }
+
+    #[cfg(feature = "timscompress")]
+    fn get_from_compression_type_3(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
+        // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
+        // TODO
+        let mut frame = self.get_frame_without_coordinates(index)?;
+        let offset = self.get_binary_offset(index);
+        let raw_frame = self
+            .compressed_reader
+            .get_raw_frame_data(offset, self.scan_count);
+        frame.tof_indices = raw_frame.tof_indices;
+        frame.intensities = raw_frame.intensities;
+        frame.scan_offsets = raw_frame.scan_offsets;
         Ok(frame)
     }
 
@@ -289,6 +332,9 @@ fn get_frame_without_data(
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameReaderError {
+    #[cfg(feature = "timscompress")]
+    #[error("{0}")]
+    CompressedTdfBlobReaderError(#[from] CompressedTdfBlobReaderError),
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
     #[error("{0}")]

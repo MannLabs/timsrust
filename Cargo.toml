@@ -24,6 +24,7 @@ rusqlite = { version = "0.31.0", features = ["bundled"], optional = true}
 parquet = { version = "42.0.0", optional = true }
 serde = { version = "1.0.209", features = ["derive"], optional = true }
 serde_json = { version = "1.0.127", optional = true }
+timscompress = {optional=true}
 
 [features]
 tdf = ["rusqlite"]
