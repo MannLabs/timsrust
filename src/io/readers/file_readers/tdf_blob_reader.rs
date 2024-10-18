@@ -65,12 +65,14 @@ impl TdfBlobReader {
     }
 }
 
+#[cfg(feature = "minitdf")]
 #[derive(Debug)]
 pub struct IndexedTdfBlobReader {
     blob_reader: TdfBlobReader,
     binary_offsets: Vec<usize>,
 }
 
+#[cfg(feature = "minitdf")]
 impl IndexedTdfBlobReader {
     pub fn new(
         file_name: impl AsRef<Path>,
@@ -115,6 +117,7 @@ pub enum TdfBlobReaderError {
 pub enum IndexedTdfBlobReaderError {
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
+    #[cfg(feature = "minitdf")]
     #[error("Invalid index {0}")]
     InvalidIndex(usize),
 }
