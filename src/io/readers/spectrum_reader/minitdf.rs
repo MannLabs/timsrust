@@ -70,12 +70,7 @@ impl MiniTDFSpectrumReader {
         spectrum.index = index;
         let blob = self.blob_reader.get(index)?;
         if !blob.is_empty() {
-            let size: usize = blob.len();
-            let spectrum_data: Vec<u32> = (0..size)
-                .map(|i| {
-                    blob.get(i).ok_or(MiniTDFSpectrumReaderError::BlobError)
-                })
-                .collect::<Result<Vec<u32>, _>>()?;
+            let spectrum_data: Vec<u32> = blob.get_all();
             let scan_count: usize = blob.len() / 3;
             let tof_indices_bytes: &[u32] =
                 &spectrum_data[..scan_count as usize * 2];
