@@ -120,6 +120,15 @@ impl FrameReader {
             .map(move |x| self.get(x))
     }
 
+    pub fn filter<'a, F: Fn(&Frame) -> bool + Sync + Send + 'a>(
+        &'a self,
+        predicate: F,
+    ) -> impl Iterator<Item = Result<Frame, FrameReaderError>> + 'a {
+        (0..self.len())
+            .filter(move |x| predicate(&self.frames[*x]))
+            .map(move |x| self.get(x))
+    }
+
     pub fn get_dia_windows(&self) -> Option<Vec<Arc<QuadrupoleSettings>>> {
         self.dia_windows.clone()
     }
