@@ -109,6 +109,10 @@ impl FrameReader {
         Ok(reader)
     }
 
+    pub fn get_binary_offset(&self, index: usize) -> usize {
+        self.offsets[index]
+    }
+
     pub fn parallel_filter<'a, F: Fn(&Frame) -> bool + Sync + Send + 'a>(
         &'a self,
         predicate: F,
@@ -142,13 +146,13 @@ impl FrameReader {
         }
     }
 
-    pub fn get_from_compression_type_2(
+    fn get_from_compression_type_2(
         &self,
         index: usize,
     ) -> Result<Frame, FrameReaderError> {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.get_frame_without_coordinates(index)?;
-        let offset = self.offsets[index];
+        let offset = self.get_binary_offset(index);
         let blob = self.tdf_bin_reader.get(offset)?;
         let scan_count: usize =
             blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
@@ -288,6 +292,8 @@ pub enum FrameReaderError {
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
     #[error("{0}")]
+    MetadataReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
     FileNotFound(String),
     #[error("{0}")]
     SqlError(#[from] SqlError),
@@ -297,4 +303,6 @@ pub enum FrameReaderError {
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
     #[error("Index out of bounds")]
     IndexOutOfBounds,
+    #[error("Compression type {0} not understood")]
+    CompressionTypeError(u8),
 }
