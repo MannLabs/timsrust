@@ -5,6 +5,10 @@ use std::{
 };
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(feature = "timscompress")]
+use timscompress::reader::{
+    CompressedTdfBlobReader, CompressedTdfBlobReaderError,
+};
 
 use crate::{
     ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
@@ -19,17 +23,23 @@ use super::{
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
+    MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
+    QuadrupoleSettingsReaderError,
 };
 
 #[derive(Debug)]
 pub struct FrameReader {
     path: PathBuf,
     tdf_bin_reader: TdfBlobReader,
+    #[cfg(feature = "timscompress")]
+    compressed_reader: CompressedTdfBlobReader,
     frames: Vec<Frame>,
     acquisition: AcquisitionType,
     offsets: Vec<usize>,
     dia_windows: Option<Vec<Arc<QuadrupoleSettings>>>,
+    compression_type: u8,
+    #[cfg(feature = "timscompress")]
+    scan_count: usize,
 }
 
 impl FrameReader {
@@ -37,12 +47,26 @@ impl FrameReader {
         let sql_path = find_extension(&path, "analysis.tdf").ok_or(
             FrameReaderError::FileNotFound("analysis.tdf".to_string()),
         )?;
+        let compression_type =
+            match MetadataReader::new(&sql_path)?.compression_type {
+                2 => 2,
+                #[cfg(feature = "timscompress")]
+                3 => 3,
+                compression_type => {
+                    return Err(FrameReaderError::CompressionTypeError(
+                        compression_type,
+                    ))
+                },
+            };
+
         let tdf_sql_reader = SqlReader::open(sql_path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
         let bin_path = find_extension(&path, "analysis.tdf_bin").ok_or(
             FrameReaderError::FileNotFound("analysis.tdf_bin".to_string()),
         )?;
-        let tdf_bin_reader = TdfBlobReader::new(bin_path)?;
+        let tdf_bin_reader = TdfBlobReader::new(&bin_path)?;
+        #[cfg(feature = "timscompress")]
+        let compressed_reader = CompressedTdfBlobReader::new(&bin_path)?;
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
@@ -65,6 +89,7 @@ impl FrameReader {
         } else {
             quadrupole_settings = vec![];
         }
+        // TODO move Arc to quad settings reader?
         let quadrupole_settings = quadrupole_settings
             .into_iter()
             .map(|x| Arc::new(x))
@@ -81,6 +106,13 @@ impl FrameReader {
                 )
             })
             .collect();
+        #[cfg(feature = "timscompress")]
+        let scan_count = sql_frames
+            .iter()
+            .map(|frame| frame.scan_count)
+            .max()
+            .expect("Frame table cannot be empty")
+            as usize;
         let offsets = sql_frames.iter().map(|x| x.binary_offset).collect();
         let reader = Self {
             path: path.as_ref().to_path_buf(),
@@ -92,8 +124,17 @@ impl FrameReader {
                 AcquisitionType::DIAPASEF => Some(quadrupole_settings),
                 _ => None,
             },
+            compression_type,
+            #[cfg(feature = "timscompress")]
+            compressed_reader,
+            #[cfg(feature = "timscompress")]
+            scan_count,
         };
         Ok(reader)
+    }
+
+    pub fn get_binary_offset(&self, index: usize) -> usize {
+        self.offsets[index]
     }
 
     pub fn parallel_filter<'a, F: Fn(&Frame) -> bool + Sync + Send + 'a>(
@@ -107,14 +148,37 @@ impl FrameReader {
             .map(move |x| self.get(x))
     }
 
+    pub fn filter<'a, F: Fn(&Frame) -> bool + Sync + Send + 'a>(
+        &'a self,
+        predicate: F,
+    ) -> impl Iterator<Item = Result<Frame, FrameReaderError>> + 'a {
+        (0..self.len())
+            .filter(move |x| predicate(&self.frames[*x]))
+            .map(move |x| self.get(x))
+    }
+
     pub fn get_dia_windows(&self) -> Option<Vec<Arc<QuadrupoleSettings>>> {
         self.dia_windows.clone()
     }
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
+        match self.compression_type {
+            2 => self.get_from_compression_type_2(index),
+            #[cfg(feature = "timscompress")]
+            3 => self.get_from_compression_type_3(index),
+            _ => Err(FrameReaderError::CompressionTypeError(
+                self.compression_type,
+            )),
+        }
+    }
+
+    fn get_from_compression_type_2(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
-        let mut frame = self.frames[index].clone();
-        let offset = self.offsets[index];
+        let mut frame = self.get_frame_without_coordinates(index)?;
+        let offset = self.get_binary_offset(index);
         let blob = self.tdf_bin_reader.get(offset)?;
         let scan_count: usize =
             blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
@@ -127,6 +191,36 @@ impl FrameReader {
             &blob,
             &frame.scan_offsets,
         )?;
+        Ok(frame)
+    }
+
+    #[cfg(feature = "timscompress")]
+    fn get_from_compression_type_3(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
+        // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
+        // TODO
+        let mut frame = self.get_frame_without_coordinates(index)?;
+        let offset = self.get_binary_offset(index);
+        let raw_frame = self
+            .compressed_reader
+            .get_raw_frame_data(offset, self.scan_count);
+        frame.tof_indices = raw_frame.tof_indices;
+        frame.intensities = raw_frame.intensities;
+        frame.scan_offsets = raw_frame.scan_offsets;
+        Ok(frame)
+    }
+
+    pub fn get_frame_without_coordinates(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
+        let frame = self
+            .frames
+            .get(index)
+            .ok_or(FrameReaderError::IndexOutOfBounds)?
+            .clone();
         Ok(frame)
     }
 
@@ -239,8 +333,13 @@ fn get_frame_without_data(
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameReaderError {
+    #[cfg(feature = "timscompress")]
+    #[error("{0}")]
+    CompressedTdfBlobReaderError(#[from] CompressedTdfBlobReaderError),
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
+    #[error("{0}")]
+    MetadataReaderError(#[from] MetadataReaderError),
     #[error("{0}")]
     FileNotFound(String),
     #[error("{0}")]
@@ -249,4 +348,8 @@ pub enum FrameReaderError {
     CorruptFrame,
     #[error("{0}")]
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
+    #[error("Index out of bounds")]
+    IndexOutOfBounds,
+    #[error("Compression type {0} not understood")]
+    CompressionTypeError(u8),
 }

@@ -53,6 +53,9 @@ TODO
 * Improve docs
 * Improve tests
 * Pase CompressionType1
+* Tarred file reader
+* Clean up src (FrameReader, ...)
+* Cleaner try_from conversions/readers
 * Make Path of TimsTOF data into special type
 * Single access point for all readers?
 * Few unchecked unwraps left

@@ -2,12 +2,9 @@
 mod minitdf;
 #[cfg(feature = "tdf")]
 mod tdf;
-
-use core::fmt;
-
 #[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFSpectrumReader, MiniTDFSpectrumReaderError};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::*;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -21,12 +18,6 @@ use super::FrameWindowSplittingConfiguration;
 
 pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
-}
-
-impl fmt::Debug for SpectrumReader {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SpectrumReader {{ /* fields omitted */ }}")
-    }
 }
 
 impl SpectrumReader {

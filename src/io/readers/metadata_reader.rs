@@ -97,7 +97,10 @@ fn get_im_converter(
 ) -> Result<Scan2ImConverter, MetadataReaderError> {
     let scan_counts: Vec<u32> =
         tdf_sql_reader.read_column_from_table("NumScans", "Frames")?;
-    let scan_max_index = *scan_counts.iter().max().unwrap(); // SqlReader cannot return empty vecs, so always succeeds
+    let scan_max_index = *scan_counts
+        .iter()
+        .max()
+        .expect("SqlReader cannot return empty vecs, so there is always a max scan index");
     let (im_min, im_max) = get_im_bounds(sql_metadata)?;
     Ok(Scan2ImConverter::from_boundaries(
         im_min,
