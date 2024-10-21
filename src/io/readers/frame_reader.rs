@@ -89,6 +89,7 @@ impl FrameReader {
         } else {
             quadrupole_settings = vec![];
         }
+        // TODO move Arc to quad settings reader?
         let quadrupole_settings = quadrupole_settings
             .into_iter()
             .map(|x| Arc::new(x))
