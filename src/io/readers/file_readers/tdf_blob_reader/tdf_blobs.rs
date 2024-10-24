@@ -14,6 +14,7 @@ impl TdfBlob {
         }
     }
 
+    #[cfg(feature = "minitdf")]
     pub fn get_all(&self) -> Vec<u32> {
         (0..self.len())
             .map(|index| self.get(index).expect(
@@ -46,6 +47,7 @@ impl TdfBlob {
         self.bytes.len() / BLOB_TYPE_SIZE
     }
 
+    #[cfg(feature = "minitdf")]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
