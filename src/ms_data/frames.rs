@@ -8,7 +8,7 @@ pub struct Frame {
     pub tof_indices: Vec<u32>,
     pub intensities: Vec<u32>,
     pub index: usize,
-    pub rt: f64,
+    pub rt_in_seconds: f64,
     pub acquisition_type: AcquisitionType,
     pub ms_level: MSLevel,
     pub quadrupole_settings: Arc<QuadrupoleSettings>,

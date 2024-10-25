@@ -316,7 +316,7 @@ fn get_frame_without_data(
     let sql_frame = &sql_frames[index];
     frame.index = sql_frame.id;
     frame.ms_level = MSLevel::read_from_msms_type(sql_frame.msms_type);
-    frame.rt = sql_frame.rt;
+    frame.rt_in_seconds = sql_frame.rt;
     frame.acquisition_type = acquisition;
     frame.intensity_correction_factor = 1.0 / sql_frame.accumulation_time;
     if (acquisition == AcquisitionType::DIAPASEF)
