@@ -1,8 +1,5 @@
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
-
-use crate::ms_data::Spectrum;
+use crate::Spectrum;
+use std::{fs::File, io::Write, path::Path};
 
 pub struct MGFWriter;
 
