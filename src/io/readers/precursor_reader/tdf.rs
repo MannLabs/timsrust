@@ -1,17 +1,16 @@
 mod dda;
 mod dia;
 
-use std::path::Path;
-
 use dda::{DDATDFPrecursorReader, DDATDFPrecursorReaderError};
 use dia::{DIATDFPrecursorReader, DIATDFPrecursorReaderError};
 
 use crate::{
     io::readers::{
-        file_readers::sql_reader::{SqlError, SqlReader},
+        file_readers::sql_reader::{SqlReader, SqlReaderError},
         FrameWindowSplittingConfiguration,
     },
     ms_data::{AcquisitionType, Precursor},
+    readers::TimsTofPathLike,
 };
 
 use super::PrecursorReaderTrait;
@@ -22,11 +21,10 @@ pub struct TDFPrecursorReader {
 
 impl TDFPrecursorReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
         splitting_strategy: FrameWindowSplittingConfiguration,
     ) -> Result<Self, TDFPrecursorReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let tdf_sql_reader = SqlReader::open(&path)?;
         let sql_frames: Vec<u8> =
             tdf_sql_reader.read_column_from_table("ScanMode", "Frames")?;
         let acquisition_type = if sql_frames.iter().any(|&x| x == 8) {
@@ -39,7 +37,7 @@ impl TDFPrecursorReader {
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
             match acquisition_type {
                 AcquisitionType::DDAPASEF => {
-                    Box::new(DDATDFPrecursorReader::new(path)?)
+                    Box::new(DDATDFPrecursorReader::new(&path)?)
                 },
                 AcquisitionType::DIAPASEF => Box::new(
                     DIATDFPrecursorReader::new(path, splitting_strategy)?,
@@ -70,7 +68,7 @@ impl PrecursorReaderTrait for TDFPrecursorReader {
 #[derive(Debug, thiserror::Error)]
 pub enum TDFPrecursorReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     DDATDFPrecursorReaderError(#[from] DDATDFPrecursorReaderError),
     #[error("{0}")]

@@ -1,16 +1,14 @@
-use std::path::Path;
-
-use crate::io::readers::FrameWindowSplittingConfiguration;
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
     },
     io::readers::{
-        file_readers::sql_reader::{SqlError, SqlReader},
+        file_readers::sql_reader::{SqlReader, SqlReaderError},
         MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
         QuadrupoleSettingsReaderError,
     },
     ms_data::{Precursor, QuadrupoleSettings},
+    readers::{FrameWindowSplittingConfiguration, TimsTofPathLike},
 };
 
 use super::PrecursorReaderTrait;
@@ -24,11 +22,10 @@ pub struct DIATDFPrecursorReader {
 
 impl DIATDFPrecursorReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
         splitting_config: FrameWindowSplittingConfiguration,
     ) -> Result<Self, DIATDFPrecursorReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let tdf_sql_reader = SqlReader::open(&path)?;
         let metadata = MetadataReader::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
@@ -73,7 +70,7 @@ impl PrecursorReaderTrait for DIATDFPrecursorReader {
 #[derive(Debug, thiserror::Error)]
 pub enum DIATDFPrecursorReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     MetadataReaderError(#[from] MetadataReaderError),
     #[error("{0}")]

@@ -2,12 +2,12 @@
 mod minitdf;
 #[cfg(feature = "tdf")]
 mod tdf;
+
 #[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFSpectrumReader, MiniTDFSpectrumReaderError};
 use rayon::prelude::*;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 #[cfg(feature = "tdf")]
 use tdf::{TDFSpectrumReader, TDFSpectrumReaderError};
 
@@ -15,6 +15,7 @@ use crate::ms_data::Spectrum;
 
 #[cfg(feature = "tdf")]
 use super::FrameWindowSplittingConfiguration;
+use super::{TimsTofFileType, TimsTofPath, TimsTofPathLike};
 
 pub struct SpectrumReader {
     spectrum_reader: Box<dyn SpectrumReaderTrait>,
@@ -25,16 +26,14 @@ impl SpectrumReader {
         SpectrumReaderBuilder::default()
     }
 
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, SpectrumReaderError> {
+    pub fn new(
+        path: impl TimsTofPathLike,
+    ) -> Result<Self, SpectrumReaderError> {
         Self::build().with_path(path).finalize()
     }
 
     pub fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError> {
         self.spectrum_reader.get(index)
-    }
-
-    pub fn get_path(&self) -> PathBuf {
-        self.spectrum_reader.get_path()
     }
 
     pub fn len(&self) -> usize {
@@ -64,14 +63,16 @@ impl SpectrumReader {
 
 #[derive(Debug, Default, Clone)]
 pub struct SpectrumReaderBuilder {
-    path: PathBuf,
+    path: Option<TimsTofPath>,
     config: SpectrumReaderConfig,
 }
 
 impl SpectrumReaderBuilder {
-    pub fn with_path(&self, path: impl AsRef<Path>) -> Self {
+    pub fn with_path(&self, path: impl TimsTofPathLike) -> Self {
+        // TODO
+        let path = Some(path.to_timstof_path().unwrap());
         Self {
-            path: path.as_ref().to_path_buf(),
+            path,
             ..self.clone()
         }
     }
@@ -83,22 +84,20 @@ impl SpectrumReaderBuilder {
         }
     }
 
-    pub fn finalize(&self) -> Result<SpectrumReader, SpectrumReaderError> {
+    pub fn finalize(self) -> Result<SpectrumReader, SpectrumReaderError> {
+        let path = match self.path {
+            None => return Err(SpectrumReaderError::NoPath),
+            Some(path) => path,
+        };
         let spectrum_reader: Box<dyn SpectrumReaderTrait> =
-            match self.path.extension().and_then(|e| e.to_str()) {
+            match path.file_type() {
                 #[cfg(feature = "minitdf")]
-                Some("ms2") => {
-                    Box::new(MiniTDFSpectrumReader::new(self.path.clone())?)
+                TimsTofFileType::MiniTDF => {
+                    Box::new(MiniTDFSpectrumReader::new(path)?)
                 },
                 #[cfg(feature = "tdf")]
-                Some("d") => Box::new(TDFSpectrumReader::new(
-                    self.path.clone(),
-                    self.config.clone(),
-                )?),
-                _ => {
-                    return Err(SpectrumReaderError::SpectrumReaderFileError(
-                        self.path.clone(),
-                    ))
+                TimsTofFileType::TDF => {
+                    Box::new(TDFSpectrumReader::new(path, self.config)?)
                 },
             };
         let mut reader = SpectrumReader { spectrum_reader };
@@ -111,7 +110,6 @@ impl SpectrumReaderBuilder {
 
 trait SpectrumReaderTrait: Sync + Send {
     fn get(&self, index: usize) -> Result<Spectrum, SpectrumReaderError>;
-    fn get_path(&self) -> PathBuf;
     fn len(&self) -> usize;
     fn calibrate(&mut self);
 }
@@ -124,8 +122,8 @@ pub enum SpectrumReaderError {
     #[cfg(feature = "tdf")]
     #[error("{0}")]
     TDFSpectrumReaderError(#[from] TDFSpectrumReaderError),
-    #[error("File {0} not valid")]
-    SpectrumReaderFileError(PathBuf),
+    #[error("No path provided")]
+    NoPath,
 }
 
 #[derive(Debug, Clone, Copy)]

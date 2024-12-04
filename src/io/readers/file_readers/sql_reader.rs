@@ -5,31 +5,29 @@ pub mod pasef_frame_msms;
 pub mod precursors;
 pub mod quad_settings;
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 use rusqlite::{types::FromSql, Connection};
+
+use crate::readers::{TimsTofPathError, TimsTofPathLike};
 
 #[derive(Debug)]
 pub struct SqlReader {
     connection: Connection,
-    path: PathBuf,
 }
 
 impl SqlReader {
-    pub fn open(file_name: impl AsRef<Path>) -> Result<Self, SqlError> {
-        let path = file_name.as_ref().to_path_buf();
-        let connection = Connection::open(&path)?;
-        Ok(Self { connection, path })
+    pub fn open(path: impl TimsTofPathLike) -> Result<Self, SqlReaderError> {
+        let path = path.to_timstof_path()?;
+        let connection = Connection::open(&path.tdf()?)?;
+        Ok(Self { connection })
     }
 
     pub fn read_column_from_table<T: rusqlite::types::FromSql + Default>(
         &self,
         column_name: &str,
         table_name: &str,
-    ) -> Result<Vec<T>, SqlError> {
+    ) -> Result<Vec<T>, SqlReaderError> {
         let query = format!("SELECT {} FROM {}", column_name, table_name);
         let mut stmt = self.connection.prepare(&query)?;
         let rows = stmt.query_map([], |row| match row.get::<usize, T>(0) {
@@ -39,10 +37,6 @@ impl SqlReader {
         let result = rows.collect::<Result<Vec<_>, _>>()?;
         Ok(result)
     }
-
-    pub fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
 }
 
 pub trait ReadableSqlTable {
@@ -50,7 +44,7 @@ pub trait ReadableSqlTable {
 
     fn from_sql_row(row: &rusqlite::Row) -> Self;
 
-    fn from_sql_reader(reader: &SqlReader) -> Result<Vec<Self>, SqlError>
+    fn from_sql_reader(reader: &SqlReader) -> Result<Vec<Self>, SqlReaderError>
     where
         Self: Sized,
     {
@@ -59,7 +53,9 @@ pub trait ReadableSqlTable {
         let rows = stmt.query_map([], |row| Ok(Self::from_sql_row(row)))?;
         let result = rows.collect::<Result<Vec<_>, _>>()?;
         if result.len() == 0 {
-            Err(SqlError(rusqlite::Error::QueryReturnedNoRows))
+            Err(SqlReaderError::SqlError(
+                rusqlite::Error::QueryReturnedNoRows,
+            ))
         } else {
             Ok(result)
         }
@@ -71,7 +67,7 @@ pub trait ReadableSqlHashMap {
 
     fn from_sql_reader(
         reader: &SqlReader,
-    ) -> Result<HashMap<String, String>, SqlError>
+    ) -> Result<HashMap<String, String>, SqlReaderError>
     where
         Self: Sized,
     {
@@ -99,6 +95,10 @@ impl ParseDefault for rusqlite::Row<'_> {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("{0}")]
-pub struct SqlError(#[from] rusqlite::Error);
+#[derive(Debug, thiserror::Error)]
+pub enum SqlReaderError {
+    #[error("{0}")]
+    SqlError(#[from] rusqlite::Error),
+    #[error("{0}")]
+    TimsTofPathError(#[from] TimsTofPathError),
+}

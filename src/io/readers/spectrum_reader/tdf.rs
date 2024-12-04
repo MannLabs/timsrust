@@ -4,24 +4,22 @@ mod raw_spectra;
 
 use raw_spectra::{RawSpectrum, RawSpectrumReader, RawSpectrumReaderError};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::path::{Path, PathBuf};
 
 use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
     io::readers::{
-        file_readers::sql_reader::{SqlError, SqlReader},
+        file_readers::sql_reader::{SqlReader, SqlReaderError},
         FrameReader, FrameReaderError, MetadataReader, MetadataReaderError,
         PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
-    utils::find_extension,
+    readers::TimsTofPathLike,
 };
 
 use super::{SpectrumReaderConfig, SpectrumReaderError, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct TDFSpectrumReader {
-    path: PathBuf,
     precursor_reader: PrecursorReader,
     mz_reader: Tof2MzConverter,
     raw_spectrum_reader: RawSpectrumReader,
@@ -30,18 +28,15 @@ pub struct TDFSpectrumReader {
 
 impl TDFSpectrumReader {
     pub fn new(
-        path_name: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
         config: SpectrumReaderConfig,
     ) -> Result<Self, TDFSpectrumReaderError> {
-        let frame_reader: FrameReader = FrameReader::new(&path_name)?;
-        let sql_path = find_extension(&path_name, "analysis.tdf").ok_or(
-            TDFSpectrumReaderError::FileNotFound("analysis.tdf".to_string()),
-        )?;
-        let metadata = MetadataReader::new(&sql_path)?;
+        let frame_reader: FrameReader = FrameReader::new(&path)?;
+        let metadata = MetadataReader::new(&path)?;
         let mz_reader: Tof2MzConverter = metadata.mz_converter;
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let tdf_sql_reader = SqlReader::open(&path)?;
         let precursor_reader = PrecursorReader::build()
-            .with_path(&sql_path)
+            .with_path(&path)
             .with_config(config.frame_splitting_params)
             .finalize()?;
         let acquisition_type = frame_reader.get_acquisition();
@@ -55,7 +50,6 @@ impl TDFSpectrumReader {
             splitting_strategy,
         )?;
         let reader = Self {
-            path: path_name.as_ref().to_path_buf(),
             precursor_reader,
             mz_reader,
             raw_spectrum_reader,
@@ -103,10 +97,6 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
         self.raw_spectrum_reader.len()
     }
 
-    fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
-
     fn calibrate(&mut self) {
         let hits: Vec<(f64, u32)> = (0..self.precursor_reader.len())
             .into_par_iter()
@@ -143,7 +133,7 @@ impl SpectrumReaderTrait for TDFSpectrumReader {
 #[derive(Debug, thiserror::Error)]
 pub enum TDFSpectrumReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     PrecursorReaderError(#[from] PrecursorReaderError),
     #[error("{0}")]
