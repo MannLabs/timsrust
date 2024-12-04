@@ -18,7 +18,7 @@ pub struct MetadataReader;
 
 impl MetadataReader {
     pub fn new(
-        path: &impl TimsTofPathLike,
+        path: impl TimsTofPathLike,
     ) -> Result<Metadata, MetadataReaderError> {
         let tdf_sql_reader = SqlReader::open(path)?;
         let sql_metadata: HashMap<String, String> =
@@ -124,10 +124,6 @@ fn parse_value<T: FromStr>(
 
 #[derive(Debug, thiserror::Error)]
 pub enum MetadataReaderError {
-    // #[error("{0}")]
-    // TdfBlobReaderError(#[from] TdfBlobReaderError),
-    // #[error("{0}")]
-    // FileNotFound(String),
     #[error("{0}")]
     SqlReaderError(#[from] SqlReaderError),
     #[error("Key not found: {0}")]
