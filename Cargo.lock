@@ -1139,7 +1139,7 @@ checksum = "7f4423059b0eec2a116d2b8e4b40d4faaad1b72ae17df8718c66520e0e876885"
 
 [[package]]
 name = "timsrust"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "bytemuck",
  "criterion",
