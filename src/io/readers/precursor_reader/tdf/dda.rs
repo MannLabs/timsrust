@@ -1,16 +1,16 @@
-use std::path::Path;
-
 use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
     },
     io::readers::{
         file_readers::sql_reader::{
-            precursors::SqlPrecursor, ReadableSqlTable, SqlError, SqlReader,
+            precursors::SqlPrecursor, ReadableSqlTable, SqlReader,
+            SqlReaderError,
         },
         MetadataReader, MetadataReaderError,
     },
     ms_data::Precursor,
+    readers::TimsTofPathLike,
 };
 
 use super::PrecursorReaderTrait;
@@ -24,10 +24,9 @@ pub struct DDATDFPrecursorReader {
 
 impl DDATDFPrecursorReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Self, DDATDFPrecursorReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let tdf_sql_reader = SqlReader::open(&path)?;
         let metadata = MetadataReader::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
@@ -66,7 +65,7 @@ impl PrecursorReaderTrait for DDATDFPrecursorReader {
 #[derive(Debug, thiserror::Error)]
 pub enum DDATDFPrecursorReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     MetadataReaderError(#[from] MetadataReaderError),
 }

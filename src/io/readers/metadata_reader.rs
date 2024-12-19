@@ -1,12 +1,15 @@
-use std::{collections::HashMap, fmt::Debug, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt::Debug, str::FromStr};
 
 use crate::{
     domain_converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
     ms_data::Metadata,
 };
 
-use super::file_readers::sql_reader::{
-    metadata::SqlMetadata, ReadableSqlHashMap, SqlError, SqlReader,
+use super::{
+    file_readers::sql_reader::{
+        metadata::SqlMetadata, ReadableSqlHashMap, SqlReader, SqlReaderError,
+    },
+    TimsTofPathLike,
 };
 
 const OTOF_CONTROL: &str = "Bruker otofControl";
@@ -15,10 +18,9 @@ pub struct MetadataReader;
 
 impl MetadataReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Metadata, MetadataReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let tdf_sql_reader = SqlReader::open(path)?;
         let sql_metadata: HashMap<String, String> =
             SqlMetadata::from_sql_reader(&tdf_sql_reader)?;
         let compression_type =
@@ -40,7 +42,6 @@ impl MetadataReader {
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
         let metadata = Metadata {
-            path: path.as_ref().to_path_buf(),
             rt_converter: Frame2RtConverter::from_values(rt_values),
             im_converter: get_im_converter(&sql_metadata, &tdf_sql_reader)?,
             mz_converter: get_mz_converter(&sql_metadata)?,
@@ -123,12 +124,8 @@ fn parse_value<T: FromStr>(
 
 #[derive(Debug, thiserror::Error)]
 pub enum MetadataReaderError {
-    // #[error("{0}")]
-    // TdfBlobReaderError(#[from] TdfBlobReaderError),
-    // #[error("{0}")]
-    // FileNotFound(String),
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("Key not found: {0}")]
     KeyNotFound(String),
     #[error("Key not parsable: {0}")]

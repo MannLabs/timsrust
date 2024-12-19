@@ -1,8 +1,8 @@
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
-            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlError,
-            SqlReader,
+            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlReader,
+            SqlReaderError,
         },
         FrameReader, FrameReaderError,
     },
@@ -121,7 +121,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
 #[derive(Debug, thiserror::Error)]
 pub enum DDARawSpectrumReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     FrameReaderError(#[from] FrameReaderError),
 }

@@ -1,10 +1,8 @@
-use std::path::{Path, PathBuf};
-
 use crate::{
     io::readers::{
         file_readers::{
             parquet_reader::{
-                precursors::ParquetPrecursor, ParquetError,
+                precursors::ParquetPrecursor, ParquetReaderError,
                 ReadableParquetTable,
             },
             tdf_blob_reader::{
@@ -14,14 +12,13 @@ use crate::{
         PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
-    utils::find_extension,
+    readers::TimsTofPathLike,
 };
 
 use super::{SpectrumReaderError, SpectrumReaderTrait};
 
 #[derive(Debug)]
 pub struct MiniTDFSpectrumReader {
-    path: PathBuf,
     precursor_reader: PrecursorReader,
     blob_reader: IndexedTdfBlobReader,
     collision_energies: Vec<f64>,
@@ -29,32 +26,20 @@ pub struct MiniTDFSpectrumReader {
 
 impl MiniTDFSpectrumReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Self, MiniTDFSpectrumReaderError> {
-        let parquet_file_name = find_extension(&path, "ms2spectrum.parquet")
-            .ok_or(MiniTDFSpectrumReaderError::FileNotFound(
-                "analysis.tdf".to_string(),
-            ))?;
-        let precursor_reader = PrecursorReader::build()
-            .with_path(&parquet_file_name)
-            .finalize()?;
-        let offsets = ParquetPrecursor::from_parquet_file(&parquet_file_name)?
+        let precursor_reader =
+            PrecursorReader::build().with_path(&path).finalize()?;
+        let offsets = ParquetPrecursor::from_parquet_file(&path)?
             .iter()
             .map(|x| x.offset as usize)
             .collect();
-        let collision_energies =
-            ParquetPrecursor::from_parquet_file(&parquet_file_name)?
-                .iter()
-                .map(|x| x.collision_energy)
-                .collect();
-        let bin_file_name = find_extension(&path, "bin").ok_or(
-            MiniTDFSpectrumReaderError::FileNotFound(
-                "analysis.tdf".to_string(),
-            ),
-        )?;
-        let blob_reader = IndexedTdfBlobReader::new(&bin_file_name, offsets)?;
+        let collision_energies = ParquetPrecursor::from_parquet_file(&path)?
+            .iter()
+            .map(|x| x.collision_energy)
+            .collect();
+        let blob_reader = IndexedTdfBlobReader::new(&path, offsets)?;
         let reader = Self {
-            path: path.as_ref().to_path_buf(),
             precursor_reader,
             blob_reader,
             collision_energies,
@@ -112,10 +97,6 @@ impl SpectrumReaderTrait for MiniTDFSpectrumReader {
         self.precursor_reader.len()
     }
 
-    fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
-
     fn calibrate(&mut self) {}
 }
 
@@ -124,7 +105,7 @@ pub enum MiniTDFSpectrumReaderError {
     #[error("{0}")]
     PrecursorReaderError(#[from] PrecursorReaderError),
     #[error("{0}")]
-    ParquetError(#[from] ParquetError),
+    ParquetReaderError(#[from] ParquetReaderError),
     #[error("{0}")]
     IndexedTdfBlobReaderError(#[from] IndexedTdfBlobReaderError),
     #[error("{0}")]

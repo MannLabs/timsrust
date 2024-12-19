@@ -1,6 +1,5 @@
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 use crate::{
     domain_converters::{ConvertableDomain, Scan2ImConverter},
@@ -8,9 +7,12 @@ use crate::{
     utils::vec_utils::argsort,
 };
 
-use super::file_readers::sql_reader::{
-    frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
-    ReadableSqlTable, SqlError, SqlReader,
+use super::{
+    file_readers::sql_reader::{
+        frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
+        ReadableSqlTable, SqlReader, SqlReaderError,
+    },
+    TimsTofPathLike,
 };
 
 pub struct QuadrupoleSettingsReader {
@@ -21,10 +23,9 @@ pub struct QuadrupoleSettingsReader {
 impl QuadrupoleSettingsReader {
     // TODO: refactor due to large size
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let tdf_sql_reader = SqlReader::open(path)?;
         Self::from_sql_settings(&tdf_sql_reader)
     }
 
@@ -123,7 +124,7 @@ impl QuadrupoleSettingsReader {
 #[derive(Debug, thiserror::Error)]
 pub enum QuadrupoleSettingsReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
 }
 
 type MobilitySpanStep = (f64, f64);

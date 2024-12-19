@@ -10,6 +10,5 @@ pub use tof_to_mz::Tof2MzConverter;
 /// Convert from one domain (e.g. Time of Flight) to another (m/z).
 pub trait ConvertableDomain {
     fn convert<T: Into<f64> + Copy>(&self, value: T) -> f64;
-
     fn invert<T: Into<f64> + Copy>(&self, value: T) -> f64;
 }

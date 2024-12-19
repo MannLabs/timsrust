@@ -1,35 +1,25 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    vec,
-};
+use std::sync::Arc;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 #[cfg(feature = "timscompress")]
-use timscompress::reader::{
-    CompressedTdfBlobReader, CompressedTdfBlobReaderError,
-};
+use timscompress::reader::CompressedTdfBlobReader;
 
-use crate::{
-    ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings},
-    utils::find_extension,
-};
+use crate::ms_data::{AcquisitionType, Frame, MSLevel, QuadrupoleSettings};
 
 use super::{
     file_readers::{
         sql_reader::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
-            SqlError, SqlReader,
+            SqlReader, SqlReaderError,
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
     MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
-    QuadrupoleSettingsReaderError,
+    QuadrupoleSettingsReaderError, TimsTofPathLike,
 };
 
 #[derive(Debug)]
 pub struct FrameReader {
-    path: PathBuf,
     tdf_bin_reader: TdfBlobReader,
     #[cfg(feature = "timscompress")]
     compressed_reader: CompressedTdfBlobReader,
@@ -43,12 +33,9 @@ pub struct FrameReader {
 }
 
 impl FrameReader {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, FrameReaderError> {
-        let sql_path = find_extension(&path, "analysis.tdf").ok_or(
-            FrameReaderError::FileNotFound("analysis.tdf".to_string()),
-        )?;
+    pub fn new(path: impl TimsTofPathLike) -> Result<Self, FrameReaderError> {
         let compression_type =
-            match MetadataReader::new(&sql_path)?.compression_type {
+            match MetadataReader::new(&path)?.compression_type {
                 2 => 2,
                 #[cfg(feature = "timscompress")]
                 3 => 3,
@@ -59,14 +46,12 @@ impl FrameReader {
                 },
             };
 
-        let tdf_sql_reader = SqlReader::open(sql_path)?;
+        let tdf_sql_reader = SqlReader::open(&path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
-        let bin_path = find_extension(&path, "analysis.tdf_bin").ok_or(
-            FrameReaderError::FileNotFound("analysis.tdf_bin".to_string()),
-        )?;
-        let tdf_bin_reader = TdfBlobReader::new(&bin_path)?;
+        let tdf_bin_reader = TdfBlobReader::new(&path)?;
         #[cfg(feature = "timscompress")]
-        let compressed_reader = CompressedTdfBlobReader::new(&bin_path)?;
+        let compressed_reader = CompressedTdfBlobReader::new(&path)
+            .ok_or_else(|| FrameReaderError::TimscompressError)?;
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
@@ -84,8 +69,7 @@ impl FrameReader {
                 window_groups[window_group.frame - 1] =
                     window_group.window_group;
             }
-            quadrupole_settings =
-                QuadrupoleSettingsReader::new(tdf_sql_reader.get_path())?;
+            quadrupole_settings = QuadrupoleSettingsReader::new(&path)?;
         } else {
             quadrupole_settings = vec![];
         }
@@ -115,7 +99,6 @@ impl FrameReader {
             as usize;
         let offsets = sql_frames.iter().map(|x| x.binary_offset).collect();
         let reader = Self {
-            path: path.as_ref().to_path_buf(),
             tdf_bin_reader,
             frames,
             acquisition,
@@ -133,6 +116,7 @@ impl FrameReader {
         Ok(reader)
     }
 
+    // TODO make option result
     pub fn get_binary_offset(&self, index: usize) -> usize {
         self.offsets[index]
     }
@@ -245,10 +229,6 @@ impl FrameReader {
     pub fn len(&self) -> usize {
         self.frames.len()
     }
-
-    pub fn get_path(&self) -> PathBuf {
-        self.path.clone()
-    }
 }
 
 fn read_scan_offsets(
@@ -334,8 +314,8 @@ fn get_frame_without_data(
 #[derive(Debug, thiserror::Error)]
 pub enum FrameReaderError {
     #[cfg(feature = "timscompress")]
-    #[error("{0}")]
-    CompressedTdfBlobReaderError(#[from] CompressedTdfBlobReaderError),
+    #[error("Timscompress error")]
+    TimscompressError,
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
     #[error("{0}")]
@@ -343,7 +323,7 @@ pub enum FrameReaderError {
     #[error("{0}")]
     FileNotFound(String),
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("Corrupt Frame")]
     CorruptFrame,
     #[error("{0}")]
