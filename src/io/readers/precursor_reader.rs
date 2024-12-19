@@ -4,7 +4,6 @@ mod minitdf;
 mod tdf;
 
 use core::fmt;
-use std::path::{Path, PathBuf};
 
 #[cfg(feature = "minitdf")]
 use minitdf::{MiniTDFPrecursorReader, MiniTDFPrecursorReaderError};
@@ -15,6 +14,7 @@ use crate::ms_data::Precursor;
 
 #[cfg(feature = "tdf")]
 use super::FrameWindowSplittingConfiguration;
+use super::{TimsTofFileType, TimsTofPath, TimsTofPathError, TimsTofPathLike};
 
 pub struct PrecursorReader {
     precursor_reader: Box<dyn PrecursorReaderTrait>,
@@ -31,7 +31,9 @@ impl PrecursorReader {
         PrecursorReaderBuilder::default()
     }
 
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, PrecursorReaderError> {
+    pub fn new(
+        path: impl TimsTofPathLike,
+    ) -> Result<Self, PrecursorReaderError> {
         Self::build().with_path(path).finalize()
     }
 
@@ -46,15 +48,17 @@ impl PrecursorReader {
 
 #[derive(Debug, Default, Clone)]
 pub struct PrecursorReaderBuilder {
-    path: PathBuf,
+    path: Option<TimsTofPath>,
     #[cfg(feature = "tdf")]
     config: FrameWindowSplittingConfiguration,
 }
 
 impl PrecursorReaderBuilder {
-    pub fn with_path(&self, path: impl AsRef<Path>) -> Self {
+    pub fn with_path(&self, path: impl TimsTofPathLike) -> Self {
+        // TODO
+        let path = Some(path.to_timstof_path().unwrap());
         Self {
-            path: path.as_ref().to_path_buf(),
+            path,
             ..self.clone()
         }
     }
@@ -70,22 +74,20 @@ impl PrecursorReaderBuilder {
         }
     }
 
-    pub fn finalize(&self) -> Result<PrecursorReader, PrecursorReaderError> {
+    pub fn finalize(self) -> Result<PrecursorReader, PrecursorReaderError> {
+        let path = match self.path {
+            None => return Err(PrecursorReaderError::NoPath),
+            Some(path) => path,
+        };
         let precursor_reader: Box<dyn PrecursorReaderTrait> =
-            match self.path.extension().and_then(|e| e.to_str()) {
+            match path.file_type() {
                 #[cfg(feature = "minitdf")]
-                Some("parquet") => {
-                    Box::new(MiniTDFPrecursorReader::new(self.path.clone())?)
+                TimsTofFileType::MiniTDF => {
+                    Box::new(MiniTDFPrecursorReader::new(path)?)
                 },
                 #[cfg(feature = "tdf")]
-                Some("tdf") => Box::new(TDFPrecursorReader::new(
-                    self.path.clone(),
-                    self.config.clone(),
-                )?),
-                _ => {
-                    return Err(PrecursorReaderError::PrecursorReaderFileError(
-                        self.path.clone(),
-                    ))
+                TimsTofFileType::TDF => {
+                    Box::new(TDFPrecursorReader::new(path, self.config)?)
                 },
             };
         let reader = PrecursorReader { precursor_reader };
@@ -106,6 +108,8 @@ pub enum PrecursorReaderError {
     #[cfg(feature = "tdf")]
     #[error("{0}")]
     TDFPrecursorReaderError(#[from] TDFPrecursorReaderError),
-    #[error("File {0} not valid")]
-    PrecursorReaderFileError(PathBuf),
+    #[error("No path provided")]
+    NoPath,
+    #[error("{0}")]
+    TimsTofPathError(#[from] TimsTofPathError),
 }

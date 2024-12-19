@@ -1,8 +1,8 @@
 use crate::{
     io::readers::{
         file_readers::sql_reader::{
-            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlError,
-            SqlReader,
+            pasef_frame_msms::SqlPasefFrameMsMs, ReadableSqlTable, SqlReader,
+            SqlReaderError,
         },
         FrameReader, FrameReaderError,
     },
@@ -30,7 +30,10 @@ impl DDARawSpectrumReader {
         let pasef_precursors =
             &pasef_frames.iter().map(|x| x.precursor).collect();
         let order: Vec<usize> = argsort(&pasef_precursors);
-        let max_precursor = pasef_precursors.iter().max().unwrap(); // SqlReader cannot return empty vecs, so always succeeds
+        let max_precursor = pasef_precursors
+            .iter()
+            .max()
+            .expect("SqlReader cannot return empty vecs, so there is always a max precursor index");
         let mut offsets: Vec<usize> = Vec::with_capacity(max_precursor + 1);
         offsets.push(0);
         for (offset, &index) in order.iter().enumerate().take(order.len() - 1) {
@@ -118,7 +121,7 @@ impl RawSpectrumReaderTrait for DDARawSpectrumReader {
 #[derive(Debug, thiserror::Error)]
 pub enum DDARawSpectrumReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     FrameReaderError(#[from] FrameReaderError),
 }

@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rayon::iter::ParallelIterator;
 #[cfg(feature = "tdf")]
 use timsrust::readers::FrameReader;
-use timsrust::readers::{SpectrumReader, SpectrumReaderConfig};
+use timsrust::readers::SpectrumReader;
 
 const DDA_TEST: &str =
     "/mnt/d/data/mpib/tims05_300SPD/20230505_TIMS05_PaSk_MA_HeLa_6min_ddaP_S1-C10_1_2323.d/";

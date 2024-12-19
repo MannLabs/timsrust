@@ -1,7 +1,10 @@
 pub mod precursors;
 
+use std::{fs::File, io, str::FromStr};
+
 use parquet::file::reader::{FileReader, SerializedFileReader};
-use std::{fs::File, io, path::Path, str::FromStr};
+
+use crate::readers::TimsTofPathError;
 
 pub trait ReadableParquetTable {
     fn update_from_parquet_file(&mut self, key: &str, value: String);
@@ -11,35 +14,37 @@ pub trait ReadableParquetTable {
     }
 
     fn from_parquet_file(
-        file_name: impl AsRef<Path>,
-    ) -> Result<Vec<Self>, ParquetError>
+        path: impl crate::readers::TimsTofPathLike,
+    ) -> Result<Vec<Self>, ParquetReaderError>
     where
         Self: Sized + Default,
     {
-        let file: File = File::open(file_name)?;
+        let path = path.to_timstof_path()?;
+        let file: File = File::open(path.ms2_parquet()?)?;
         let reader: SerializedFileReader<File> =
             SerializedFileReader::new(file)?;
-        let results: Vec<Self> = reader
+        reader
             .get_row_iter(None)?
             .map(|record| {
                 let mut result = Self::default();
-                for (name, field) in record.get_column_iter() {
+                for (name, field) in record?.get_column_iter() {
                     result.update_from_parquet_file(
                         name.to_string().as_str(),
                         field.to_string(),
                     );
                 }
-                result
+                Ok(result)
             })
-            .collect();
-        Ok(results)
+            .collect()
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ParquetError {
+pub enum ParquetReaderError {
     #[error("{0}")]
     IO(#[from] io::Error),
     #[error("Cannot iterate over row {0}")]
-    ParquetIO(#[from] parquet::errors::ParquetError),
+    ParquetError(#[from] parquet::errors::ParquetError),
+    #[error("{0}")]
+    TimsTofPathError(#[from] TimsTofPathError),
 }

@@ -7,6 +7,7 @@ mod precursor_reader;
 #[cfg(feature = "tdf")]
 mod quad_settings_reader;
 mod spectrum_reader;
+mod timstof;
 
 #[cfg(feature = "tdf")]
 pub use frame_reader::*;
@@ -16,3 +17,4 @@ pub use precursor_reader::*;
 #[cfg(feature = "tdf")]
 pub use quad_settings_reader::*;
 pub use spectrum_reader::*;
+pub use timstof::*;

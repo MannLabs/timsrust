@@ -1,10 +1,9 @@
-use std::path::Path;
-
 use crate::{
     io::readers::file_readers::parquet_reader::{
-        precursors::ParquetPrecursor, ParquetError, ReadableParquetTable,
+        precursors::ParquetPrecursor, ParquetReaderError, ReadableParquetTable,
     },
     ms_data::Precursor,
+    readers::TimsTofPathLike,
 };
 
 use super::PrecursorReaderTrait;
@@ -16,9 +15,9 @@ pub struct MiniTDFPrecursorReader {
 
 impl MiniTDFPrecursorReader {
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Self, MiniTDFPrecursorReaderError> {
-        let parquet_precursors = ParquetPrecursor::from_parquet_file(&path)?;
+        let parquet_precursors = ParquetPrecursor::from_parquet_file(path)?;
         let reader = Self { parquet_precursors };
         Ok(reader)
     }
@@ -46,4 +45,4 @@ impl PrecursorReaderTrait for MiniTDFPrecursorReader {
 
 #[derive(thiserror::Error, Debug)]
 #[error("{0}")]
-pub struct MiniTDFPrecursorReaderError(#[from] ParquetError);
+pub struct MiniTDFPrecursorReaderError(#[from] ParquetReaderError);

@@ -1,6 +1,5 @@
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 use crate::{
     domain_converters::{ConvertableDomain, Scan2ImConverter},
@@ -8,9 +7,12 @@ use crate::{
     utils::vec_utils::argsort,
 };
 
-use super::file_readers::sql_reader::{
-    frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
-    ReadableSqlTable, SqlError, SqlReader,
+use super::{
+    file_readers::sql_reader::{
+        frame_groups::SqlWindowGroup, quad_settings::SqlQuadSettings,
+        ReadableSqlTable, SqlReader, SqlReaderError,
+    },
+    TimsTofPathLike,
 };
 
 pub struct QuadrupoleSettingsReader {
@@ -21,10 +23,9 @@ pub struct QuadrupoleSettingsReader {
 impl QuadrupoleSettingsReader {
     // TODO: refactor due to large size
     pub fn new(
-        path: impl AsRef<Path>,
+        path: impl TimsTofPathLike,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
-        let sql_path = path.as_ref();
-        let tdf_sql_reader = SqlReader::open(&sql_path)?;
+        let tdf_sql_reader = SqlReader::open(path)?;
         Self::from_sql_settings(&tdf_sql_reader)
     }
 
@@ -37,7 +38,8 @@ impl QuadrupoleSettingsReader {
             .iter()
             .map(|x| x.window_group)
             .max()
-            .unwrap() as usize; // SqlReader cannot return empty vecs, so always succeeds
+            .expect("SqlReader cannot return empty vecs, so there is always a max window_group")
+            as usize;
         let quadrupole_settings = (0..window_group_count)
             .map(|window_group| {
                 let mut quad = QuadrupoleSettings::default();
@@ -122,7 +124,7 @@ impl QuadrupoleSettingsReader {
 #[derive(Debug, thiserror::Error)]
 pub enum QuadrupoleSettingsReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
 }
 
 type MobilitySpanStep = (f64, f64);
@@ -306,9 +308,18 @@ fn expand_window_settings(
         let window = window_group.window_group;
         let frame = window_group.frame;
         let group = &quadrupole_settings[window as usize - 1];
-        let window_group_start =
-            group.scan_starts.iter().min().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
-        let window_group_end = group.scan_ends.iter().max().unwrap().clone(); // SqlReader cannot return empty vecs, so always succeeds
+        let window_group_start = group
+            .scan_starts
+            .iter()
+            .min()
+            .expect("SqlReader cannot return empty vecs, so there is always min window_group index")
+            .clone();
+        let window_group_end = group
+            .scan_ends
+            .iter()
+            .max()
+            .expect("SqlReader cannot return empty vecs, so there is always max window_group index")
+            .clone();
         for (sws, swe) in
             scan_range_subsplit(window_group_start, window_group_end, &strategy)
         {

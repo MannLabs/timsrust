@@ -14,6 +14,15 @@ impl TdfBlob {
         }
     }
 
+    #[cfg(feature = "minitdf")]
+    pub fn get_all(&self) -> Vec<u32> {
+        (0..self.len())
+            .map(|index| self.get(index).expect(
+                "When iterating over the length of a tdf blob, you cannot go out of bounds"
+            ))
+            .collect()
+    }
+
     pub fn get(&self, index: usize) -> Option<u32> {
         if index >= self.len() {
             None
@@ -38,6 +47,7 @@ impl TdfBlob {
         self.bytes.len() / BLOB_TYPE_SIZE
     }
 
+    #[cfg(feature = "minitdf")]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

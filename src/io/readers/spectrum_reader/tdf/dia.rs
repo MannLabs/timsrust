@@ -2,7 +2,7 @@ use crate::io::readers::quad_settings_reader::FrameWindowSplittingStrategy;
 use crate::io::readers::FrameReaderError;
 use crate::{
     io::readers::{
-        file_readers::sql_reader::{SqlError, SqlReader},
+        file_readers::sql_reader::{SqlReader, SqlReaderError},
         FrameReader, QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
     },
     ms_data::QuadrupoleSettings,
@@ -83,7 +83,7 @@ impl RawSpectrumReaderTrait for DIARawSpectrumReader {
 #[derive(Debug, thiserror::Error)]
 pub enum DIARawSpectrumReaderError {
     #[error("{0}")]
-    SqlError(#[from] SqlError),
+    SqlReaderError(#[from] SqlReaderError),
     #[error("{0}")]
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
     #[error("{0}")]
