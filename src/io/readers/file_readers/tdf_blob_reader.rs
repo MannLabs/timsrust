@@ -33,6 +33,9 @@ impl TdfBlobReader {
             .bin_file_reader
             .get_data(offset, byte_count)
             .ok_or(TdfBlobReaderError::CorruptData)?;
+        if data.len() == 0 {
+            return Err(TdfBlobReaderError::EmptyData);
+        }
         let bytes =
             decode_all(data).map_err(|_| TdfBlobReaderError::Decompression)?;
         let blob = TdfBlob::new(bytes)?;
@@ -130,6 +133,8 @@ pub enum TdfBlobReaderError {
     IO(#[from] io::Error),
     #[error("{0}")]
     TdfBlob(#[from] TdfBlobError),
+    #[error("No binary data")]
+    EmptyData,
     #[error("Data is corrupt")]
     CorruptData,
     #[error("Decompression fails")]
