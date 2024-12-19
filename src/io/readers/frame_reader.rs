@@ -165,7 +165,7 @@ impl FrameReader {
         let offset = self.get_binary_offset(index);
         let blob = self.tdf_bin_reader.get(offset)?;
         let scan_count: usize =
-            blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
+            blob.get(0).expect("Blob cannot be empty") as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
         frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
         frame.intensities = read_intensities(scan_count, peak_count, &blob)?;
