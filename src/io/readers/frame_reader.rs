@@ -50,8 +50,10 @@ impl FrameReader {
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
         let tdf_bin_reader = TdfBlobReader::new(&path)?;
         #[cfg(feature = "timscompress")]
-        let compressed_reader = CompressedTdfBlobReader::new(&path)
-            .ok_or_else(|| FrameReaderError::TimscompressError)?;
+        let compressed_reader = CompressedTdfBlobReader::new(
+            &path.as_ref().to_path_buf().join("analysis.tdf_bin"),
+        )
+        .ok_or_else(|| FrameReaderError::TimscompressError)?;
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
@@ -189,7 +191,8 @@ impl FrameReader {
         let offset = self.get_binary_offset(index);
         let raw_frame = self
             .compressed_reader
-            .get_raw_frame_data(offset, self.scan_count);
+            .get_raw_frame_data(offset, self.scan_count)
+            .ok_or_else(|| FrameReaderError::TimscompressError)?;
         frame.tof_indices = raw_frame.tof_indices;
         frame.intensities = raw_frame.intensities;
         frame.scan_offsets = raw_frame.scan_offsets;
