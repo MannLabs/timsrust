@@ -21,6 +21,12 @@ impl MetadataReader {
         path: impl TimsTofPathLike,
     ) -> Result<Metadata, MetadataReaderError> {
         let tdf_sql_reader = SqlReader::open(path)?;
+        Self::new_from_sql_reader(&tdf_sql_reader)
+    }
+
+    pub(crate) fn new_from_sql_reader(
+        tdf_sql_reader: &SqlReader,
+    ) -> Result<Metadata, MetadataReaderError> {
         let sql_metadata: HashMap<String, String> =
             SqlMetadata::from_sql_reader(&tdf_sql_reader)?;
         let compression_type =

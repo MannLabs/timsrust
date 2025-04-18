@@ -2,7 +2,10 @@
 use crate::io::readers::{
     FrameReaderError, MetadataReaderError, QuadrupoleSettingsReaderError,
 };
-use crate::{io::readers::PrecursorReaderError, readers::SpectrumReaderError};
+use crate::{
+    io::readers::PrecursorReaderError,
+    readers::{SpectrumReaderError, TimsTofDataError},
+};
 
 /// An error that is produced by timsrust (uses [thiserror]).
 #[derive(thiserror::Error, Debug)]
@@ -20,4 +23,6 @@ pub enum TimsRustError {
     #[cfg(feature = "tdf")]
     #[error("{0}")]
     QuadrupoleSettingsReaderError(#[from] QuadrupoleSettingsReaderError),
+    #[error("{0}")]
+    TimsTofDataError(#[from] TimsTofDataError),
 }

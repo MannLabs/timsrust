@@ -10,12 +10,12 @@ use super::{
     file_readers::{
         sql_reader::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
-            SqlReader, SqlReaderError,
+            SqlReaderError,
         },
         tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
-    MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
-    QuadrupoleSettingsReaderError, TimsTofPathLike,
+    QuadrupoleSettingsReaderError, TimsTofData, TimsTofDataError,
+    TimsTofPathLike,
 };
 
 #[derive(Debug)]
@@ -34,21 +34,28 @@ pub struct FrameReader {
 
 impl FrameReader {
     pub fn new(path: impl TimsTofPathLike) -> Result<Self, FrameReaderError> {
-        let compression_type =
-            match MetadataReader::new(&path)?.compression_type {
-                2 => 2,
-                #[cfg(feature = "timscompress")]
-                3 => 3,
-                compression_type => {
-                    return Err(FrameReaderError::CompressionTypeError(
-                        compression_type,
-                    ))
-                },
-            };
+        let mut timstofdata = TimsTofData::new(&path)?;
+        Self::new_from_timstofdata(&mut timstofdata)
+    }
 
-        let tdf_sql_reader = SqlReader::open(&path)?;
-        let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
-        let tdf_bin_reader = TdfBlobReader::new(&path)?;
+    pub fn new_from_timstofdata(
+        timstofdata: &mut TimsTofData,
+    ) -> Result<Self, FrameReaderError> {
+        let compression_type = match timstofdata.get_metadata().compression_type
+        {
+            2 => 2,
+            #[cfg(feature = "timscompress")]
+            3 => 3,
+            compression_type => {
+                return Err(FrameReaderError::CompressionTypeError(
+                    compression_type,
+                ))
+            },
+        };
+        let sql_frames =
+            SqlFrame::from_sql_reader(&timstofdata.get_sql_reader())?;
+        let tdf_bin_reader =
+            TdfBlobReader::new(&timstofdata.get_timstof_path())?;
         #[cfg(feature = "timscompress")]
         let compressed_reader = CompressedTdfBlobReader::new(
             &path.as_ref().to_path_buf().join("analysis.tdf_bin"),
@@ -63,22 +70,20 @@ impl FrameReader {
         };
         // TODO should be refactored out to quadrupole reader
         let mut window_groups = vec![0; sql_frames.len()];
-        let quadrupole_settings;
+        let mut quadrupole_settings = &vec![];
         if acquisition == AcquisitionType::DIAPASEF {
             for window_group in
-                SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?
+                SqlWindowGroup::from_sql_reader(&timstofdata.get_sql_reader())?
             {
                 window_groups[window_group.frame - 1] =
                     window_group.window_group;
             }
-            quadrupole_settings = QuadrupoleSettingsReader::new(&path)?;
-        } else {
-            quadrupole_settings = vec![];
-        }
+            quadrupole_settings = timstofdata.get_quad_settings()?;
+        };
         // TODO move Arc to quad settings reader?
         let quadrupole_settings = quadrupole_settings
-            .into_iter()
-            .map(|x| Arc::new(x))
+            .iter()
+            .map(|x| Arc::new(x.clone()))
             .collect();
         let frames = (0..sql_frames.len())
             .into_par_iter()
@@ -321,12 +326,6 @@ pub enum FrameReaderError {
     TimscompressError,
     #[error("{0}")]
     TdfBlobReaderError(#[from] TdfBlobReaderError),
-    #[error("{0}")]
-    MetadataReaderError(#[from] MetadataReaderError),
-    #[error("{0}")]
-    FileNotFound(String),
-    #[error("{0}")]
-    SqlReaderError(#[from] SqlReaderError),
     #[error("Corrupt Frame")]
     CorruptFrame,
     #[error("{0}")]
@@ -335,4 +334,8 @@ pub enum FrameReaderError {
     IndexOutOfBounds,
     #[error("Compression type {0} not understood")]
     CompressionTypeError(u8),
+    #[error("{0}")]
+    TimsTofDataError(#[from] TimsTofDataError),
+    #[error("{0}")]
+    SqlReaderError(#[from] SqlReaderError),
 }

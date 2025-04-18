@@ -1,140 +1,110 @@
-use std::{
-    fs, io,
-    path::{Path, PathBuf},
+use crate::{Metadata, QuadrupoleSettings};
+
+use super::{
+    file_readers::sql_reader::{SqlReader, SqlReaderError},
+    FrameReader, FrameReaderError, MetadataReader, MetadataReaderError,
+    PrecursorReader, PrecursorReaderError, QuadrupoleSettingsReader,
+    QuadrupoleSettingsReaderError, SpectrumReader, SpectrumReaderError,
+    TimsTofPath, TimsTofPathError, TimsTofPathLike,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
-pub enum TimsTofFileType {
-    #[cfg(feature = "minitdf")]
-    MiniTDF,
-    #[cfg(feature = "tdf")]
-    TDF,
+pub struct TimsTofData {
+    timstof_path: TimsTofPath,
+    metadata: Metadata,
+    sql_reader: SqlReader,
+    frame_reader: Option<FrameReader>,
+    spectrum_reader: Option<SpectrumReader>,
+    precursor_reader: Option<PrecursorReader>,
+    quad_settings: Option<Vec<QuadrupoleSettings>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TimsTofPath {
-    path: PathBuf,
-    file_type: TimsTofFileType,
-}
-
-impl TimsTofPath {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, TimsTofPathError> {
-        let path = path.as_ref().canonicalize()?;
-        #[cfg(feature = "tdf")]
-        if tdf(&path).is_ok() & tdf_bin(&path).is_ok() {
-            return Ok(Self {
-                path,
-                file_type: TimsTofFileType::TDF,
-            });
-        }
+impl TimsTofData {
+    pub fn new(path: impl TimsTofPathLike) -> Result<Self, TimsTofDataError> {
+        let timstof_path = TimsTofPath::new(&path)?;
         #[cfg(feature = "minitdf")]
-        if ms2_bin(&path).is_ok() & ms2_parquet(&path).is_ok() {
-            return Ok(Self {
-                path,
-                file_type: TimsTofFileType::MiniTDF,
-            });
-        }
-        match path.parent() {
-            Some(parent) => match Self::new(parent) {
-                Ok(result) => Ok(result),
-                Err(_) => Err(TimsTofPathError::UnknownType(path)),
-            },
-            None => return Err(TimsTofPathError::UnknownType(path)),
-        }
-    }
-
-    pub fn tdf(&self) -> Result<PathBuf, TimsTofPathError> {
-        tdf(self)
-    }
-
-    pub fn tdf_bin(&self) -> Result<PathBuf, TimsTofPathError> {
-        tdf_bin(self)
-    }
-
-    pub fn ms2_bin(&self) -> Result<PathBuf, TimsTofPathError> {
-        ms2_bin(self)
-    }
-
-    pub fn ms2_parquet(&self) -> Result<PathBuf, TimsTofPathError> {
-        ms2_parquet(self)
-    }
-
-    pub fn file_type(&self) -> TimsTofFileType {
-        self.file_type
-    }
-}
-
-fn tdf(path: impl AsRef<Path>) -> Result<PathBuf, TimsTofPathError> {
-    find_extension(path, "analysis.tdf")
-}
-
-fn tdf_bin(path: impl AsRef<Path>) -> Result<PathBuf, TimsTofPathError> {
-    find_extension(path, "analysis.tdf_bin")
-}
-
-fn ms2_bin(path: impl AsRef<Path>) -> Result<PathBuf, TimsTofPathError> {
-    // match find_extension(path, "ms2.bin") {
-    //     Ok(result) => Ok(result),
-    //     Err(_) => find_extension(path, "ms2spectrum.bin"),
-    // }
-    // find_extension(path, "ms2.bin")
-    find_extension(path, "ms2spectrum.bin")
-}
-
-fn ms2_parquet(path: impl AsRef<Path>) -> Result<PathBuf, TimsTofPathError> {
-    // match find_extension(path, "ms2.parquet") {
-    //     Ok(result) => Ok(result),
-    //     Err(_) => find_extension(path, "ms2spectrum.parquet"),
-    // }
-    // find_extension(path, "ms2.parquet")
-    find_extension(path, "ms2spectrum.parquet")
-}
-
-fn find_extension(
-    path: impl AsRef<Path>,
-    extension: &str,
-) -> Result<PathBuf, TimsTofPathError> {
-    let extension_lower = extension.to_lowercase();
-    for entry in fs::read_dir(&path)? {
-        if let Ok(entry) = entry {
-            let file_path = entry.path();
-            if let Some(file_name) =
-                file_path.file_name().and_then(|name| name.to_str())
-            {
-                if file_name.to_lowercase().ends_with(&extension_lower) {
-                    return Ok(file_path);
-                }
+        {
+            use super::TimsTofFileType;
+            if timstof_path.file_type() == TimsTofFileType::MiniTDF {
+                return Err(TimsTofPathError::UnknownType(
+                    path.as_ref().to_path_buf(),
+                ))?;
             }
         }
+        let sql_reader = SqlReader::new_from_path(&timstof_path)?;
+        let metadata = MetadataReader::new_from_sql_reader(&sql_reader)?;
+        Ok(Self {
+            timstof_path,
+            metadata,
+            sql_reader,
+            frame_reader: None,
+            spectrum_reader: None,
+            precursor_reader: None,
+            quad_settings: None,
+        })
     }
-    Err(TimsTofPathError::Extension(
-        extension.to_string(),
-        path.as_ref().to_path_buf(),
-    ))
-}
 
-impl AsRef<Path> for TimsTofPath {
-    fn as_ref(&self) -> &Path {
-        &self.path
+    pub fn get_timstof_path(&self) -> &TimsTofPath {
+        &self.timstof_path
+    }
+
+    pub(crate) fn get_sql_reader(&self) -> &SqlReader {
+        &self.sql_reader
+    }
+
+    pub fn get_metadata(&self) -> &Metadata {
+        &self.metadata
+    }
+
+    pub fn get_quad_settings(
+        &mut self,
+    ) -> Result<&Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
+        if self.quad_settings.is_none() {
+            let quad_settings = QuadrupoleSettingsReader::from_sql_settings(
+                &self.get_sql_reader(),
+            )?;
+            self.quad_settings = Some(quad_settings);
+        }
+        Ok(self.quad_settings.as_ref().expect("Always initialized"))
+    }
+
+    pub fn get_frame_reader(
+        &mut self,
+    ) -> Result<&FrameReader, FrameReaderError> {
+        if self.frame_reader.is_none() {
+            self.frame_reader = Some(FrameReader::new_from_timstofdata(self)?);
+        }
+        Ok(self.frame_reader.as_ref().expect("Always initialized"))
+    }
+
+    // TODO, reuse TimsTofData and allow bulder pattern
+    pub fn get_precursor_reader(
+        &mut self,
+    ) -> Result<&PrecursorReader, PrecursorReaderError> {
+        if self.precursor_reader.is_none() {
+            self.precursor_reader =
+                Some(PrecursorReader::new(&self.timstof_path)?);
+        }
+        Ok(self.precursor_reader.as_ref().expect("Always initialized"))
+    }
+
+    // TODO, reuse TimsTofData and allow bulder pattern
+    pub fn get_spectrum_reader(
+        &mut self,
+    ) -> Result<&SpectrumReader, SpectrumReaderError> {
+        if self.spectrum_reader.is_none() {
+            self.spectrum_reader =
+                Some(SpectrumReader::new(&self.timstof_path)?);
+        }
+        Ok(self.spectrum_reader.as_ref().expect("Always initialized"))
     }
 }
 
-pub trait TimsTofPathLike: AsRef<Path> {
-    fn to_timstof_path(&self) -> Result<TimsTofPath, TimsTofPathError>;
-}
-
-impl<T: AsRef<Path>> TimsTofPathLike for T {
-    fn to_timstof_path(&self) -> Result<TimsTofPath, TimsTofPathError> {
-        TimsTofPath::new(&self)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum TimsTofPathError {
-    #[error("Extension {0} not found for {1}")]
-    Extension(String, PathBuf),
+#[derive(thiserror::Error, Debug)]
+pub enum TimsTofDataError {
     #[error("{0}")]
-    IO(#[from] io::Error),
-    #[error("No valid type found for {0}")]
-    UnknownType(PathBuf),
+    MetadataReaderError(#[from] MetadataReaderError),
+    #[error("{0}")]
+    TimsTofPathError(#[from] TimsTofPathError),
+    #[error("{0}")]
+    SqlReaderError(#[from] SqlReaderError),
 }

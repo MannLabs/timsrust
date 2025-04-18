@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use rusqlite::{types::FromSql, Connection};
 
-use crate::readers::{TimsTofPathError, TimsTofPathLike};
+use crate::readers::{TimsTofPath, TimsTofPathError, TimsTofPathLike};
 
 #[derive(Debug)]
 pub struct SqlReader {
@@ -19,6 +19,12 @@ pub struct SqlReader {
 impl SqlReader {
     pub fn open(path: impl TimsTofPathLike) -> Result<Self, SqlReaderError> {
         let path = path.to_timstof_path()?;
+        Self::new_from_path(&path)
+    }
+
+    pub(crate) fn new_from_path(
+        path: &TimsTofPath,
+    ) -> Result<Self, SqlReaderError> {
         let connection = Connection::open(&path.tdf()?)?;
         Ok(Self { connection })
     }
