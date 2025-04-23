@@ -25,6 +25,8 @@ impl MetadataReader {
             SqlMetadata::from_sql_reader(&tdf_sql_reader)?;
         let compression_type =
             parse_value(&sql_metadata, "TimsCompressionType")?;
+        let max_peaks_per_scan =
+            parse_value(&sql_metadata, "MaxNumPeaksPerScan")?;
         let (mz_min, mz_max) = get_mz_bounds(&sql_metadata)?;
         let (im_min, im_max) = get_im_bounds(&sql_metadata)?;
         let rt_values: Vec<f64> =
@@ -52,6 +54,7 @@ impl MetadataReader {
             lower_mz: mz_min,
             upper_mz: mz_max,
             compression_type,
+            max_peaks_per_scan,
         };
         Ok(metadata)
     }

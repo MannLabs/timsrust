@@ -12,7 +12,9 @@ use super::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
             SqlReader, SqlReaderError,
         },
-        tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
+        tdf_blob_reader::{
+            TdfBlob, TdfBlobReader, TdfBlobReaderError,
+        },
     },
     MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
     QuadrupoleSettingsReaderError, TimsTofPathLike,
@@ -28,23 +30,27 @@ pub struct FrameReader {
     offsets: Vec<usize>,
     dia_windows: Option<Vec<Arc<QuadrupoleSettings>>>,
     compression_type: u8,
+    max_peaks_per_scan: usize,
     #[cfg(feature = "timscompress")]
     scan_count: usize,
 }
 
 impl FrameReader {
     pub fn new(path: impl TimsTofPathLike) -> Result<Self, FrameReaderError> {
-        let compression_type =
-            match MetadataReader::new(&path)?.compression_type {
-                2 => 2,
-                #[cfg(feature = "timscompress")]
-                3 => 3,
-                compression_type => {
-                    return Err(FrameReaderError::CompressionTypeError(
-                        compression_type,
-                    ))
-                },
-            };
+        let metadata = MetadataReader::new(&path)?;
+        let compression_type = match metadata.compression_type {
+            1 => 1,
+            2 => 2,
+            #[cfg(feature = "timscompress")]
+            3 => 3,
+            compression_type => {
+                return Err(FrameReaderError::CompressionTypeError(
+                    compression_type,
+                ))
+            },
+        };
+
+        let max_peaks_per_scan = metadata.max_peaks_per_scan;
 
         let tdf_sql_reader = SqlReader::open(&path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
@@ -110,6 +116,7 @@ impl FrameReader {
                 _ => None,
             },
             compression_type,
+            max_peaks_per_scan,
             #[cfg(feature = "timscompress")]
             compressed_reader,
             #[cfg(feature = "timscompress")]
@@ -149,6 +156,7 @@ impl FrameReader {
 
     pub fn get(&self, index: usize) -> Result<Frame, FrameReaderError> {
         match self.compression_type {
+            1 => self.get_from_compression_type_1(index),
             2 => self.get_from_compression_type_2(index),
             #[cfg(feature = "timscompress")]
             3 => self.get_from_compression_type_3(index),
@@ -158,6 +166,34 @@ impl FrameReader {
         }
     }
 
+    // TODO: As the resulting TDFBlob contains the uncompressed data in the same format as in 
+    // `get_from_compression_type_2` the two functions can be merged.
+    fn get_from_compression_type_1(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
+        // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
+        let mut frame = self.get_frame_without_coordinates(index)?;
+        let offset = self.get_binary_offset(index);
+        let blob = self
+            .tdf_bin_reader
+            .get(offset, self.compression_type, self.max_peaks_per_scan)?;
+        let scan_count: usize =
+            blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
+        let peak_count: usize = (blob.len() - scan_count) / 2;
+
+        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
+        frame.intensities = read_intensities(scan_count, peak_count, &blob)?;
+        frame.tof_indices = read_tof_indices(
+            scan_count,
+            peak_count,
+            &blob,
+            &frame.scan_offsets,
+        )?;
+
+        Ok(frame)
+    }
+
     fn get_from_compression_type_2(
         &self,
         index: usize,
@@ -165,7 +201,7 @@ impl FrameReader {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.get_frame_without_coordinates(index)?;
         let offset = self.get_binary_offset(index);
-        let blob = self.tdf_bin_reader.get(offset)?;
+        let blob = self.tdf_bin_reader.get(offset, self.compression_type, self.max_peaks_per_scan)?;
         let scan_count: usize =
             blob.get(0).expect("Blob cannot be empty") as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;
@@ -335,4 +371,6 @@ pub enum FrameReaderError {
     IndexOutOfBounds,
     #[error("Compression type {0} not understood")]
     CompressionTypeError(u8),
+    #[error("Got unexpected TdfBlob type")]
+    UnexpectedTdfBlobError,
 }

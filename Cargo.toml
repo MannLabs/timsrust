@@ -25,6 +25,7 @@ parquet = { version = "53.0.0", optional = true }
 serde = { version = "1.0.210", features = ["derive"], optional = true }
 serde_json = { version = "1.0.128", optional = true }
 timscompress = {version = "0.1.0", optional=true}
+lzf = "1.0.0"
 
 [features]
 tdf = ["rusqlite"]
