@@ -12,9 +12,7 @@ use super::{
             frame_groups::SqlWindowGroup, frames::SqlFrame, ReadableSqlTable,
             SqlReader, SqlReaderError,
         },
-        tdf_blob_reader::{
-            TdfBlob, TdfBlobReader, TdfBlobReaderError,
-        },
+        tdf_blob_reader::{TdfBlob, TdfBlobReader, TdfBlobReaderError},
     },
     MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
     QuadrupoleSettingsReaderError, TimsTofPathLike,
@@ -166,8 +164,6 @@ impl FrameReader {
         }
     }
 
-    // TODO: As the resulting TDFBlob contains the uncompressed data in the same format as in 
-    // `get_from_compression_type_2` the two functions can be merged.
     fn get_from_compression_type_1(
         &self,
         index: usize,
@@ -175,22 +171,39 @@ impl FrameReader {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.get_frame_without_coordinates(index)?;
         let offset = self.get_binary_offset(index);
-        let blob = self
-            .tdf_bin_reader
-            .get(offset, self.compression_type, self.max_peaks_per_scan)?;
-        let scan_count: usize =
-            blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
-        let peak_count: usize = (blob.len() - scan_count) / 2;
-
-        frame.scan_offsets = read_scan_offsets(scan_count, peak_count, &blob)?;
-        frame.intensities = read_intensities(scan_count, peak_count, &blob)?;
-        frame.tof_indices = read_tof_indices(
-            scan_count,
-            peak_count,
-            &blob,
-            &frame.scan_offsets,
+        let blob = self.tdf_bin_reader.get(
+            offset,
+            self.compression_type,
+            self.max_peaks_per_scan,
         )?;
-
+        let mut scan_offsets = vec![0];
+        let mut intensities = vec![];
+        let mut tof_indices = vec![];
+        let mut start: usize =
+            blob.get(0).ok_or(FrameReaderError::CorruptFrame)? as usize;
+        let scan_count = start - 1;
+        for i in 0..scan_count {
+            let end =
+                blob.get(i + 1).ok_or(FrameReaderError::CorruptFrame)? as usize;
+            let mut tof_index = 0;
+            for j in start..end {
+                let value =
+                    blob.get(j).ok_or(FrameReaderError::CorruptFrame)?;
+                let value = i32::from_le_bytes(value.to_le_bytes());
+                if value > 0 {
+                    intensities.push(value as u32);
+                    tof_index -= 1;
+                    tof_indices.push(-tof_index as u32);
+                } else {
+                    tof_index += value + 1;
+                }
+            }
+            start = end;
+            scan_offsets.push(intensities.len());
+        }
+        frame.scan_offsets = scan_offsets;
+        frame.tof_indices = tof_indices;
+        frame.intensities = intensities;
         Ok(frame)
     }
 
@@ -201,7 +214,11 @@ impl FrameReader {
         // NOTE: get does it by 0-offsetting the vec, not by Frame index!!!
         let mut frame = self.get_frame_without_coordinates(index)?;
         let offset = self.get_binary_offset(index);
-        let blob = self.tdf_bin_reader.get(offset, self.compression_type, self.max_peaks_per_scan)?;
+        let blob = self.tdf_bin_reader.get(
+            offset,
+            self.compression_type,
+            self.max_peaks_per_scan,
+        )?;
         let scan_count: usize =
             blob.get(0).expect("Blob cannot be empty") as usize;
         let peak_count: usize = (blob.len() - scan_count) / 2;

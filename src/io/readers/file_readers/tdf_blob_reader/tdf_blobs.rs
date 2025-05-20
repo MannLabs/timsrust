@@ -3,14 +3,15 @@ const BLOB_TYPE_SIZE: usize = std::mem::size_of::<u32>();
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TdfBlob {
     bytes: Vec<u8>,
+    shuffled: bool,
 }
 
 impl TdfBlob {
-    pub fn new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
+    pub fn new(bytes: Vec<u8>, shuffled: bool) -> Result<Self, TdfBlobError> {
         if bytes.len() % BLOB_TYPE_SIZE != 0 {
             Err(TdfBlobError(bytes.len()))
         } else {
-            Ok(Self { bytes })
+            Ok(Self { bytes, shuffled })
         }
     }
 
@@ -27,12 +28,22 @@ impl TdfBlob {
         if index >= self.len() {
             None
         } else {
-            Some(Self::concatenate_bytes(
-                self.bytes[index],
-                self.bytes[index + self.len()],
-                self.bytes[index + 2 * self.len()],
-                self.bytes[index + 3 * self.len()],
-            ))
+            if self.shuffled {
+                Some(Self::concatenate_bytes(
+                    self.bytes[index],
+                    self.bytes[index + self.len()],
+                    self.bytes[index + 2 * self.len()],
+                    self.bytes[index + 3 * self.len()],
+                ))
+            } else {
+                let index = index * BLOB_TYPE_SIZE;
+                Some(Self::concatenate_bytes(
+                    self.bytes[index],
+                    self.bytes[index + 1],
+                    self.bytes[index + 2],
+                    self.bytes[index + 3],
+                ))
+            }
         }
     }
 
