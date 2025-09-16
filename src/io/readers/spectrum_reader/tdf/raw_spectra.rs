@@ -73,7 +73,7 @@ impl RawSpectrum {
                 .collect(),
             intensities: self.intensities.iter().map(|x| *x as f64).collect(),
             precursor: Some(precursor),
-            index: index,
+            index,
             collision_energy: self.collision_energy,
             isolation_mz: self.isolation_mz,
             isolation_width: self.isolation_width,

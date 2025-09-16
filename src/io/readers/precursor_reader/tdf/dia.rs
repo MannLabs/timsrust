@@ -4,10 +4,9 @@ use crate::{
     },
     io::readers::{
         file_readers::sql_reader::{SqlReader, SqlReaderError},
-         QuadrupoleSettingsReader,
-        QuadrupoleSettingsReaderError,
+        QuadrupoleSettingsReader, QuadrupoleSettingsReaderError,
     },
-    ms_data::{Precursor, QuadrupoleSettings, Metadata, MetadataReaderError},
+    ms_data::{Metadata, MetadataReaderError, Precursor, QuadrupoleSettings},
     readers::{FrameWindowSplittingConfiguration, TimsTofPathLike},
 };
 

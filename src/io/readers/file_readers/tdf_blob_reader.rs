@@ -73,8 +73,8 @@ impl TdfBinFileReader {
     }
 
     fn get_byte_count(&self, offset: usize) -> Option<usize> {
-        let start = offset as usize;
-        let end = start + U32_SIZE as usize;
+        let start = offset;
+        let end = start + U32_SIZE;
         let raw_byte_count = self.mmap.get(start..end)?;
         let byte_count =
             u32::from_le_bytes(raw_byte_count.try_into().ok()?) as usize;
@@ -127,8 +127,13 @@ impl IndexedTdfBlobReader {
         Ok(out)
     }
 
-    pub fn get_into(&self, index: usize, buffer: &mut TdfBlob) -> Result<(), IndexedTdfBlobReaderError> {
-        let offset = *self.binary_offsets
+    pub fn get_into(
+        &self,
+        index: usize,
+        buffer: &mut TdfBlob,
+    ) -> Result<(), IndexedTdfBlobReaderError> {
+        let offset = *self
+            .binary_offsets
             .get(index)
             .ok_or(IndexedTdfBlobReaderError::InvalidIndex(index))?;
 
@@ -158,9 +163,7 @@ pub enum TdfBlobReaderError {
 impl From<TdfBlobError> for TdfBlobReaderError {
     fn from(e: TdfBlobError) -> Self {
         match e {
-            TdfBlobError::Decompression => {
-                TdfBlobReaderError::Decompression
-            }
+            TdfBlobError::Decompression => TdfBlobReaderError::Decompression,
             _ => TdfBlobReaderError::TdfBlob(e),
         }
     }

@@ -2,8 +2,8 @@
 mod tests {
     use std::{path::Path, sync::Arc};
     use timsrust::{
-        readers::FrameReader, AcquisitionType, Frame, MSLevel, FrameMeta, FramePeaks,
-        QuadrupoleSettings,
+        readers::FrameReader, AcquisitionType, Frame, FrameMeta, FramePeaks,
+        MSLevel, QuadrupoleSettings,
     };
 
     fn get_local_directory() -> &'static Path {
@@ -35,7 +35,11 @@ mod tests {
                     acquisition_type: AcquisitionType::DDAPASEF,
                     intensity_correction_factor: (1000.0 / 100.0),
                     window_group: None,
-                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                    calibration: timsrust::FrameCalibration {
+                        calibration_id: 1,
+                        t1: 1.0,
+                        t2: 1.0,
+                    },
                 },
                 peaks: FramePeaks {
                     scan_offsets: vec![0, 1, 3, 6, 10],
@@ -52,7 +56,11 @@ mod tests {
                     acquisition_type: AcquisitionType::DDAPASEF,
                     intensity_correction_factor: (1000.0 / 100.0),
                     window_group: None,
-                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                    calibration: timsrust::FrameCalibration {
+                        calibration_id: 1,
+                        t1: 1.0,
+                        t2: 1.0,
+                    },
                 },
                 peaks: FramePeaks {
                     scan_offsets: vec![0, 9, 19, 30, 42],
@@ -96,8 +104,12 @@ mod tests {
                     acquisition_type: AcquisitionType::DDAPASEF,
                     intensity_correction_factor: (1000.0 / 100.0),
                     window_group: None,
-                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
-                }
+                    calibration: timsrust::FrameCalibration {
+                        calibration_id: 1,
+                        t1: 1.0,
+                        t2: 1.0,
+                    },
+                },
             },
             // Frame::default(),
             Frame {
@@ -113,8 +125,12 @@ mod tests {
                     acquisition_type: AcquisitionType::DDAPASEF,
                     intensity_correction_factor: (1000.0 / 100.0),
                     window_group: None,
-                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
-                }
+                    calibration: timsrust::FrameCalibration {
+                        calibration_id: 1,
+                        t1: 1.0,
+                        t2: 1.0,
+                    },
+                },
             },
         ];
         for i in 0..expected.len() {

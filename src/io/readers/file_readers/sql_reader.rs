@@ -53,7 +53,7 @@ pub trait ReadableSqlTable {
         let mut stmt = reader.connection.prepare(&query)?;
         let rows = stmt.query_map([], |row| Ok(Self::from_sql_row(row)))?;
         let result = rows.collect::<Result<Vec<_>, _>>()?;
-        if result.len() == 0 {
+        if result.is_empty() {
             Err(SqlReaderError::SqlError(
                 rusqlite::Error::QueryReturnedNoRows,
             ))

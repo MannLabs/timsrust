@@ -6,9 +6,13 @@ use rayon::iter::{
 #[cfg(feature = "timscompress")]
 use timscompress::reader::CompressedTdfBlobReader;
 
-use crate::{ms_data::{
-    AcquisitionType, Frame, FrameMeta, FramePeaks, MSLevel, Metadata, MetadataReaderError, QuadrupoleSettings
-}, FrameCalibration, WindowGroupInfo};
+use crate::{
+    ms_data::{
+        AcquisitionType, Frame, FrameMeta, FramePeaks, MSLevel, Metadata,
+        MetadataReaderError, QuadrupoleSettings,
+    },
+    FrameCalibration, WindowGroupInfo,
+};
 
 use super::{
     file_readers::{
@@ -18,8 +22,7 @@ use super::{
         },
         tdf_blob_reader::{TdfBlobReader, TdfBlobReaderError},
     },
-     QuadrupoleSettingsReader,
-    QuadrupoleSettingsReaderError, TimsTofPathLike,
+    QuadrupoleSettingsReader, QuadrupoleSettingsReaderError, TimsTofPathLike,
 };
 
 // This is just a re-expport so users can create buffers
@@ -42,17 +45,16 @@ pub struct FrameReader {
 
 impl FrameReader {
     pub fn new(path: impl TimsTofPathLike) -> Result<Self, FrameReaderError> {
-        let compression_type =
-            match Metadata::new(&path)?.compression_type {
-                2 => 2,
-                #[cfg(feature = "timscompress")]
-                3 => 3,
-                compression_type => {
-                    return Err(FrameReaderError::CompressionTypeError(
-                        compression_type,
-                    ))
-                },
-            };
+        let compression_type = match Metadata::new(&path)?.compression_type {
+            2 => 2,
+            #[cfg(feature = "timscompress")]
+            3 => 3,
+            compression_type => {
+                return Err(FrameReaderError::CompressionTypeError(
+                    compression_type,
+                ))
+            },
+        };
 
         let tdf_sql_reader = SqlReader::open(&path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
@@ -82,10 +84,8 @@ impl FrameReader {
             quadrupole_settings = vec![];
         }
         // TODO move Arc to quad settings reader?
-        let quadrupole_settings = quadrupole_settings
-            .into_iter()
-            .map(|x| Arc::new(x))
-            .collect();
+        let quadrupole_settings =
+            quadrupole_settings.into_iter().map(Arc::new).collect();
         let frame_metas = (0..sql_frames.len())
             .into_par_iter()
             .map(|index| {
@@ -129,7 +129,6 @@ impl FrameReader {
         self.offsets[index]
     }
 
-
     /// Filters frames in parallel using the provided predicate function.
     /// and returns an iterator over the results.
     pub fn parallel_filter<'a, F: Fn(&FrameMeta) -> bool + Sync + Send + 'a>(
@@ -158,21 +157,25 @@ impl FrameReader {
 
     /// Attempts to find the frame using the instrument index and
     /// returns it if found.
-    pub fn get_by_frame_index(&self, frame_index: usize) -> Result<Frame, FrameReaderError> {
+    pub fn get_by_frame_index(
+        &self,
+        frame_index: usize,
+    ) -> Result<Frame, FrameReaderError> {
         let internal_index = self
             .frame_metas
-            .binary_search_by_key(
-                &frame_index, |x|x.index
-            );
+            .binary_search_by_key(&frame_index, |x| x.index);
 
         match internal_index {
             Ok(index) => self.get_by_internal_index(index),
-            Err(_) => Err(FrameReaderError::IndexOutOfBounds)
-                    }
+            Err(_) => Err(FrameReaderError::IndexOutOfBounds),
+        }
     }
 
     /// Gets a frame by the internal index within this data structure.
-    pub fn get_by_internal_index(&self, index: usize) -> Result<Frame, FrameReaderError> {
+    pub fn get_by_internal_index(
+        &self,
+        index: usize,
+    ) -> Result<Frame, FrameReaderError> {
         match self.compression_type {
             2 => self.get_from_compression_type_2(index),
             #[cfg(feature = "timscompress")]
@@ -192,7 +195,11 @@ impl FrameReader {
     ) -> Result<(), FrameReaderError> {
         frame_buffer.peaks.clear();
         match self.compression_type {
-            2 => self.get_from_compression_type_2_to(index, frame_buffer, blob_buffer),
+            2 => self.get_from_compression_type_2_to(
+                index,
+                frame_buffer,
+                blob_buffer,
+            ),
             // #[cfg(feature = "timscompress")]
             // 3 => self.get_from_jompression_type_3(index),
             _ => Err(FrameReaderError::CompressionTypeError(
@@ -219,7 +226,12 @@ impl FrameReader {
         let peak_count: usize = (blob_buffer.len() - scan_count) / 2;
 
         transfer_frame_meta(&frame_meta, &mut frame_buffer.meta);
-        fill_peaks(scan_count, peak_count, &blob_buffer, &mut frame_buffer.peaks)?;
+        fill_peaks(
+            scan_count,
+            peak_count,
+            blob_buffer,
+            &mut frame_buffer.peaks,
+        )?;
         Ok(())
     }
 
@@ -320,20 +332,20 @@ fn fill_peaks(
     read_scan_offsets_to(
         scan_count,
         peak_count,
-        &blob,
+        blob,
         &mut peak_buffer.scan_offsets,
     )?;
     read_intensities_to(
         scan_count,
         peak_count,
-        &blob,
+        blob,
         &mut peak_buffer.intensities,
     )?;
     read_tof_indices_to(
         scan_count,
         peak_count,
-        &blob,
-        &*peak_buffer.scan_offsets,
+        blob,
+        &peak_buffer.scan_offsets,
         &mut peak_buffer.tof_indices,
     )?;
     Ok(())
@@ -480,7 +492,8 @@ fn get_frame_without_data(
         let window_group = window_groups[index];
         frame.window_group = Some(WindowGroupInfo {
             window_group,
-            quadrupole_settings: quadrupole_settings[window_group as usize - 1].clone(),
+            quadrupole_settings: quadrupole_settings[window_group as usize - 1]
+                .clone(),
         });
     }
     frame

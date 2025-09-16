@@ -2,13 +2,10 @@ use crate::{
     domain_converters::{
         ConvertableDomain, Frame2RtConverter, Scan2ImConverter,
     },
-    io::readers::{
-        file_readers::sql_reader::{
-            precursors::SqlPrecursor, ReadableSqlTable, SqlReader,
-            SqlReaderError,
-        },
+    io::readers::file_readers::sql_reader::{
+        precursors::SqlPrecursor, ReadableSqlTable, SqlReader, SqlReaderError,
     },
-    ms_data::{Precursor, Metadata, MetadataReaderError},
+    ms_data::{Metadata, MetadataReaderError, Precursor},
     readers::TimsTofPathLike,
 };
 

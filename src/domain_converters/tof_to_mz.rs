@@ -31,18 +31,21 @@ impl Tof2MzConverter2 {
     fn convert_f64(self, idx: f64) -> f64 {
         let time_of_flight = (idx * self.digitizer_timebase) + self.delay;
         let inner = time_of_flight - self.c0;
-        let mz = (self.c1 * ( inner.powi(2))) / 1e12;
 
-        return mz
+        (self.c1 * (inner.powi(2))) / 1e12
     }
 
     fn invert_f64(self, mz: f64) -> f64 {
         let time_of_flight = ((mz * 1e12) / self.c1).sqrt() + self.c0;
-        let idx = (time_of_flight - self.delay) / self.digitizer_timebase;
-        return idx
+
+        (time_of_flight - self.delay) / self.digitizer_timebase
     }
 
-    pub fn try_from_calibration(calibration: &MzCalibration, real_t1: f64, _real_t2: f64) -> Option<Self> {
+    pub fn try_from_calibration(
+        calibration: &MzCalibration,
+        real_t1: f64,
+        _real_t2: f64,
+    ) -> Option<Self> {
         let MzCalibration {
             id: _,
             model_type,
@@ -60,7 +63,7 @@ impl Tof2MzConverter2 {
         } = calibration;
 
         assert_eq!(*model_type, 1); // We only support model type 1 for now ... I do not even know
-        // if more exist or whether this should be a recoverable error.
+                                    // if more exist or whether this should be a recoverable error.
 
         let (c0, c1) = match (c0, c1) {
             (Some(c0), Some(c1)) => (*c0, *c1),
@@ -82,7 +85,6 @@ impl Tof2MzConverter2 {
         })
     }
 }
-
 
 impl Tof2MzConverter {
     pub fn from_boundaries(
@@ -160,7 +162,12 @@ mod test {
         let real_t1 = 20.9455139021767;
         let real_t2 = 24.7566839615201;
 
-        let converter2 = Tof2MzConverter2::try_from_calibration(&calibration, real_t1, real_t2).unwrap();
+        let converter2 = Tof2MzConverter2::try_from_calibration(
+            &calibration,
+            real_t1,
+            real_t2,
+        )
+        .unwrap();
         // Now we can convert some values
         // Let's convert the first and last tof index from the file
         // 0 -> 636029 # From the global metadata table
@@ -170,13 +177,21 @@ mod test {
 
         const TOL: f64 = 1e-3;
         assert!((mz_0 - 99.990834).abs() < TOL, "mz_0: {}", mz_0);
-        assert!((mz_636029 - 1700.005).abs() < TOL, "mz_636029: {}", mz_636029);
+        assert!(
+            (mz_636029 - 1700.005).abs() < TOL,
+            "mz_636029: {}",
+            mz_636029
+        );
 
         // Test inversion
         let tof_0 = converter2.invert_f64(mz_0);
         let tof_636029 = converter2.invert_f64(mz_636029);
 
         assert!((tof_0 - 0.0).abs() < TOL, "tof_0: {}", tof_0);
-        assert!((tof_636029 - 636029.0).abs() < TOL, "tof_636029: {}", tof_636029);
+        assert!(
+            (tof_636029 - 636029.0).abs() < TOL,
+            "tof_636029: {}",
+            tof_636029
+        );
     }
 }

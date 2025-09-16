@@ -9,11 +9,10 @@ use crate::{
     domain_converters::{ConvertableDomain, Tof2MzConverter},
     io::readers::{
         file_readers::sql_reader::{SqlReader, SqlReaderError},
-        FrameReader, FrameReaderError,
-        PrecursorReader, PrecursorReaderError,
+        FrameReader, FrameReaderError, PrecursorReader, PrecursorReaderError,
     },
     ms_data::Spectrum,
-    ms_data::{MetadataReaderError,Metadata},
+    ms_data::{Metadata, MetadataReaderError},
     readers::TimsTofPathLike,
 };
 

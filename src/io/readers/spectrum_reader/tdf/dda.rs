@@ -26,10 +26,10 @@ impl DDARawSpectrumReader {
         tdf_sql_reader: &SqlReader,
         frame_reader: FrameReader,
     ) -> Result<Self, DDARawSpectrumReaderError> {
-        let pasef_frames = SqlPasefFrameMsMs::from_sql_reader(&tdf_sql_reader)?;
+        let pasef_frames = SqlPasefFrameMsMs::from_sql_reader(tdf_sql_reader)?;
         let pasef_precursors =
             &pasef_frames.iter().map(|x| x.precursor).collect();
-        let order: Vec<usize> = argsort(&pasef_precursors);
+        let order: Vec<usize> = argsort(pasef_precursors);
         let max_precursor = pasef_precursors
             .iter()
             .max()

@@ -1,7 +1,5 @@
 #[cfg(feature = "tdf")]
-use crate::io::readers::{
-    FrameReaderError, QuadrupoleSettingsReaderError,
-};
+use crate::io::readers::{FrameReaderError, QuadrupoleSettingsReaderError};
 use crate::ms_data::MetadataReaderError;
 use crate::{io::readers::PrecursorReaderError, readers::SpectrumReaderError};
 

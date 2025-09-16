@@ -57,10 +57,8 @@ impl MiniTDFSpectrumReader {
         if !blob.is_empty() {
             let spectrum_data: Vec<u32> = blob.get_all();
             let scan_count: usize = blob.len() / 3;
-            let tof_indices_bytes: &[u32] =
-                &spectrum_data[..scan_count as usize * 2];
-            let intensities_bytes: &[u32] =
-                &spectrum_data[scan_count as usize * 2..];
+            let tof_indices_bytes: &[u32] = &spectrum_data[..scan_count * 2];
+            let intensities_bytes: &[u32] = &spectrum_data[scan_count * 2..];
             let mz_values: &[f64] =
                 bytemuck::cast_slice::<u32, f64>(tof_indices_bytes);
             let intensity_values: &[f32] =

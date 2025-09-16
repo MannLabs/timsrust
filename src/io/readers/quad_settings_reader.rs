@@ -33,13 +33,12 @@ impl QuadrupoleSettingsReader {
         tdf_sql_reader: &SqlReader,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
         let sql_quadrupole_settings =
-            SqlQuadSettings::from_sql_reader(&tdf_sql_reader)?;
+            SqlQuadSettings::from_sql_reader(tdf_sql_reader)?;
         let window_group_count = sql_quadrupole_settings
             .iter()
             .map(|x| x.window_group)
             .max()
-            .expect("SqlReader cannot return empty vecs, so there is always a max window_group")
-            as usize;
+            .expect("SqlReader cannot return empty vecs, so there is always a max window_group");
         let quadrupole_settings = (0..window_group_count)
             .map(|window_group| {
                 let mut quad = QuadrupoleSettings::default();
@@ -60,8 +59,8 @@ impl QuadrupoleSettingsReader {
         tdf_sql_reader: &SqlReader,
         splitting_strat: FrameWindowSplittingStrategy,
     ) -> Result<Vec<QuadrupoleSettings>, QuadrupoleSettingsReaderError> {
-        let quadrupole_settings = Self::from_sql_settings(&tdf_sql_reader)?;
-        let window_groups = SqlWindowGroup::from_sql_reader(&tdf_sql_reader)?;
+        let quadrupole_settings = Self::from_sql_settings(tdf_sql_reader)?;
+        let window_groups = SqlWindowGroup::from_sql_reader(tdf_sql_reader)?;
         let expanded_quadrupole_settings = match splitting_strat {
             FrameWindowSplittingStrategy::Quadrupole(x) => {
                 expand_quadrupole_settings(
@@ -214,7 +213,7 @@ impl FrameWindowSplittingConfiguration {
                     scan_converter,
                 )
             },
-            _ => quad_strategy.clone(),
+            _ => quad_strategy,
         }
     }
 }
@@ -231,7 +230,7 @@ fn scan_range_subsplit(
         QuadWindowExpansionStrategy::Even(num_splits) => {
             let sub_subwindow_width = (end - start) / (num_splits + 1);
             let mut out = Vec::new();
-            for sub_subwindow in 0..num_splits.clone() {
+            for sub_subwindow in 0..*num_splits {
                 let sub_subwindow_scan_start =
                     start + (sub_subwindow_width * sub_subwindow);
                 let sub_subwindow_scan_end =
@@ -248,7 +247,7 @@ fn scan_range_subsplit(
             // Since scan start < scan end but low scans are high IMs, we need to
             // subtract instead of adding.
             let converter = _converter.unwrap(); // Should always pass if created from FrameWindowConfig
-            let mut curr_start_offset = start.clone();
+            let mut curr_start_offset = start;
             let mut curr_start_im = converter.convert(curr_start_offset as f64);
 
             let mut curr_end_im = curr_start_im - span;
@@ -257,7 +256,7 @@ fn scan_range_subsplit(
             while curr_end_offset < end {
                 out.push((curr_start_offset, curr_end_offset));
 
-                curr_start_im = curr_start_im - step;
+                curr_start_im -= step;
                 curr_start_offset = converter.invert(curr_start_im) as usize;
 
                 curr_end_im = curr_start_im - span;
@@ -308,20 +307,18 @@ fn expand_window_settings(
         let window = window_group.window_group;
         let frame = window_group.frame;
         let group = &quadrupole_settings[window as usize - 1];
-        let window_group_start = group
+        let window_group_start = *group
             .scan_starts
             .iter()
             .min()
-            .expect("SqlReader cannot return empty vecs, so there is always min window_group index")
-            .clone();
-        let window_group_end = group
+            .expect("SqlReader cannot return empty vecs, so there is always min window_group index");
+        let window_group_end = *group
             .scan_ends
             .iter()
             .max()
-            .expect("SqlReader cannot return empty vecs, so there is always max window_group index")
-            .clone();
+            .expect("SqlReader cannot return empty vecs, so there is always max window_group index");
         for (sws, swe) in
-            scan_range_subsplit(window_group_start, window_group_end, &strategy)
+            scan_range_subsplit(window_group_start, window_group_end, strategy)
         {
             let mut mz_min = std::f64::MAX;
             let mut mz_max = std::f64::MIN;
@@ -371,7 +368,7 @@ fn expand_quadrupole_settings(
             for (sws, swe) in scan_range_subsplit(
                 subwindow_scan_start,
                 subwindow_scan_end,
-                &strategy,
+                strategy,
             ) {
                 let sub_quad_settings = QuadrupoleSettings {
                     index: frame,

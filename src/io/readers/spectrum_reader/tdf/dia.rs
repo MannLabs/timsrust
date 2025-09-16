@@ -27,7 +27,7 @@ impl DIARawSpectrumReader {
     ) -> Result<Self, DIARawSpectrumReaderError> {
         let expanded_quadrupole_settings =
             QuadrupoleSettingsReader::from_splitting(
-                &tdf_sql_reader,
+                tdf_sql_reader,
                 splitting_strategy,
             )?;
         let reader = Self {
@@ -55,7 +55,7 @@ impl DIARawSpectrumReader {
         let tof_indices = &frame.peaks.tof_indices[offset_start..offset_end];
         let intensities = &frame.peaks.intensities[offset_start..offset_end];
         let (raw_tof_indices, raw_intensities) = group_and_sum(
-            tof_indices.iter().map(|x| *x).collect(),
+            tof_indices.to_vec(),
             intensities.iter().map(|x| *x as u64).collect(),
         );
         let raw_spectrum = RawSpectrum {

@@ -44,7 +44,6 @@ pub struct FrameMeta {
     pub calibration: FrameCalibration,
 }
 
-
 /// The actual peaks in a frame.
 ///
 /// This is essentially a multi-array and a run-length encoded
@@ -85,10 +84,7 @@ impl FramePeaks {
     /// This in theory would be used to pre-allocate space
     /// and re-use the vectors when reading frames with
     /// FrameReader.get_buffered(...)
-    pub fn with_capacity(
-        scan_capacty: usize,
-        peak_capacity: usize,
-    ) -> Self {
+    pub fn with_capacity(scan_capacty: usize, peak_capacity: usize) -> Self {
         Self {
             scan_offsets: Vec::with_capacity(scan_capacty),
             tof_indices: Vec::with_capacity(peak_capacity),
@@ -113,10 +109,9 @@ impl FramePeaks {
     /// have index 2 but its empty!
     ///
     /// Then this index can be converted using the Scan2ImConverter.convert
-    fn expand_mobility_iter<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = u16> + 'a {
-        let ims_iter = self.scan_offsets
+    fn expand_mobility_iter(&self) -> impl Iterator<Item = u16> + '_ {
+        let ims_iter = self
+            .scan_offsets
             .windows(2)
             .enumerate()
             .filter_map(|(i, w)| {
@@ -129,14 +124,13 @@ impl FramePeaks {
                 let lo = w[0];
                 let hi = w[1];
 
-                let scan_index: u16 = i.try_into().expect(
-                    "Frames should never have more than 65535 scans",
-                );
+                let scan_index: u16 = i
+                    .try_into()
+                    .expect("Frames should never have more than 65535 scans");
 
                 Some((scan_index, lo, hi))
             })
-            .map(|(im, lo, hi)| (lo..hi).map(move |_| im))
-            .flatten();
+            .flat_map(|(im, lo, hi)| (lo..hi).map(move |_| im));
         ims_iter
     }
 
@@ -144,13 +138,13 @@ impl FramePeaks {
     ///
     /// Note: this does not apply any intensity correction
     pub fn iter_peaks(&self) -> impl Iterator<Item = FramePeak> + '_ {
-        self.expand_mobility_iter().enumerate().map(|(peak_index, scan_index)| {
-            FramePeak {
+        self.expand_mobility_iter().enumerate().map(
+            |(peak_index, scan_index)| FramePeak {
                 scan_index,
                 tof_index: self.tof_indices[peak_index],
                 intensity: self.intensities[peak_index],
-            }
-        })
+            },
+        )
     }
 }
 
@@ -178,7 +172,9 @@ impl Frame {
     ///
     /// The coccected intensity takes into account the
     /// injection time of the frame.
-    pub fn iter_corrected_peaks(&self) -> impl Iterator<Item = CorrectedFramePeak> + '_ {
+    pub fn iter_corrected_peaks(
+        &self,
+    ) -> impl Iterator<Item = CorrectedFramePeak> + '_ {
         let factor = self.meta.intensity_correction_factor;
         self.peaks.iter_peaks().map(move |peak| CorrectedFramePeak {
             scan_index: peak.scan_index,
@@ -249,6 +245,5 @@ mod tests {
         assert_eq!(peaks.last().unwrap().scan_index, 3);
         assert_eq!(peaks.last().unwrap().tof_index, 20);
         assert_eq!(peaks.last().unwrap().intensity, 42);
-
     }
 }

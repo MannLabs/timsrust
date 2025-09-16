@@ -28,7 +28,7 @@ impl SpectrumReaderBuilder {
 
     pub fn with_config(&self, config: SpectrumReaderConfig) -> Self {
         Self {
-            config: config,
+            config,
             ..self.clone()
         }
     }

@@ -8,7 +8,7 @@ pub fn group_and_sum<T: Ord + Copy, U: std::ops::Add<Output = U> + Copy>(
     groups: Vec<T>,
     values: Vec<U>,
 ) -> (Vec<T>, Vec<U>) {
-    if groups.len() == 0 {
+    if groups.is_empty() {
         return (vec![], vec![]);
     }
     let order: Vec<usize> = argsort(&groups);

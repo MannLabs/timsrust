@@ -58,10 +58,16 @@ pub struct TimsCalibration {
 impl TimsCalibration {
     pub(crate) fn convert_im(&self, scan_no: f64) -> f64 {
         // Mobility[1/k0] = 1/(c6+c7/(c2+((c3-c2)/c1)*(scanno-c4-c0)))
-        return self.convert_im_iter(std::iter::once(scan_no)).next().unwrap();
+        return self
+            .convert_im_iter(std::iter::once(scan_no))
+            .next()
+            .unwrap();
     }
 
-    pub(crate) fn convert_im_iter<'a>(&'a self, scan_no_iter: impl Iterator<Item = f64> + 'a) -> impl Iterator<Item = f64> + 'a {
+    pub(crate) fn convert_im_iter<'a>(
+        &'a self,
+        scan_no_iter: impl Iterator<Item = f64> + 'a,
+    ) -> impl Iterator<Item = f64> + 'a {
         let conv = self.get_conversion_function();
         scan_no_iter.map(conv)
     }
@@ -83,23 +89,30 @@ impl TimsCalibration {
             c9: _,
         } = self;
 
-        let (c0, c1, c2, c3, c4, c6, c7) = match (model_type, c0, c1, c2, c3, c4, c6, c7) {
-            (2, Some(c0), Some(c1), Some(c2), Some(c3), Some(c4), Some(c6), Some(c7)) => {
-                (*c0, *c1, *c2, *c3, *c4, *c6, *c7)
-            }
+        let (c0, c1, c2, c3, c4, c6, c7) = match (
+            model_type, c0, c1, c2, c3, c4, c6, c7,
+        ) {
+            (
+                2,
+                Some(c0),
+                Some(c1),
+                Some(c2),
+                Some(c3),
+                Some(c4),
+                Some(c6),
+                Some(c7),
+            ) => (*c0, *c1, *c2, *c3, *c4, *c6, *c7),
             (2, _, _, _, _, _, _, _) => {
                 panic!("Invalid TimsCalibration missing coefficients for model_type 2");
-            }
+            },
             (model_type, _, _, _, _, _, _, _) => {
                 panic!("Invalid TimsCalibration with unsupported model_type {model_type}");
-            }
+            },
         };
 
-        let out = move |scan_no| {
-            1.0/(c6+c7/(c2+((c3-c2)/c1)*(scan_no-c4-c0)))
-        };
-
-        out
+        move |scan_no| {
+            1.0 / (c6 + c7 / (c2 + ((c3 - c2) / c1) * (scan_no - c4 - c0)))
+        }
     }
 }
 
@@ -126,7 +139,6 @@ impl ReadableSqlTable for TimsCalibration {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,7 +161,7 @@ mod tests {
             c8: Some(16.3705403907576),
             c9: Some(2553.11607142569),
         };
-        const TOL : f64 = 5e-2;
+        const TOL: f64 = 5e-2;
         let im = calib.convert_im(1.0);
         // 1.450000 is the set max IM
         assert!((im - 1.45).abs() < TOL, "im: {}", im);

@@ -13,7 +13,10 @@ impl TdfBlob {
         Ok(Self { bytes })
     }
 
-    pub(crate) fn decompress_reset(&mut self, compressed_bytes: &[u8]) -> Result<(), TdfBlobError> {
+    pub(crate) fn decompress_reset(
+        &mut self,
+        compressed_bytes: &[u8],
+    ) -> Result<(), TdfBlobError> {
         self.bytes.clear();
         copy_decode(compressed_bytes, &mut self.bytes)
             .map_err(|_| TdfBlobError::Decompression)?;
@@ -26,7 +29,9 @@ impl TdfBlob {
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { bytes: Vec::with_capacity(capacity) }
+        Self {
+            bytes: Vec::with_capacity(capacity),
+        }
     }
 
     fn check_len(bytes: &[u8]) -> Result<(), TdfBlobError> {
@@ -77,7 +82,7 @@ impl TdfBlob {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum TdfBlobError{
+pub enum TdfBlobError {
     #[error("Length {0} is not a multiple of {BLOB_TYPE_SIZE}")]
     Size(usize),
     #[error("Decompression fails")]

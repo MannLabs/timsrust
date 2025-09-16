@@ -69,7 +69,7 @@ impl PrecursorReaderBuilder {
         config: FrameWindowSplittingConfiguration,
     ) -> Self {
         Self {
-            config: config,
+            config,
             ..self.clone()
         }
     }

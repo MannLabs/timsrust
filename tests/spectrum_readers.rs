@@ -244,7 +244,7 @@ fn test_dia_uniform_scans() {
         const NUM_FRAMES: usize = 4;
         const NUM_SCANS: usize = 709;
 
-        assert!(spectra.len() >= (NUM_SCANS / i) as usize + 1);
-        assert!(spectra.len() < NUM_FRAMES * (NUM_SCANS / i) as usize + 1);
+        assert!(spectra.len() > (NUM_SCANS / i));
+        assert!(spectra.len() < NUM_FRAMES * (NUM_SCANS / i) + 1);
     }
 }

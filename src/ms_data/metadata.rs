@@ -1,14 +1,18 @@
 use std::{collections::HashMap, fmt::Debug, str::FromStr};
 
 use crate::{
-    domain_converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter}, readers::file_readers::sql_reader::{calibrations::{MzCalibration, TimsCalibration}, ReadableSqlTable},
+    domain_converters::{Frame2RtConverter, Scan2ImConverter, Tof2MzConverter},
+    readers::file_readers::sql_reader::{
+        calibrations::{MzCalibration, TimsCalibration},
+        ReadableSqlTable,
+    },
 };
 
 use crate::io::readers::{
     file_readers::sql_reader::{
         metadata::SqlMetadata, ReadableSqlHashMap, SqlReader, SqlReaderError,
     },
-    TimsTofPathLike, TimsTofPath, TimsTofPathError,
+    TimsTofPath, TimsTofPathError, TimsTofPathLike,
 };
 
 /// Metadata from a single run.
@@ -103,7 +107,9 @@ impl Metadata {
         Ok(metadata)
     }
 
-    pub fn get_calibration(&self) -> Result<(MzCalibrations, TimsCalibrations), MetadataReaderError> {
+    pub fn get_calibration(
+        &self,
+    ) -> Result<(MzCalibrations, TimsCalibrations), MetadataReaderError> {
         let reader = SqlReader::open(&self.filepath).unwrap();
         let mz_cal = MzCalibration::from_sql_reader(&reader)?;
         let tims_cal = TimsCalibration::from_sql_reader(&reader)?;

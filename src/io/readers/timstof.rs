@@ -43,7 +43,7 @@ impl TimsTofPath {
                 Ok(result) => Ok(result),
                 Err(_) => Err(TimsTofPathError::UnknownType(path)),
             },
-            None => return Err(TimsTofPathError::UnknownType(path)),
+            None => Err(TimsTofPathError::UnknownType(path)),
         }
     }
 
@@ -137,7 +137,7 @@ pub trait TimsTofPathLike: AsRef<Path> {
 
 impl<T: AsRef<Path>> TimsTofPathLike for T {
     fn to_timstof_path(&self) -> Result<TimsTofPath, TimsTofPathError> {
-        TimsTofPath::new(&self)
+        TimsTofPath::new(self)
     }
 }
 
