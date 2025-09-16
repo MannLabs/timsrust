@@ -3,7 +3,7 @@
 //! ## Basics
 //!
 //! Two primary data types are exposed:
-//!
+//! * [TimsTofPath]: A path-like structure that abstracts away the differences between the supported file formats.
 //! * [Spectra](crate::ms_data::Spectrum): A traditional representation that expresses intensitites in function of mz values for a given precursor.
 //! * [Frames](crate::ms_data::Frame): All recorded data from a single TIMS elution (i.e. at one specific retention_time).
 //!
@@ -26,6 +26,8 @@ pub(crate) mod errors;
 pub(crate) mod io;
 pub(crate) mod ms_data;
 pub(crate) mod utils;
+
+pub use crate::readers::{TimsTofPath, TimsTofPathError};
 
 pub mod converters {
     //! Allows conversions between domains (e.g. Time of Flight and m/z)

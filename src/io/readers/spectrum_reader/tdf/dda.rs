@@ -77,18 +77,19 @@ impl DDARawSpectrumReader {
             isolation_mz = pasef_frame.isolation_mz;
             isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame - 1;
-            let frame = self.frame_reader.get(frame_index)?;
-            if frame.intensities.len() == 0 {
+            let frame = self.frame_reader.get_by_internal_index(frame_index)?;
+            if frame.peaks.is_empty() {
                 continue;
             }
             let scan_start: usize = pasef_frame.scan_start;
             let scan_end: usize = pasef_frame.scan_end;
-            let offset_start: usize = frame.scan_offsets[scan_start] as usize;
-            let offset_end: usize = frame.scan_offsets[scan_end] as usize;
+            let offset_start: usize =
+                frame.peaks.scan_offsets[scan_start] as usize;
+            let offset_end: usize = frame.peaks.scan_offsets[scan_end] as usize;
             let tof_selection: &[u32] =
-                &frame.tof_indices[offset_start..offset_end];
+                &frame.peaks.tof_indices[offset_start..offset_end];
             let intensity_selection: &[u32] =
-                &frame.intensities[offset_start..offset_end];
+                &frame.peaks.intensities[offset_start..offset_end];
             tof_indices.extend(tof_selection);
             intensities.extend(intensity_selection);
         }
@@ -99,7 +100,7 @@ impl DDARawSpectrumReader {
         let raw_spectrum = RawSpectrum {
             tof_indices: raw_tof_indices,
             intensities: raw_intensities,
-            index: index,
+            index,
             collision_energy,
             isolation_mz,
             isolation_width,

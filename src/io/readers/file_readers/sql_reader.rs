@@ -1,3 +1,4 @@
+pub mod calibrations;
 pub mod frame_groups;
 pub mod frames;
 pub mod metadata;

@@ -1,21 +1,44 @@
+use zstd::stream::copy_decode;
+
 const BLOB_TYPE_SIZE: usize = std::mem::size_of::<u32>();
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TdfBlob {
     bytes: Vec<u8>,
 }
 
 impl TdfBlob {
-    pub fn new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
+    pub(crate) fn try_new(bytes: Vec<u8>) -> Result<Self, TdfBlobError> {
+        Self::check_len(&bytes)?;
+        Ok(Self { bytes })
+    }
+
+    pub(crate) fn decompress_reset(&mut self, compressed_bytes: &[u8]) -> Result<(), TdfBlobError> {
+        self.bytes.clear();
+        copy_decode(compressed_bytes, &mut self.bytes)
+            .map_err(|_| TdfBlobError::Decompression)?;
+        Self::check_len(self.bytes.as_slice())?;
+        Ok(())
+    }
+
+    pub fn new_empty() -> Self {
+        Self { bytes: Vec::new() }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self { bytes: Vec::with_capacity(capacity) }
+    }
+
+    fn check_len(bytes: &[u8]) -> Result<(), TdfBlobError> {
         if bytes.len() % BLOB_TYPE_SIZE != 0 {
-            Err(TdfBlobError(bytes.len()))
+            Err(TdfBlobError::Size(bytes.len()))
         } else {
-            Ok(Self { bytes })
+            Ok(())
         }
     }
 
     #[cfg(feature = "minitdf")]
-    pub fn get_all(&self) -> Vec<u32> {
+    pub(crate) fn get_all(&self) -> Vec<u32> {
         (0..self.len())
             .map(|index| self.get(index).expect(
                 "When iterating over the length of a tdf blob, you cannot go out of bounds"
@@ -23,7 +46,7 @@ impl TdfBlob {
             .collect()
     }
 
-    pub fn get(&self, index: usize) -> Option<u32> {
+    pub(crate) fn get(&self, index: usize) -> Option<u32> {
         if index >= self.len() {
             None
         } else {
@@ -54,5 +77,9 @@ impl TdfBlob {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Length {0} is not a multiple of {BLOB_TYPE_SIZE}")]
-pub struct TdfBlobError(usize);
+pub enum TdfBlobError{
+    #[error("Length {0} is not a multiple of {BLOB_TYPE_SIZE}")]
+    Size(usize),
+    #[error("Decompression fails")]
+    Decompression,
+}

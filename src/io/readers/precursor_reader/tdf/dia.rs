@@ -4,10 +4,10 @@ use crate::{
     },
     io::readers::{
         file_readers::sql_reader::{SqlReader, SqlReaderError},
-        MetadataReader, MetadataReaderError, QuadrupoleSettingsReader,
+         QuadrupoleSettingsReader,
         QuadrupoleSettingsReaderError,
     },
-    ms_data::{Precursor, QuadrupoleSettings},
+    ms_data::{Precursor, QuadrupoleSettings, Metadata, MetadataReaderError},
     readers::{FrameWindowSplittingConfiguration, TimsTofPathLike},
 };
 
@@ -26,7 +26,7 @@ impl DIATDFPrecursorReader {
         splitting_config: FrameWindowSplittingConfiguration,
     ) -> Result<Self, DIATDFPrecursorReaderError> {
         let tdf_sql_reader = SqlReader::open(&path)?;
-        let metadata = MetadataReader::new(&path)?;
+        let metadata = Metadata::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
         let splitting_strategy = splitting_config.finalize(Some(im_converter));
@@ -56,7 +56,7 @@ impl PrecursorReaderTrait for DIATDFPrecursorReader {
             im: self.im_converter.convert(scan_id),
             charge: None,
             intensity: None,
-            index: index,
+            index,
             frame_index: quad_settings.index,
         };
         Some(precursor)

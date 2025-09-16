@@ -4,7 +4,6 @@ use memmap2::Mmap;
 use std::fs::File;
 use std::io;
 pub use tdf_blobs::*;
-use zstd::decode_all;
 
 use crate::readers::{TimsTofFileType, TimsTofPathError, TimsTofPathLike};
 
@@ -24,6 +23,16 @@ impl TdfBlobReader {
     }
 
     pub fn get(&self, offset: usize) -> Result<TdfBlob, TdfBlobReaderError> {
+        let mut out = TdfBlob::new_empty();
+        self.get_into(offset, &mut out)?;
+        Ok(out)
+    }
+
+    pub fn get_into(
+        &self,
+        offset: usize,
+        buffer: &mut TdfBlob,
+    ) -> Result<(), TdfBlobReaderError> {
         let offset = self.bin_file_reader.global_file_offset + offset;
         let byte_count = self
             .bin_file_reader
@@ -33,10 +42,8 @@ impl TdfBlobReader {
             .bin_file_reader
             .get_data(offset, byte_count)
             .ok_or(TdfBlobReaderError::CorruptData)?;
-        let bytes =
-            decode_all(data).map_err(|_| TdfBlobReaderError::Decompression)?;
-        let blob = TdfBlob::new(bytes)?;
-        Ok(blob)
+        buffer.decompress_reset(data)?;
+        Ok(())
     }
 }
 
@@ -106,7 +113,7 @@ impl IndexedTdfBlobReader {
         let blob_reader = TdfBlobReader::new(path)?;
         let reader = Self {
             binary_offsets,
-            blob_reader: blob_reader,
+            blob_reader,
         };
         Ok(reader)
     }
@@ -115,12 +122,18 @@ impl IndexedTdfBlobReader {
         &self,
         index: usize,
     ) -> Result<TdfBlob, IndexedTdfBlobReaderError> {
-        let offset = *self
-            .binary_offsets
+        let mut out = TdfBlob::new_empty();
+        self.get_into(index, &mut out)?;
+        Ok(out)
+    }
+
+    pub fn get_into(&self, index: usize, buffer: &mut TdfBlob) -> Result<(), IndexedTdfBlobReaderError> {
+        let offset = *self.binary_offsets
             .get(index)
             .ok_or(IndexedTdfBlobReaderError::InvalidIndex(index))?;
-        let blob = self.blob_reader.get(offset)?;
-        Ok(blob)
+
+        self.blob_reader.get_into(offset, buffer)?;
+        Ok(())
     }
 }
 
@@ -129,7 +142,7 @@ pub enum TdfBlobReaderError {
     #[error("{0}")]
     IO(#[from] io::Error),
     #[error("{0}")]
-    TdfBlob(#[from] TdfBlobError),
+    TdfBlob(TdfBlobError),
     #[error("Data is corrupt")]
     CorruptData,
     #[error("Decompression fails")]
@@ -140,6 +153,17 @@ pub enum TdfBlobReaderError {
     TimsTofPathError(#[from] TimsTofPathError),
     #[error("No binary file found")]
     NoBinary,
+}
+
+impl From<TdfBlobError> for TdfBlobReaderError {
+    fn from(e: TdfBlobError) -> Self {
+        match e {
+            TdfBlobError::Decompression => {
+                TdfBlobReaderError::Decompression
+            }
+            _ => TdfBlobReaderError::TdfBlob(e),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -7,9 +7,8 @@ use crate::{
             precursors::SqlPrecursor, ReadableSqlTable, SqlReader,
             SqlReaderError,
         },
-        MetadataReader, MetadataReaderError,
     },
-    ms_data::Precursor,
+    ms_data::{Precursor, Metadata, MetadataReaderError},
     readers::TimsTofPathLike,
 };
 
@@ -27,7 +26,7 @@ impl DDATDFPrecursorReader {
         path: impl TimsTofPathLike,
     ) -> Result<Self, DDATDFPrecursorReaderError> {
         let tdf_sql_reader = SqlReader::open(&path)?;
-        let metadata = MetadataReader::new(&path)?;
+        let metadata = Metadata::new(&path)?;
         let rt_converter: Frame2RtConverter = metadata.rt_converter;
         let im_converter: Scan2ImConverter = metadata.im_converter;
         let sql_precursors = SqlPrecursor::from_sql_reader(&tdf_sql_reader)?;

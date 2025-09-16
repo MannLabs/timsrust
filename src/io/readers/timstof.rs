@@ -3,6 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::{Metadata, MetadataReaderError};
+
+use super::{FrameReader, FrameReaderError};
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum TimsTofFileType {
     #[cfg(feature = "minitdf")]
@@ -61,6 +65,14 @@ impl TimsTofPath {
 
     pub fn file_type(&self) -> TimsTofFileType {
         self.file_type
+    }
+
+    pub fn load_frame_reader(&self) -> Result<FrameReader, FrameReaderError> {
+        FrameReader::new(self)
+    }
+
+    pub fn load_metadata(&self) -> Result<Metadata, MetadataReaderError> {
+        Metadata::new(self)
     }
 }
 

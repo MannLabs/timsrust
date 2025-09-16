@@ -10,11 +10,15 @@ pub struct SqlFrame {
     pub scan_count: u64,
     pub binary_offset: usize,
     pub accumulation_time: f64,
+    // Measured temperatures for the frame .. used for calibration
+    pub mz_calibration: u8,
+    pub t1: f64,
+    pub t2: f64,
 }
 
 impl ReadableSqlTable for SqlFrame {
     fn get_sql_query() -> String {
-        "SELECT Id, ScanMode, MsMsType, NumPeaks, Time, NumScans, TimsId, AccumulationTime FROM Frames".to_string()
+        "SELECT Id, ScanMode, MsMsType, NumPeaks, Time, NumScans, TimsId, AccumulationTime, T1, T2, MzCalibration FROM Frames".to_string()
     }
 
     fn from_sql_row(row: &rusqlite::Row) -> Self {
@@ -27,6 +31,9 @@ impl ReadableSqlTable for SqlFrame {
             scan_count: row.parse_default(5),
             binary_offset: row.parse_default(6),
             accumulation_time: row.parse_default(7),
+            t1: row.parse_default(8),
+            t2: row.parse_default(9),
+            mz_calibration: row.parse_default(10),
         }
     }
 }

@@ -2,7 +2,7 @@
 mod tests {
     use std::{path::Path, sync::Arc};
     use timsrust::{
-        readers::FrameReader, AcquisitionType, Frame, MSLevel,
+        readers::FrameReader, AcquisitionType, Frame, MSLevel, FrameMeta, FramePeaks,
         QuadrupoleSettings,
     };
 
@@ -28,29 +28,37 @@ mod tests {
             .collect();
         let expected: Vec<Frame> = vec![
             Frame {
-                scan_offsets: vec![0, 1, 3, 6, 10],
-                tof_indices: (0..10).collect(),
-                intensities: (0..10).map(|x| (x + 1) * 2).collect(),
-                index: 1,
-                rt_in_seconds: 0.1,
-                ms_level: MSLevel::MS1,
-                quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
-                acquisition_type: AcquisitionType::DDAPASEF,
-                intensity_correction_factor: 1.0 / 100.0,
-                window_group: 0,
+                meta: FrameMeta {
+                    index: 1,
+                    rt_in_seconds: 0.1,
+                    ms_level: MSLevel::MS1,
+                    acquisition_type: AcquisitionType::DDAPASEF,
+                    intensity_correction_factor: (1000.0 / 100.0),
+                    window_group: None,
+                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                },
+                peaks: FramePeaks {
+                    scan_offsets: vec![0, 1, 3, 6, 10],
+                    tof_indices: (0..10).collect(),
+                    intensities: (0..10).map(|x| (x + 1) * 2).collect(),
+                },
             },
             // Frame::default(),
             Frame {
-                scan_offsets: vec![0, 9, 19, 30, 42],
-                tof_indices: (36..78).collect(),
-                intensities: (36..78).map(|x| (x + 1) * 2).collect(),
-                index: 3,
-                rt_in_seconds: 0.3,
-                ms_level: MSLevel::MS1,
-                quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
-                acquisition_type: AcquisitionType::DDAPASEF,
-                intensity_correction_factor: 1.0 / 100.0,
-                window_group: 0,
+                meta: FrameMeta {
+                    index: 3,
+                    rt_in_seconds: 0.3,
+                    ms_level: MSLevel::MS1,
+                    acquisition_type: AcquisitionType::DDAPASEF,
+                    intensity_correction_factor: (1000.0 / 100.0),
+                    window_group: None,
+                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                },
+                peaks: FramePeaks {
+                    scan_offsets: vec![0, 9, 19, 30, 42],
+                    tof_indices: (36..78).collect(),
+                    intensities: (36..78).map(|x| (x + 1) * 2).collect(),
+                },
             },
             // Frame::default(),
         ];
@@ -76,29 +84,37 @@ mod tests {
         let expected: Vec<Frame> = vec![
             // Frame::default(),
             Frame {
-                scan_offsets: vec![0, 5, 11, 18, 26],
-                tof_indices: (10..36).collect(),
-                intensities: (10..36).map(|x| (x + 1) * 2).collect(),
-                index: 2,
-                rt_in_seconds: 0.2,
-                ms_level: MSLevel::MS2,
-                quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
-                acquisition_type: AcquisitionType::DDAPASEF,
-                intensity_correction_factor: 1.0 / 100.0,
-                window_group: 0,
+                peaks: FramePeaks {
+                    scan_offsets: vec![0, 5, 11, 18, 26],
+                    tof_indices: (10..36).collect(),
+                    intensities: (10..36).map(|x| (x + 1) * 2).collect(),
+                },
+                meta: FrameMeta {
+                    index: 2,
+                    rt_in_seconds: 0.2,
+                    ms_level: MSLevel::MS2,
+                    acquisition_type: AcquisitionType::DDAPASEF,
+                    intensity_correction_factor: (1000.0 / 100.0),
+                    window_group: None,
+                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                }
             },
             // Frame::default(),
             Frame {
-                scan_offsets: vec![0, 13, 27, 42, 58],
-                tof_indices: (78..136).collect(),
-                intensities: (78..136).map(|x| (x + 1) * 2).collect(),
-                index: 4,
-                rt_in_seconds: 0.4,
-                ms_level: MSLevel::MS2,
-                quadrupole_settings: Arc::new(QuadrupoleSettings::default()),
-                acquisition_type: AcquisitionType::DDAPASEF,
-                intensity_correction_factor: 1.0 / 100.0,
-                window_group: 0,
+                peaks: FramePeaks {
+                    scan_offsets: vec![0, 13, 27, 42, 58],
+                    tof_indices: (78..136).collect(),
+                    intensities: (78..136).map(|x| (x + 1) * 2).collect(),
+                },
+                meta: FrameMeta {
+                    index: 4,
+                    rt_in_seconds: 0.4,
+                    ms_level: MSLevel::MS2,
+                    acquisition_type: AcquisitionType::DDAPASEF,
+                    intensity_correction_factor: (1000.0 / 100.0),
+                    window_group: None,
+                    calibration: timsrust::FrameCalibration { mz_calibration: 1, t1: 1.0, t2: 1.0 },
+                }
             },
         ];
         for i in 0..expected.len() {
@@ -123,35 +139,35 @@ mod tests {
 
         assert_eq!(frames.len(), 4);
         for i in 0..frames.len() {
-            assert_eq!(frames[i].scan_offsets.len(), 710);
-            assert_eq!(frames[i].scan_offsets[0], 0);
+            assert_eq!(frames[i].peaks.scan_offsets.len(), 710);
+            assert_eq!(frames[i].peaks.scan_offsets[0], 0);
             assert_eq!(
-                frames[i].scan_offsets.last().unwrap(),
-                &frames[i].intensities.len()
+                *frames[i].peaks.scan_offsets.last().unwrap() as usize,
+                frames[i].peaks.intensities.len()
             );
             assert_eq!(
-                frames[i].tof_indices.len(),
-                frames[i].intensities.len()
+                frames[i].peaks.tof_indices.len(),
+                frames[i].peaks.intensities.len()
             );
         }
-        assert_eq!(&frames[0].tof_indices[0], &251695u32);
-        assert_eq!(&frames[0].intensities[0], &503392u32);
-        assert_eq!(&frames[0].tof_indices.len(), &754376);
-        assert_eq!(&frames[0].intensities.len(), &754376);
+        assert_eq!(&frames[0].peaks.tof_indices[0], &251695u32);
+        assert_eq!(&frames[0].peaks.intensities[0], &503392u32);
+        assert_eq!(&frames[0].peaks.tof_indices.len(), &754376);
+        assert_eq!(&frames[0].peaks.intensities.len(), &754376);
 
-        assert_eq!(&frames[1].tof_indices[0], &1006071u32);
-        assert_eq!(&frames[1].intensities[0], &2012144u32);
-        assert_eq!(&frames[1].tof_indices.len(), &1257057);
-        assert_eq!(&frames[1].intensities.len(), &1257057);
+        assert_eq!(&frames[1].peaks.tof_indices[0], &1006071u32);
+        assert_eq!(&frames[1].peaks.intensities[0], &2012144u32);
+        assert_eq!(&frames[1].peaks.tof_indices.len(), &1257057);
+        assert_eq!(&frames[1].peaks.intensities.len(), &1257057);
 
-        assert_eq!(&frames[2].tof_indices[0], &4022866u32);
-        assert_eq!(&frames[2].intensities[0], &8045734u32);
-        assert_eq!(&frames[2].tof_indices.len(), &2262419);
-        assert_eq!(&frames[2].intensities.len(), &2262419);
+        assert_eq!(&frames[2].peaks.tof_indices[0], &4022866u32);
+        assert_eq!(&frames[2].peaks.intensities[0], &8045734u32);
+        assert_eq!(&frames[2].peaks.tof_indices.len(), &2262419);
+        assert_eq!(&frames[2].peaks.intensities.len(), &2262419);
 
-        assert_eq!(&frames[3].tof_indices[0], &6285285u32);
-        assert_eq!(&frames[3].intensities[0], &12570572u32);
-        assert_eq!(&frames[3].tof_indices.len(), &2765100);
-        assert_eq!(&frames[3].intensities.len(), &2765100);
+        assert_eq!(&frames[3].peaks.tof_indices[0], &6285285u32);
+        assert_eq!(&frames[3].peaks.intensities[0], &12570572u32);
+        assert_eq!(&frames[3].peaks.tof_indices.len(), &2765100);
+        assert_eq!(&frames[3].peaks.intensities.len(), &2765100);
     }
 }
