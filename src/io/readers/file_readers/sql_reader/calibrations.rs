@@ -57,7 +57,6 @@ pub struct TimsCalibration {
 
 impl TimsCalibration {
     pub(crate) fn convert_im(&self, scan_no: f64) -> f64 {
-        // Mobility[1/k0] = 1/(c6+c7/(c2+((c3-c2)/c1)*(scanno-c4-c0)))
         return self
             .convert_im_iter(std::iter::once(scan_no))
             .next()
@@ -73,7 +72,12 @@ impl TimsCalibration {
     }
 
     pub fn get_conversion_function(&self) -> impl Fn(f64) -> f64 {
+        // Inspired from:
+        // https://github.com/Roestlab/dia-pasef/src/diapysef/sandbox/trystuff.py
         // Mobility[1/k0] = 1/(c6+c7/(c2+((c3-c2)/c1)*(scanno-c4-c0)))
+        // Which seems to be under MIT
+        //
+        //
         let TimsCalibration {
             id: _,
             model_type,
@@ -110,9 +114,15 @@ impl TimsCalibration {
             },
         };
 
-        move |scan_no| {
-            1.0 / (c6 + c7 / (c2 + ((c3 - c2) / c1) * (scan_no - c4 - c0)))
-        }
+        // Old result ...
+        // move |scan_no| {
+        //     1.0 / (c6 + c7 / (c2 + ((c3 - c2) / c1) * (scan_no - c4 - c0)))
+        // }
+
+        // Pre-calculate constants (same as before)
+        let slope = (c3 - c2) / c1;
+        let offset = c2 - slope * (c4 + c0);
+        move |scan_no| 1.0 / (c6 + c7 / (offset + slope * scan_no))
     }
 }
 
@@ -145,7 +155,20 @@ mod tests {
     #[test]
     fn test_convert_im() {
         // From an ultra 2 calibration
-        // 1 2	1	708	241.751905250524	99.2437539638487	33.9622641509434	1	0.0071422641733084	164.998795925213	16.3705403907576	2553.11607142569
+        // Id ModelType C0 C1  C2               C3               C4               C5 C6 ...
+        // 1  2         1  708 241.751905250524 99.2437539638487 33.9622641509434 1  0.0071422641733084 164.998795925213 16.3705403907576 2553.11607142569
+        //
+        // I would assume the pressure would be used somewhere 2.46155376641182 is an example value
+        // for it in the frame table ...
+        //
+        // Notes:
+        // - C1 and C2 seem to be the min-max scan indices.
+        // - C9 almost seems like an m/z ... but the dll only takes frame id and scan
+        //   numbers as input.
+        //
+        // let slope = (c3 - c2) / c1;
+        // let offset = c2 - slope * (c4 + c0);
+        // move |scan_no| 1.0 / (c6 + c7 / (offset + slope * scan_no))
 
         let calib = TimsCalibration {
             id: 1,
