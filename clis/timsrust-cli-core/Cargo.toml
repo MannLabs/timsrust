@@ -1,0 +1,14 @@
+[package]
+name = "timsrust-cli-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+log =  { workspace = true }
+clap = { workspace = true, features = ["cargo", "derive", "std"]}
+env_logger = { workspace = true }
+rayon = { workspace = true }
+
+[lints]
+workspace = true
