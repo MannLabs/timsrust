@@ -1,0 +1,32 @@
+[package]
+name = "timsrust"
+version = "0.5.0"
+edition = "2024"
+description = "A crate to read Bruker timsTOF data"
+license = "Apache-2.0"
+readme = "README.md"
+documentation = "https://docs.rs/timsrust"
+repository = "https://github.com/mannlabs/timsrust"
+homepage = "https://github.com/mannlabs/timsrust"
+categories = ["accessibility", "data-structures", "parsing", "science"]
+keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+timsrust-sdk = { workspace = true, optional = true }
+timsrust-bruker = { workspace = true, optional = true }
+timsrust-core = { workspace = true }
+timsrust-tdf = { workspace = true }
+timsrust-minitdf = { workspace = true }
+thiserror = { workspace = true }
+rayon = { workspace = true }
+
+[lints]
+workspace = true
+
+[features]
+# default = ["bps", "sdk"]
+sdk = ["timsrust-sdk"]
+bps = ["timsrust-bruker"]
+# bps = ["timsrust-bps"]
