@@ -1,0 +1,13 @@
+[package]
+name = "timsrust-tsf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+timsrust-core = { workspace = true, features = ["io"] }
+serde = { workspace = true, features = ["derive"] }
+zstd = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
