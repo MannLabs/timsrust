@@ -1,40 +1,72 @@
-[package]
-name = "timsrust"
-version = "0.4.3"
-edition = "2021"
-description = "A crate to read Bruker timsTOF data"
-license = "Apache-2.0"
-readme = "README.md"
-documentation = "https://docs.rs/timsrust"
-repository = "https://github.com/mannlabs/timsrust"
-homepage = "https://github.com/mannlabs/timsrust"
-categories = ["accessibility", "data-structures", "parsing", "science"]
-keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
+[workspace]
+members = [
+    "clis/*",
+    "crates/*",
+    "python/*",
+]
+resolver = "3"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace.lints.rust]
+unnameable_types = "deny"
+unreachable_pub = "warn"
+# collapsible_if = "allow"
 
-[dependencies]
-zstd = "0.13.2"
-rayon = "1.10.0"
-linreg = "0.2.0"
-bytemuck = "1.18.0"
-thiserror = "2.0.3"
-memmap2 = "0.9.3"
-rusqlite = { version = "0.32.0", features = ["bundled"], optional = true }
-parquet = { version = "53.0.0", optional = true }
-serde = { version = "1.0.210", features = ["derive"], optional = true }
-serde_json = { version = "1.0.128", optional = true }
-timscompress = {version = "0.1.0", optional=true}
+[workspace.dependencies]
+# crates
+filemanager = { path = "crates/filemanager", default-features = false }
+timsrust = { path = "crates/timsrust", default-features = false }
+timsrust-core = { path = "crates/timsrust-core", default-features = false }
+timsrust-mgf = { path = "crates/timsrust-mgf", default-features = false }
+timsrust-minitdf = { path = "crates/timsrust-minitdf", default-features = false }
+timsrust-sdk = { path = "crates/timsrust-sdk", default-features = false }
+timsrust-tdf = { path = "crates/timsrust-tdf", default-features = false }
+timsrust-tsf = { path = "crates/timsrust-tsf", default-features = false }
+timsrust-utils = { path = "crates/timsrust-utils", default-features = false }
+# clis
+timsrust-cli-core = { path = "clis/timsrust-cli-core", default-features = false }
+# bruker
+timsrust-bruker = { git = "https://github.com/internal/timsrust-bruker.git", tag = "tag", default-features = false }
+# external
+arrow = { version = "57", default-features = false }
+bytemuck = { version = "1", default-features = false }
+object_store = { version = "0.11", default-features = false }
+url = { version = "2", default-features = false }
+bytes = { version = "1", default-features = false }
+clap = { version = "4" } # WARNING
+env_logger = { version = "0.11", default-features = false }
+indicatif = { version = "0.17", default-features = false }
+libc = { version = "0.2", default-features = false }
+linreg = { version = "0.2", default-features = false }
+log = { version = "0.4", default-features = false }
+lzf = { version = "1", default-features = false }
+memmap2 = { version = "0.9", default-features = false }
+parquet = { version = "57", default-features = false }
+pyo3 = { version = "0.26", default-features = false}
+rayon = { version = "1", default-features = false }
+rusqlite = { version = "0.35", default-features = false }
+tempfile = { version = "3", default-features = false }
+thiserror = { version = "2" } # WARNING
+futures = { version = "0.3", default-features = false }
+xxhash-rust = { version = "0.8", default-features = false }
+tokio = { version = "1", default-features = false }
+zstd = { version = "0.13", default-features = false }
+serde = { version = "1", default-features = false }
+serde_arrow = { version = "0.13", default-features = false }
+rustc-hash = { version = "2", default-features = false }
+serde_json = { version = "1", default-features = false }
 
-[features]
-tdf = ["rusqlite"]
-minitdf = ["parquet"]
-default = ["tdf", "minitdf", "serialize"]
-serialize = ["serde", "serde_json"]
+[profile.dev]
+lto = "off"
+codegen-units = 256
+panic = "abort"
+incremental = true
+debug = false
+opt-level = 3
 
-[dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-
-[[bench]]
-name = "speed_performance"
-harness = false
+[profile.test]
+lto = "off"
+codegen-units = 256
+panic = "abort"
+incremental = true
+debug = false
+opt-level = 3
