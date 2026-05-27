@@ -1,0 +1,18 @@
+[package]
+name = "timsrust-tdf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+timsrust-core = { workspace = true, features = ["io"] }
+serde = { workspace = true, features = ["derive"] }
+lzf = { workspace = true }
+thiserror = { workspace = true }
+rayon = { workspace = true }
+zstd = { workspace = true }
+
+[lints]
+workspace = true
+
+[features]
+default = []
