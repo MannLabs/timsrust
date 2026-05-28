@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
-#[cfg(feature = "bps")]
-use timsrust_bruker::parquet_spectra::parquet_path::ParquetSpectrumPath;
 use timsrust_core::io::Uri;
 use timsrust_minitdf::MiniTDFPath;
+use timsrust_parquet_spectra::parquet_path::ParquetSpectrumPath;
 use timsrust_tdf::{FrameReaderError, TDFPath, TdfFrameReader};
 
 use crate::{
@@ -20,7 +19,7 @@ use crate::{
 pub(crate) enum TimsTofFileType {
     MiniTdf(MiniTDFPath),
     Tdf(TDFPath),
-    #[cfg(feature = "bps")]
+
     Parquet(ParquetSpectrumPath),
 }
 
@@ -44,7 +43,7 @@ impl TimsTofPath {
                 file_type: TimsTofFileType::MiniTdf(minitdf),
             });
         }
-        #[cfg(feature = "bps")]
+
         if let Ok(parquet) = ParquetSpectrumPath::new(&path) {
             return Ok(Self {
                 uri: parquet.uri().clone(),

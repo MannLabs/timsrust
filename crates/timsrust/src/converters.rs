@@ -38,7 +38,6 @@ impl MzConverter {
                 )))
             },
             TimsTofFileType::MiniTdf(_) => Some(MzConverter::MiniTdf),
-            #[cfg(feature = "bps")]
             TimsTofFileType::Parquet(_) => {
                 Some(MzConverter::Bit(timsrust_core::BitConverter()))
             },
@@ -108,7 +107,6 @@ impl ImConverter {
                 )))
             },
             TimsTofFileType::MiniTdf(_) => Some(ImConverter::MiniTdf),
-            #[cfg(feature = "bps")]
             TimsTofFileType::Parquet(_) => {
                 Some(ImConverter::Bit(timsrust_core::BitConverter()))
             },
@@ -159,7 +157,6 @@ impl RtConverter {
                 timsrust_tdf::Frame2RtConverter::new(tdf_path.tdf().as_ref()),
             )),
             TimsTofFileType::MiniTdf(_) => Some(RtConverter::MiniTdf),
-            #[cfg(feature = "bps")]
             TimsTofFileType::Parquet(_) => {
                 Some(RtConverter::Bit(timsrust_core::BitConverter()))
             },

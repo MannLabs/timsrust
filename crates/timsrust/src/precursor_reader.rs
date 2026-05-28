@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-#[cfg(feature = "bps")]
-use timsrust_bruker::parquet_spectra::precursor_reader::{
-    ParquetPrecursorReader, ParquetPrecursorReaderError,
-};
 use timsrust_core::Precursor;
 use timsrust_core::utils::reader::Reader;
 use timsrust_minitdf::MiniTDFError;
 use timsrust_minitdf::MiniTDFPrecursorReader;
+use timsrust_parquet_spectra::precursor_reader::{
+    ParquetPrecursorReader, ParquetPrecursorReaderError,
+};
 use timsrust_tdf::{
     FrameWindowSplittingConfiguration, TDFPrecursorReader,
     TDFPrecursorReaderError,
@@ -21,7 +20,7 @@ use crate::{
 enum Inner {
     MiniTDF(MiniTDFPrecursorReader),
     Tdf(TDFPrecursorReader<ImConverter>),
-    #[cfg(feature = "bps")]
+
     ParquetSpectra(ParquetPrecursorReader),
 }
 
@@ -30,7 +29,7 @@ impl Inner {
         match self {
             Inner::MiniTDF(reader) => Ok(reader.get(index)?),
             Inner::Tdf(reader) => Ok(reader.get(index)?),
-            #[cfg(feature = "bps")]
+
             Inner::ParquetSpectra(reader) => Ok(reader.get(index)?),
         }
     }
@@ -39,7 +38,7 @@ impl Inner {
         match self {
             Inner::MiniTDF(reader) => reader.len(),
             Inner::Tdf(reader) => reader.len(),
-            #[cfg(feature = "bps")]
+
             Inner::ParquetSpectra(reader) => reader.len(),
         }
     }
@@ -115,7 +114,7 @@ impl PrecursorReaderBuilder {
                     im_converter,
                 )?)
             },
-            #[cfg(feature = "bps")]
+
             TimsTofFileType::Parquet(parquet_path) => Inner::ParquetSpectra(
                 ParquetPrecursorReader::new(parquet_path.precursor_path()),
             ),
@@ -129,7 +128,7 @@ impl PrecursorReaderBuilder {
 pub enum PrecursorReaderError {
     #[error("{0}")]
     MiniTDFPrecursorReaderError(#[from] MiniTDFError),
-    #[cfg(feature = "bps")]
+
     #[error("{0}")]
     ParquetPrecursorReader(#[from] ParquetPrecursorReaderError),
     #[error("{0}")]

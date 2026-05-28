@@ -2402,6 +2402,7 @@ dependencies = [
  "timsrust-core",
  "timsrust-external",
  "timsrust-minitdf",
+ "timsrust-parquet-spectra",
  "timsrust-sdk",
  "timsrust-tdf",
 ]

@@ -27,9 +27,8 @@ enum Inner {
     ),
     Tdf(TDFSpectrumReader<ImConverter>),
     MiniTdf(MiniTDFSpectrumReader),
-    #[cfg(feature = "bps")]
     ParquetSpectra(
-        timsrust_bruker::parquet_spectra::spectrum_reader::ParquetSpectrumReader,
+        timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
 }
 
@@ -44,7 +43,6 @@ impl Inner {
             },
             Inner::Tdf(reader) => Ok(reader.get(index)?),
             Inner::MiniTdf(reader) => Ok(reader.get(index)?),
-            #[cfg(feature = "bps")]
             Inner::ParquetSpectra(reader) => Ok(reader.get(index)?),
         }
     }
@@ -54,7 +52,6 @@ impl Inner {
             Inner::Tdf(reader) => reader.len(),
             Inner::MiniTdf(reader) => reader.len(),
             Inner::Centroider(reader) => reader.len(),
-            #[cfg(feature = "bps")]
             Inner::ParquetSpectra(reader) => reader.len(),
         }
     }
@@ -72,7 +69,6 @@ impl Inner {
             Inner::Centroider(reader) => A::Centroider(reader),
             Inner::Tdf(reader) => A::Tdf(reader),
             Inner::MiniTdf(reader) => A::MiniTdf(reader),
-            #[cfg(feature = "bps")]
             Inner::ParquetSpectra(reader) => A::ParquetSpectra(reader),
         }
     }
@@ -89,9 +85,8 @@ enum A<'a> {
     ),
     Tdf(&'a TDFSpectrumReader<ImConverter>),
     MiniTdf(&'a MiniTDFSpectrumReader),
-    #[cfg(feature = "bps")]
     ParquetSpectra(
-        &'a timsrust_bruker::parquet_spectra::spectrum_reader::ParquetSpectrumReader,
+        &'a timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
 }
 
@@ -117,7 +112,6 @@ impl<'a> ParallelIterator for A<'a> {
                 |s| s.ok(),
             )
             .drive_unindexed(consumer),
-            #[cfg(feature = "bps")]
             Self::ParquetSpectra(reader) => {
                 rayon::iter::ParallelIterator::filter_map(
                     reader.par_iter(),
@@ -235,11 +229,10 @@ pub enum SpectrumReaderError {
     TDFSpectrumReaderError(#[from] TDFSpectrumReaderError),
     #[error("{0}")]
     MiniTDFSpectrumReaderError(#[from] MiniTDFError),
-    #[cfg(feature = "bps")]
     #[error("{0}")]
     ParquetSpectrumReaderError(
         #[from]
-        timsrust_bruker::parquet_spectra::spectrum_reader::ParquetSpectrumReaderError,
+        timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReaderError,
     ),
     #[error("No path provided")]
     NoPath,
@@ -326,10 +319,9 @@ impl SpectrumReaderBuilder {
             TimsTofFileType::MiniTdf(mini_path) => {
                 Inner::MiniTdf(mini_path.spectrum_reader()?)
             },
-            #[cfg(feature = "bps")]
             TimsTofFileType::Parquet(parquet_path) => {
                 Inner::ParquetSpectra(
-                    timsrust_bruker::parquet_spectra::spectrum_reader::ParquetSpectrumReader::new(
+                    timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader::new(
                         parquet_path.precursor_path(),
                         parquet_path.fragment_path(),
                     ),
