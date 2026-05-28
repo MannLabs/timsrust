@@ -15,6 +15,7 @@ unreachable_pub = "warn"
 # crates
 filemanager = { path = "crates/filemanager", default-features = false }
 timsrust = { path = "crates/timsrust", default-features = false }
+timsrust-centroid = { path = "crates/timsrust-centroid", default-features = false }
 timsrust-core = { path = "crates/timsrust-core", default-features = false }
 timsrust-mgf = { path = "crates/timsrust-mgf", default-features = false }
 timsrust-minitdf = { path = "crates/timsrust-minitdf", default-features = false }

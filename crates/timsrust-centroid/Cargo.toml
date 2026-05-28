@@ -1,0 +1,14 @@
+[package]
+name = "timsrust-centroid"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+timsrust-core = { workspace = true }
+rayon = { workspace = true }
+thiserror = { workspace = true }
+rustc-hash = { workspace = true, features = ["std"] }
+
+[lints]
+workspace = true
