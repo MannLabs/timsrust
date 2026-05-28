@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-#[cfg(feature = "bps")]
 use timsrust_core::AcquisitionType;
 use timsrust_core::{Mz, Spectrum};
 use timsrust_minitdf::{MiniTDFError, MiniTDFSpectrumReader};
-#[cfg(feature = "bps")]
 use timsrust_tdf::{FrameInfoReader, Metadata, TdfIonReader};
 use timsrust_tdf::{
     SpectrumReaderConfig, TDFSpectrumReader, TDFSpectrumReaderError,
@@ -19,9 +17,8 @@ use timsrust_core::utils::reader::{ParIterableReader, Reader};
 
 #[allow(clippy::large_enum_variant)]
 enum Inner {
-    #[cfg(feature = "bps")]
     Centroider(
-        timsrust_bruker::centroid::spectrum_reader::SpectrumReader<
+        timsrust_centroid::spectrum_reader::SpectrumReader<
             TdfIonReader,
             FrameInfoReader,
             ImConverter,
@@ -42,7 +39,6 @@ impl Inner {
         index: usize,
     ) -> Result<timsrust_core::Spectrum, SpectrumReaderError> {
         match self {
-            #[cfg(feature = "bps")]
             Inner::Centroider(_) => {
                 Err(SpectrumReaderError::CentroiderNotSupported)
             },
@@ -57,7 +53,6 @@ impl Inner {
         match self {
             Inner::Tdf(reader) => reader.len(),
             Inner::MiniTdf(reader) => reader.len(),
-            #[cfg(feature = "bps")]
             Inner::Centroider(reader) => reader.len(),
             #[cfg(feature = "bps")]
             Inner::ParquetSpectra(reader) => reader.len(),
@@ -74,7 +69,6 @@ impl Inner {
         &self,
     ) -> impl ParallelIterator<Item = timsrust_core::Spectrum> + '_ {
         match self {
-            #[cfg(feature = "bps")]
             Inner::Centroider(reader) => A::Centroider(reader),
             Inner::Tdf(reader) => A::Tdf(reader),
             Inner::MiniTdf(reader) => A::MiniTdf(reader),
@@ -85,9 +79,8 @@ impl Inner {
 }
 
 enum A<'a> {
-    #[cfg(feature = "bps")]
     Centroider(
-        &'a timsrust_bruker::centroid::spectrum_reader::SpectrumReader<
+        &'a timsrust_centroid::spectrum_reader::SpectrumReader<
             TdfIonReader,
             FrameInfoReader,
             ImConverter,
@@ -110,7 +103,6 @@ impl<'a> ParallelIterator for A<'a> {
         C: rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
     {
         match self {
-            #[cfg(feature = "bps")]
             Self::Centroider(reader) => reader
                 .par_iter()
                 .filter_map(|s| s.ok())
@@ -288,7 +280,6 @@ impl SpectrumReaderBuilder {
         };
         let spectrum_reader = match path.file_type() {
             TimsTofFileType::Tdf(tdf_path) => {
-                #[cfg(feature = "bps")]
                 if Metadata::new(tdf_path.as_ref()).unwrap().acquisition_type()
                     == AcquisitionType::DIAPASEF
                 {
@@ -301,7 +292,7 @@ impl SpectrumReaderBuilder {
                             .unwrap()
                             .into_inner();
                     let spectrum_reader = Inner::Centroider(
-                        timsrust_bruker::centroid::spectrum_reader::SpectrumReader::new(
+                        timsrust_centroid::spectrum_reader::SpectrumReader::new(
                             frame_reader,
                             0.5,
                             // 15,

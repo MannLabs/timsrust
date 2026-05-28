@@ -2398,11 +2398,22 @@ version = "0.5.0"
 dependencies = [
  "rayon",
  "thiserror",
+ "timsrust-centroid",
  "timsrust-core",
  "timsrust-external",
  "timsrust-minitdf",
  "timsrust-sdk",
  "timsrust-tdf",
+]
+
+[[package]]
+name = "timsrust-centroid"
+version = "0.1.0"
+dependencies = [
+ "rayon",
+ "rustc-hash",
+ "thiserror",
+ "timsrust-core",
 ]
 
 [[package]]

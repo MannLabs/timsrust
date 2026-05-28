@@ -16,8 +16,7 @@ pub use timstof::{
     TimsTofFrameReaderError, TimsTofPath, TimsTofPathError, TimsTofPathLike,
 };
 
-#[cfg(feature = "bps")]
-pub use timsrust_bruker::centroid;
+pub use timsrust_centroid as centroid;
 pub use timsrust_core as core;
 pub use timsrust_minitdf as minidf;
 pub use timsrust_tdf as tdf;

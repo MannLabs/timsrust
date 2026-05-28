@@ -16,6 +16,7 @@ keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
 [dependencies]
 timsrust-sdk = { workspace = true, optional = true }
 timsrust-external = { workspace = true, optional = true }
+timsrust-centroid = { workspace = true }
 timsrust-core = { workspace = true }
 timsrust-tdf = { workspace = true }
 timsrust-minitdf = { workspace = true }
