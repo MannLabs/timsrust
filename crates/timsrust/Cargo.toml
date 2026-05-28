@@ -15,7 +15,7 @@ keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
 
 [dependencies]
 timsrust-sdk = { workspace = true, optional = true }
-timsrust-bruker = { workspace = true, optional = true }
+timsrust-external = { workspace = true, optional = true }
 timsrust-core = { workspace = true }
 timsrust-tdf = { workspace = true }
 timsrust-minitdf = { workspace = true }
@@ -28,5 +28,5 @@ workspace = true
 [features]
 # default = ["bps", "sdk"]
 sdk = ["timsrust-sdk"]
-bps = ["timsrust-bruker"]
+bps = ["timsrust-external"]
 # bps = ["timsrust-bps"]

@@ -22,10 +22,9 @@ timsrust-sdk = { path = "crates/timsrust-sdk", default-features = false }
 timsrust-tdf = { path = "crates/timsrust-tdf", default-features = false }
 timsrust-tsf = { path = "crates/timsrust-tsf", default-features = false }
 timsrust-utils = { path = "crates/timsrust-utils", default-features = false }
+timsrust-external = { path = "crates/timsrust-external", default-features = false }
 # clis
 timsrust-cli-core = { path = "clis/timsrust-cli-core", default-features = false }
-# bruker
-timsrust-bruker = { git = "https://github.com/internal/timsrust-bruker.git", tag = "tag", default-features = false }
 # external
 arrow = { version = "57", default-features = false }
 bytemuck = { version = "1", default-features = false }
