@@ -2530,6 +2530,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "timsrust-parquet-spectra-cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "log",
+ "rayon",
+ "serde",
+ "timsrust",
+ "timsrust-core",
+]
+
+[[package]]
 name = "timsrust-pyo3"
 version = "0.1.0"
 dependencies = [
