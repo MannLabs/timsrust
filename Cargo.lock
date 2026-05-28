@@ -2467,6 +2467,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "timsrust-parquet-spectra"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "timsrust-core",
+]
+
+[[package]]
 name = "timsrust-pyo3"
 version = "0.1.0"
 dependencies = [

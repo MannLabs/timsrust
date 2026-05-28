@@ -19,6 +19,7 @@ timsrust-centroid = { path = "crates/timsrust-centroid", default-features = fals
 timsrust-core = { path = "crates/timsrust-core", default-features = false }
 timsrust-mgf = { path = "crates/timsrust-mgf", default-features = false }
 timsrust-minitdf = { path = "crates/timsrust-minitdf", default-features = false }
+timsrust-parquet-spectra = { path = "crates/timsrust-parquet-spectra", default-features = false }
 timsrust-sdk = { path = "crates/timsrust-sdk", default-features = false }
 timsrust-tdf = { path = "crates/timsrust-tdf", default-features = false }
 timsrust-tsf = { path = "crates/timsrust-tsf", default-features = false }
