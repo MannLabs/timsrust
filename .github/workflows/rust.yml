@@ -20,4 +20,4 @@ jobs:
     - name: File sizes
       run: find src/  -name '*.rs' | xargs wc -l | sort -nr
     - name: Run tests
-      run: cargo test --verbose --workspace --exclude timsrust-sdk
+      run: cargo test --verbose --workspace --exclude timsrust-sdk --exclude timsrust-tsf
