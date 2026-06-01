@@ -8,7 +8,7 @@ use crate::{TimsTofPath, timstof::TimsTofFileType};
 pub enum MzConverter {
     #[cfg(feature = "sdk")]
     Sdk(timsrust_sdk::WrappedTof2MzConverterSDK),
-    #[cfg(feature = "bps")]
+    #[cfg(feature = "patched")]
     Bps(timsrust_patched::Tof2MzConverter),
     Bit(timsrust_core::BitConverter),
     Tdf(timsrust_tdf::Tof2MzConverter),
@@ -27,7 +27,7 @@ impl MzConverter {
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
-                #[cfg(feature = "bps")]
+                #[cfg(feature = "patched")]
                 return Some(MzConverter::Bps(
                     timsrust_patched::Tof2MzConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
@@ -48,7 +48,7 @@ impl MzConverter {
 impl Converter<TofIndex, Mz> for MzConverter {
     fn convert(&self, tof_index: TofIndex) -> Mz {
         match self {
-            #[cfg(feature = "bps")]
+            #[cfg(feature = "patched")]
             Self::Bps(converter) => converter.convert(tof_index),
             #[cfg(feature = "sdk")]
             Self::Sdk(converter) => converter.convert(tof_index),
@@ -62,7 +62,7 @@ impl Converter<TofIndex, Mz> for MzConverter {
 impl Converter<Mz, TofIndex> for MzConverter {
     fn convert(&self, mz: Mz) -> TofIndex {
         match self {
-            #[cfg(feature = "bps")]
+            #[cfg(feature = "patched")]
             Self::Bps(converter) => converter.convert(mz),
             #[cfg(feature = "sdk")]
             Self::Sdk(converter) => converter.convert(mz),
@@ -77,7 +77,7 @@ impl Converter<Mz, TofIndex> for MzConverter {
 pub enum ImConverter {
     #[cfg(feature = "sdk")]
     Sdk(timsrust_sdk::WrappedScan2ImConverterSDK),
-    #[cfg(feature = "bps")]
+    #[cfg(feature = "patched")]
     Bps(timsrust_patched::Scan2ImConverter),
     Bit(timsrust_core::BitConverter),
     Tdf(timsrust_tdf::Scan2ImConverter),
@@ -96,7 +96,7 @@ impl ImConverter {
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
-                #[cfg(feature = "bps")]
+                #[cfg(feature = "patched")]
                 return Some(ImConverter::Bps(
                     timsrust_patched::Scan2ImConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
@@ -117,7 +117,7 @@ impl ImConverter {
 impl Converter<ScanIndex, Im> for ImConverter {
     fn convert(&self, scan_index: ScanIndex) -> Im {
         match self {
-            #[cfg(feature = "bps")]
+            #[cfg(feature = "patched")]
             Self::Bps(converter) => converter.convert(scan_index),
             #[cfg(feature = "sdk")]
             Self::Sdk(converter) => converter.convert(scan_index),
@@ -131,7 +131,7 @@ impl Converter<ScanIndex, Im> for ImConverter {
 impl Converter<Im, ScanIndex> for ImConverter {
     fn convert(&self, im: Im) -> ScanIndex {
         match self {
-            #[cfg(feature = "bps")]
+            #[cfg(feature = "patched")]
             Self::Bps(converter) => converter.convert(im),
             #[cfg(feature = "sdk")]
             Self::Sdk(converter) => converter.convert(im),
