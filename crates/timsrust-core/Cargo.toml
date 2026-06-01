@@ -1,0 +1,17 @@
+[package]
+name = "timsrust-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# timsrust-io = { workspace = true, optional = true }
+timsrust-utils = { workspace = true }
+rayon = { workspace = true }
+filemanager = { workspace = true, default-features = true, optional = true }
+
+[lints]
+workspace = true
+
+[features]
+# io = ["timsrust-io"]
+io = ["filemanager"]

@@ -1,0 +1,13 @@
+[package]
+name = "timsrust-sdk"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+timsrust-core = { workspace = true, features = ["io"] }
+serde = { workspace = true, features = ["derive"] }
+libc = { workspace = true }
+
+[lints]
+workspace = true

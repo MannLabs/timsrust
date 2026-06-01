@@ -1,0 +1,21 @@
+[package]
+name = "timsrust-mgf-cli"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+timsrust = { workspace = true }
+timsrust-mgf = { workspace = true }
+timsrust-cli-core = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "timsrust-mgf-cli"
+path = "src/main.rs"
+
+[features]
+bps = ["timsrust/bps"]
+sdk = ["timsrust/sdk"]
