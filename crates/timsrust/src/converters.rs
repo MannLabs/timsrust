@@ -9,7 +9,7 @@ pub enum MzConverter {
     #[cfg(feature = "sdk")]
     Sdk(timsrust_sdk::WrappedTof2MzConverterSDK),
     #[cfg(feature = "bps")]
-    Bps(timsrust_bruker::bps::Tof2MzConverter),
+    Bps(timsrust_patched::Tof2MzConverter),
     Bit(timsrust_core::BitConverter),
     Tdf(timsrust_tdf::Tof2MzConverter),
     MiniTdf,
@@ -29,7 +29,7 @@ impl MzConverter {
                 ));
                 #[cfg(feature = "bps")]
                 return Some(MzConverter::Bps(
-                    timsrust_bruker::bps::Tof2MzConverter::from_tdf(
+                    timsrust_patched::Tof2MzConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
@@ -78,7 +78,7 @@ pub enum ImConverter {
     #[cfg(feature = "sdk")]
     Sdk(timsrust_sdk::WrappedScan2ImConverterSDK),
     #[cfg(feature = "bps")]
-    Bps(timsrust_bruker::bps::Scan2ImConverter),
+    Bps(timsrust_patched::Scan2ImConverter),
     Bit(timsrust_core::BitConverter),
     Tdf(timsrust_tdf::Scan2ImConverter),
     MiniTdf,
@@ -98,7 +98,7 @@ impl ImConverter {
                 ));
                 #[cfg(feature = "bps")]
                 return Some(ImConverter::Bps(
-                    timsrust_bruker::bps::Scan2ImConverter::from_tdf(
+                    timsrust_patched::Scan2ImConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));

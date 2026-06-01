@@ -2437,7 +2437,7 @@ dependencies = [
  "thiserror",
  "timsrust-centroid",
  "timsrust-core",
- "timsrust-external",
+ "timsrust-patched",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
  "timsrust-sdk",
@@ -2491,7 +2491,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "timsrust-external"
+name = "timsrust-patched"
 version = "0.1.0"
 
 [[package]]

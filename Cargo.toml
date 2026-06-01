@@ -24,7 +24,7 @@ timsrust-sdk = { path = "crates/timsrust-sdk", default-features = false }
 timsrust-tdf = { path = "crates/timsrust-tdf", default-features = false }
 timsrust-tsf = { path = "crates/timsrust-tsf", default-features = false }
 timsrust-utils = { path = "crates/timsrust-utils", default-features = false }
-timsrust-external = { path = "crates/timsrust-external", default-features = false }
+timsrust-patched = { path = "crates/timsrust-patched", default-features = false }
 # clis
 timsrust-cli-core = { path = "clis/timsrust-cli-core", default-features = false }
 # external

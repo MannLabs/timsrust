@@ -15,7 +15,7 @@ keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
 
 [dependencies]
 timsrust-sdk = { workspace = true, optional = true }
-timsrust-external = { workspace = true, optional = true }
+timsrust-patched = { workspace = true, optional = true }
 timsrust-centroid = { workspace = true }
 timsrust-core = { workspace = true }
 timsrust-minitdf = { workspace = true }
@@ -28,7 +28,5 @@ rayon = { workspace = true }
 workspace = true
 
 [features]
-# default = ["bps", "sdk"]
 sdk = ["timsrust-sdk"]
-bps = ["timsrust-external"]
-# bps = ["timsrust-bps"]
+patched = ["timsrust-patched"]
