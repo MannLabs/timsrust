@@ -2,6 +2,7 @@
 name = "timsrust-tdf"
 version = "0.1.0"
 edition = "2024"
+description = "Reader for the Bruker TDF timsTOF file format (.d folders)"
 license = "Apache-2.0"
 
 [dependencies]
