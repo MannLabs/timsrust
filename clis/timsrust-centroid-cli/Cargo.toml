@@ -25,5 +25,5 @@ name = "timsrust-centroid-cli"
 path = "src/main.rs"
 
 [features]
-bps = ["timsrust/bps"]
+patched = ["timsrust/patched"]
 sdk = ["timsrust/sdk"]

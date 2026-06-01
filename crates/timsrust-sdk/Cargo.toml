@@ -3,6 +3,7 @@ name = "timsrust-sdk"
 version = "0.1.0"
 edition = "2024"
 build = "build.rs"
+license = "Apache-2.0"
 
 [dependencies]
 timsrust-core = { workspace = true, features = ["io"] }

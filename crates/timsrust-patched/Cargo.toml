@@ -2,8 +2,4 @@
 name = "timsrust-patched"
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]
-
-[lints]
-workspace = true
+license = "Apache-2.0"

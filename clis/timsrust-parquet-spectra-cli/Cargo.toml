@@ -22,4 +22,4 @@ path = "src/main.rs"
 
 [features]
 sdk = ["timsrust/sdk"]
-bps = ["timsrust/bps"]
+patched = ["timsrust/patched"]
