@@ -2437,9 +2437,9 @@ dependencies = [
  "thiserror",
  "timsrust-centroid",
  "timsrust-core",
- "timsrust-patched",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
+ "timsrust-patched",
  "timsrust-sdk",
  "timsrust-tdf",
 ]
@@ -2491,10 +2491,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "timsrust-patched"
-version = "0.1.0"
-
-[[package]]
 name = "timsrust-mgf"
 version = "0.1.0"
 dependencies = [
@@ -2541,6 +2537,10 @@ dependencies = [
  "timsrust",
  "timsrust-core",
 ]
+
+[[package]]
+name = "timsrust-patched"
+version = "0.1.0"
 
 [[package]]
 name = "timsrust-pyo3"
