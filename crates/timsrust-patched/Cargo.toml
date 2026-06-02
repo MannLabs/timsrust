@@ -1,6 +1,6 @@
 [package]
 name = "timsrust-patched"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Patched calibration extensions for timsTOF data reading"
 license = "Apache-2.0"

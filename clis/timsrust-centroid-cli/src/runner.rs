@@ -123,8 +123,10 @@ fn run_parquet(
         let fr = make_tdf_frame_reader(&in_path)?;
         PeakReader::new(fr, min_ion_count_ms1, min_ion_count_ms2)?
     };
-    let synced_writer =
-        Synced::from(ParquetWriter::new(out_path.as_ref()).unwrap());
+    let frame_count = peak_reader.frame_count();
+    let mut writer = ParquetWriter::new(out_path.as_ref()).unwrap();
+    writer.set_max_batch_count(frame_count);
+    let synced_writer = Synced::from(writer);
     log::info!("Found {} frames", peak_reader.frame_count());
     log::info!("Calculated TOF FWHM: {}", peak_reader.tof_fwhm());
     log::info!("Calculated scan FWHM: {}", peak_reader.scan_fwhm());

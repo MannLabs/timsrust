@@ -9,6 +9,8 @@ use serde_arrow::schema::{SchemaLike, TracingOptions};
 
 use crate::Uri;
 
+const MAX_ROW_GROUPS: usize = 32000;
+
 /// Errors from Parquet read/write operations.
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
@@ -57,6 +59,12 @@ pub struct ParquetWriter<T> {
     writer: Option<ArrowWriter<std::fs::File>>,
     rows: usize,
     cols: usize,
+    batches: usize,
+    max_batch_count: Option<usize>,
+    max_row_count: Option<usize>,
+    open_rows: usize,
+    open_batches: usize,
+    row_groups_written: usize,
     _marker: PhantomData<T>,
 }
 
@@ -90,7 +98,9 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> ParquetWriter<T> {
         let cols = fields.len();
         let schema = Arc::new(Schema::new(fields));
         let file = std::fs::File::create(p)?;
-        let props = WriterProperties::builder().build();
+        let props = WriterProperties::builder()
+            .set_max_row_group_size(usize::MAX)
+            .build();
         let writer = ArrowWriter::try_new(file, schema, Some(props))
             .map_err(|e| ParquetError::Write(Box::new(e)))?;
 
@@ -98,8 +108,53 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> ParquetWriter<T> {
             writer: Some(writer),
             rows: 0,
             cols,
+            batches: 0,
+            max_batch_count: None,
+            max_row_count: None,
+            open_rows: 0,
+            open_batches: 0,
+            row_groups_written: 0,
             _marker: PhantomData,
         })
+    }
+
+    pub fn set_max_batch_count(&mut self, count: usize) {
+        self.max_batch_count = Some(count);
+    }
+
+    pub fn set_max_row_count(&mut self, count: usize) {
+        self.max_row_count = Some(count);
+    }
+
+    fn flush(&mut self) -> Result<(), ParquetError> {
+        if let Some(max_batches) = self.max_batch_count {
+            let batches_per_row_group = max_batches / MAX_ROW_GROUPS;
+            if self.open_batches > batches_per_row_group {
+                self.flush_and_close_row_group()?;
+            }
+        } else if let Some(max_rows) = self.max_row_count {
+            let rows_per_row_group = max_rows / MAX_ROW_GROUPS;
+            if self.open_rows > rows_per_row_group {
+                self.flush_and_close_row_group()?;
+            }
+        } else {
+            let open = MAX_ROW_GROUPS - self.row_groups_written;
+            let target = self.batches / open.max(1);
+            if self.open_batches > target {
+                self.flush_and_close_row_group()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn flush_and_close_row_group(&mut self) -> Result<(), ParquetError> {
+        if let Some(ref mut w) = self.writer {
+            w.flush().map_err(|e| ParquetError::Write(Box::new(e)))?;
+            self.open_batches = 0;
+            self.open_rows = 0;
+            self.row_groups_written += 1;
+        }
+        Ok(())
     }
 
     /// Writes a batch of records to the Parquet file.
@@ -130,10 +185,16 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> ParquetWriter<T> {
         if let Some(ref mut w) = self.writer {
             w.write(&record_batch)
                 .map_err(|e| ParquetError::Write(Box::new(e)))?;
-            w.flush().map_err(|e| ParquetError::Write(Box::new(e)))?;
+            // w.flush().map_err(|e| ParquetError::Write(Box::new(e)))?;
         }
 
         self.rows += n;
+        self.open_rows += n;
+        self.batches += 1;
+        self.open_batches += 1;
+
+        self.flush()?;
+
         Ok(())
     }
 

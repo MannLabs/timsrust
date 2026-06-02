@@ -1,6 +1,6 @@
 [package]
 name = "timsrust"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 description = "A crate to read Bruker timsTOF data"
 license = "Apache-2.0"
@@ -17,7 +17,7 @@ keywords = ["MS", "LC-TIMS-TOF", "PASEF"]
 timsrust-sdk = { workspace = true, optional = true }
 timsrust-patched = { workspace = true, optional = true }
 timsrust-centroid = { workspace = true }
-timsrust-core = { workspace = true }
+timsrust-core = { workspace = true, features = ["io"] }
 timsrust-minitdf = { workspace = true }
 timsrust-parquet-spectra = { workspace = true }
 timsrust-tdf = { workspace = true }

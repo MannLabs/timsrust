@@ -1,6 +1,6 @@
 [package]
 name = "timsrust-sdk"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 build = "build.rs"
 description = "Bruker TimsData SDK bindings for native timsTOF data access"

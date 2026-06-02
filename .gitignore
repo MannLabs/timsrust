@@ -15,6 +15,7 @@ target/
 *.ms2/
 perf.data*
 *.zip
+nbs/*
 
 
 # OS files
