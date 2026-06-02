@@ -1,0 +1,15 @@
+[package]
+name = "timsrust-centroid"
+version = "0.1.0"
+edition = "2024"
+description = "Centroiding algorithms for timsTOF ion mobility spectra"
+license = "Apache-2.0"
+
+[dependencies]
+timsrust-core = { workspace = true }
+rayon = { workspace = true }
+thiserror = { workspace = true }
+rustc-hash = { workspace = true, features = ["std"] }
+
+[lints]
+workspace = true

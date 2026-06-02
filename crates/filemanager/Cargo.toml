@@ -1,0 +1,42 @@
+[package]
+name = "filemanager"
+version = "0.1.0"
+edition = "2021"
+description = "Unified file abstraction for local and cloud files with caching options and support for multiple formats."
+license = "Apache-2.0"
+
+[dependencies]
+thiserror = { workspace = true }
+memmap2 = { workspace = true }
+tempfile = { workspace = true }
+object_store = {  workspace = true, optional = true, features = [
+    "aws",
+    "azure",
+    "gcp",
+    "http",
+] }
+futures = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["rt-multi-thread"] }
+url = { workspace = true, optional = true }
+parquet = { workspace = true, default-features = true, optional = true }
+arrow = { workspace = true, default-features = true, optional = true }
+rusqlite = { workspace = true, optional = true, features = ["bundled"] }
+serde = { workspace = true, optional = true, features = ["derive"] }
+serde_json = { workspace = true, optional = true }
+serde_arrow = { workspace = true, default-features = true, optional = true, features = ["arrow-57"] }
+
+[features]
+default = ["json", "parquet", "sql", "cloud"]
+cloud = ["dep:object_store", "dep:url", "async"]
+json = ["dep:serde_json", "dep:serde"]
+parquet = ["dep:parquet", "dep:arrow", "dep:serde_arrow", "dep:serde"]
+sql = ["dep:rusqlite", "dep:serde", "dep:serde_json"]
+async = ["dep:tokio", "dep:futures"]
+
+[dev-dependencies]
+tempfile = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

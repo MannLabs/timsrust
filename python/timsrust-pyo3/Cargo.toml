@@ -1,0 +1,17 @@
+[package]
+name = "timsrust-pyo3"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "tims_pyo3"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { workspace = true, default-features = true, features = ["extension-module"] }
+timsrust = { workspace = true}
+rayon = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+[package]
+name = "timsrust-parquet-spectra-cli"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+timsrust = { workspace = true }
+timsrust-core = { workspace = true }
+clap = { workspace = true, features = ["cargo", "derive"]}
+env_logger = { workspace = true }
+log = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "timsrust-parquet-spectra-cli"
+path = "src/main.rs"
+
+[features]
+sdk = ["timsrust/sdk"]
+patched = ["timsrust/patched"]

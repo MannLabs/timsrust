@@ -1,0 +1,29 @@
+[package]
+name = "timsrust-centroid-cli"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+timsrust-centroid = { workspace = true }
+timsrust-core = { workspace = true }
+timsrust = { workspace = true }
+timsrust-tdf = { workspace = true }
+timsrust-mgf = { workspace = true }
+clap = { workspace = true, features = ["cargo", "derive", "std"] }
+env_logger = { workspace = true }
+indicatif = { workspace = true, features = ["rayon"] }
+log = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "timsrust-centroid-cli"
+path = "src/main.rs"
+
+[features]
+patched = ["timsrust/patched"]
+sdk = ["timsrust/sdk"]

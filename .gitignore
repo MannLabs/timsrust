@@ -1,3 +1,23 @@
 debug/
 target/
+.cargo/config*.toml
+
 .vscode/
+*.parquet
+*.mgf
+*.ipynb
+*.svg
+*libtimsdata.so
+*timsdata*/
+*.tdf*
+*.a
+*.d/
+*.ms2/
+perf.data*
+*.zip
+
+
+# OS files
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
