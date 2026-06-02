@@ -1,6 +1,6 @@
 [package]
 name = "timsrust-parquet-spectra"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Parquet-backed spectrum and precursor reader for timsTOF data"
 license = "Apache-2.0"
