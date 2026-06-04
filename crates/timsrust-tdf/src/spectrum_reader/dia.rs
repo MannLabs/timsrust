@@ -48,7 +48,10 @@ impl DIARawSpectrumReader {
         let scan_start = quad_settings.scan_starts[0];
         let scan_end = quad_settings.scan_ends[0];
         let frame_index = quad_settings.index;
-        let frame = self.frame_reader.get_frame(frame_index).map_err(FrameReaderError::from)?;
+        let frame = self
+            .frame_reader
+            .get_frame(frame_index)
+            .map_err(FrameReaderError::from)?;
         let scan_offsets = frame.ions().scan_offsets();
         let offset_start = scan_offsets[scan_start];
         let offset_end = scan_offsets[scan_end];

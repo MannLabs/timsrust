@@ -396,6 +396,17 @@ impl Uri {
             _ => None,
         }
     }
+
+    /// Cache-aware existence check.
+    ///
+    /// For cloud URIs, consults the local cache first to avoid a network
+    /// HEAD request when the file is already present on disk.
+    pub fn probe_is_file(&self) -> bool {
+        if let Some(local) = self.cached_local() {
+            return local.is_file().unwrap_or(false);
+        }
+        self.is_file().unwrap_or(false)
+    }
 }
 
 impl From<&str> for Uri {

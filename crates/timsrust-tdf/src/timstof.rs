@@ -12,8 +12,7 @@ impl TDFPath {
         let uri = Uri::from(path.as_ref());
         let tdf = uri.join("analysis.tdf");
         let tdf_bin = uri.join("analysis.tdf_bin");
-        if tdf.is_file().unwrap_or(false) && tdf_bin.is_file().unwrap_or(false)
-        {
+        if tdf.probe_is_file() && tdf_bin.probe_is_file() {
             return Ok(Self { uri, tdf, tdf_bin });
         }
         match uri.parent() {

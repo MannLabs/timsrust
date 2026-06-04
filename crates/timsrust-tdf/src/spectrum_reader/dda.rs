@@ -76,7 +76,10 @@ impl DDARawSpectrumReader {
             isolation_mz = pasef_frame.isolation_mz;
             isolation_width = pasef_frame.isolation_width;
             let frame_index: usize = pasef_frame.frame;
-            let frame = self.frame_reader.get_frame(frame_index).map_err(FrameReaderError::from)?;
+            let frame = self
+                .frame_reader
+                .get_frame(frame_index)
+                .map_err(FrameReaderError::from)?;
             if frame.is_empty() {
                 continue;
             }

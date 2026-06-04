@@ -93,6 +93,31 @@ impl FileCache {
         }
     }
 
+    /// Returns the local cache URI for `uri` iff a cache file already exists.
+    ///
+    /// Never downloads, never issues network requests, never errors.
+    /// Local URIs pass through unchanged. For cloud URIs, returns
+    /// `Some(local_uri)` only when the corresponding cache file is already
+    /// present on disk; otherwise returns `None`.
+    ///
+    /// This is the cache-aware probe used by callers (such as path
+    /// resolvers) that would otherwise issue cloud HEAD requests to check
+    /// for file existence.
+    pub fn cached_local(&self, uri: impl Into<Uri>) -> Option<Uri> {
+        let uri = uri.into();
+        if uri.is_local() {
+            return Some(uri);
+        }
+        let dir = self.dir.as_ref()?;
+        let key = uri.key()?;
+        let cache_path = dir.join(key);
+        if cache_path.is_file() {
+            Some(Uri::from(cache_path))
+        } else {
+            None
+        }
+    }
+
     pub fn invalidate(&self, uri: impl Into<Uri>) -> Result<(), CacheError> {
         match &self.dir {
             Some(dir) => {
@@ -137,5 +162,14 @@ impl Uri {
 
     pub fn soft_cache(&self) -> Uri {
         self.try_cache().unwrap_or_else(|_| self.clone())
+    }
+
+    /// Returns the local cache URI iff this URI is already cached on disk.
+    ///
+    /// Never downloads, never issues network requests. Local URIs pass
+    /// through unchanged. For cloud URIs, returns `Some(local_uri)` only
+    /// when the cache file already exists; otherwise returns `None`.
+    pub fn cached_local(&self) -> Option<Uri> {
+        crate::global_cache().cached_local(self.clone())
     }
 }
