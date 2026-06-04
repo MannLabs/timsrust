@@ -712,7 +712,7 @@ checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
 name = "filemanager"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "arrow",
  "futures",
@@ -2431,7 +2431,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "rayon",
  "thiserror",
@@ -2439,14 +2439,14 @@ dependencies = [
  "timsrust-core",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
- "timsrust-patched 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "timsrust-patched 0.1.1",
  "timsrust-sdk",
  "timsrust-tdf",
 ]
 
 [[package]]
 name = "timsrust-centroid"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rayon",
  "rustc-hash",
@@ -2456,7 +2456,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-centroid-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "env_logger",
@@ -2473,7 +2473,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-cli-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "env_logger",
@@ -2483,7 +2483,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "filemanager",
  "rayon",
@@ -2492,14 +2492,14 @@ dependencies = [
 
 [[package]]
 name = "timsrust-mgf"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "timsrust-core",
 ]
 
 [[package]]
 name = "timsrust-mgf-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "timsrust",
  "timsrust-cli-core",
@@ -2508,7 +2508,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-minitdf"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bytemuck",
  "serde",
@@ -2519,7 +2519,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-parquet-spectra"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "timsrust-core",
@@ -2527,7 +2527,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-parquet-spectra-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "env_logger",
@@ -2541,16 +2541,16 @@ dependencies = [
 [[package]]
 name = "timsrust-patched"
 version = "0.1.1"
-
-[[package]]
-name = "timsrust-patched"
-version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a549f6a10c5b02f1c890e5cd622d36dab36bc8bd8bf076abbc6e1990a046e21d"
 
 [[package]]
+name = "timsrust-patched"
+version = "0.1.2"
+
+[[package]]
 name = "timsrust-pyo3"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "pyo3",
  "rayon",
@@ -2559,7 +2559,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-sdk"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "libc",
  "serde",
@@ -2568,7 +2568,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-tdf"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lzf",
  "rayon",
@@ -2580,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-tsf"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "thiserror",
@@ -2590,7 +2590,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-utils"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rayon",
 ]
