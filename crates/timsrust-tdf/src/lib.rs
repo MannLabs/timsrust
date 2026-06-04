@@ -23,5 +23,5 @@ pub use spectrum_reader::{
 };
 pub use timstof::{TDFPath, TDFPathError, TDFPathLike};
 
-pub use frame_reader::frame_info_reader::FrameInfoReader;
 pub use frame_reader::TdfIonReader;
+pub use frame_reader::frame_info_reader::FrameInfoReader;
