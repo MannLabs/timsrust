@@ -2439,7 +2439,7 @@ dependencies = [
  "timsrust-core",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
- "timsrust-patched 0.1.1",
+ "timsrust-patched 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "timsrust-sdk",
  "timsrust-tdf",
 ]
@@ -2541,12 +2541,12 @@ dependencies = [
 [[package]]
 name = "timsrust-patched"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a549f6a10c5b02f1c890e5cd622d36dab36bc8bd8bf076abbc6e1990a046e21d"
 
 [[package]]
 name = "timsrust-patched"
-version = "0.1.2"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a549f6a10c5b02f1c890e5cd622d36dab36bc8bd8bf076abbc6e1990a046e21d"
 
 [[package]]
 name = "timsrust-pyo3"
