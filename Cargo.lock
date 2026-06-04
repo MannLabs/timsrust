@@ -2439,7 +2439,7 @@ dependencies = [
  "timsrust-core",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
- "timsrust-patched 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "timsrust-patched",
  "timsrust-sdk",
  "timsrust-tdf",
 ]
@@ -2537,10 +2537,6 @@ dependencies = [
  "timsrust",
  "timsrust-core",
 ]
-
-[[package]]
-name = "timsrust-patched"
-version = "0.1.1"
 
 [[package]]
 name = "timsrust-patched"
