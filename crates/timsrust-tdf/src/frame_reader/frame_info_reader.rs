@@ -58,7 +58,7 @@ impl FrameInfoReader {
                 offsets.insert(sql_frame.id, sql_frame.binary_offset);
                 let mut frame_info = FrameInfo::from(sql_frame);
                 let cycle_index = if acquisition == AcquisitionType::DIAPASEF {
-                    Some(index / quadrupole_settings.len())
+                    Some(index / (quadrupole_settings.len() + 1))
                 } else {
                     None
                 };
