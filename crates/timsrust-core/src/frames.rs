@@ -341,7 +341,7 @@ where
                     let mut partial_frame = Frame::default();
                     partial_frame.set_info(frame_info);
                     if predicate(&partial_frame) {
-                        let ions = self.get_ions(x).unwrap();
+                        let ions = self.get_ions(x).ok()?;
                         partial_frame.set_ions(ions);
                         Some(Ok(partial_frame))
                     } else {
@@ -368,7 +368,7 @@ where
                     let mut partial_frame = Frame::default();
                     partial_frame.set_info(frame_info);
                     if predicate(&partial_frame) {
-                        let ions = self.get_ions(x).unwrap();
+                        let ions = self.get_ions(x).ok()?;
                         partial_frame.set_ions(ions);
                         Some(Ok(partial_frame))
                     } else {
