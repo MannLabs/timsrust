@@ -2,9 +2,15 @@ mod authenticate;
 
 use crate::{cloud_store::CloudProvider, runtime::block_on, CloudError};
 
-use futures::StreamExt;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
+
+/// Size of each `get_range` request used by `download_to`.
+///
+/// Bounded chunk size keeps each HTTP request short enough that connection
+/// idle timeouts and server-side stream limits cannot silently truncate a
+/// large download mid-flight.
+const DOWNLOAD_CHUNK_SIZE: usize = 100 * 1024 * 1024;
 
 #[derive(Debug)]
 pub(crate) struct CloudObject {
@@ -61,13 +67,6 @@ impl CloudObject {
             Err(_) => return Ok(()), // Object doesn't exist, skip download
         };
         block_on(async {
-            let result = self
-                .store
-                .get(&self.path)
-                .await
-                .map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
-
-            let mut stream = result.into_stream();
             if let Some(parent) = dest.parent() {
                 tokio::fs::create_dir_all(parent)
                     .await
@@ -78,13 +77,32 @@ impl CloudObject {
                 .map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
 
             let mut bytes_written: usize = 0;
-            while let Some(chunk) = stream.next().await {
-                let bytes =
-                    chunk.map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
-                bytes_written += bytes.len();
+            let mut offset: usize = 0;
+            while offset < expected_size {
+                let end = (offset + DOWNLOAD_CHUNK_SIZE).min(expected_size);
+                let bytes = self
+                    .store
+                    .get_range(&self.path, offset..end)
+                    .await
+                    .map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
+                if bytes.len() != end - offset {
+                    return Err(CloudError::ThirdParty(Box::new(
+                        std::io::Error::new(
+                            std::io::ErrorKind::UnexpectedEof,
+                            format!(
+                                "short range response: requested {} bytes at offset {}, got {}",
+                                end - offset,
+                                offset,
+                                bytes.len()
+                            ),
+                        ),
+                    )));
+                }
                 file.write_all(&bytes)
                     .await
                     .map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
+                bytes_written += bytes.len();
+                offset = end;
             }
 
             file.sync_data()
@@ -102,7 +120,7 @@ impl CloudObject {
                     std::io::Error::new(
                         std::io::ErrorKind::UnexpectedEof,
                         format!(
-                            "truncated download: expected {} bytes, stream delivered {}, on-disk {}",
+                            "truncated download: expected {} bytes, ranges delivered {}, on-disk {}",
                             expected_size, bytes_written, actual_size
                         ),
                     ),

@@ -1,4 +1,6 @@
-use std::sync::{LazyLock, Mutex, OnceLock};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 
 use tempfile::TempDir;
 
@@ -19,6 +21,16 @@ static GLOBAL_CACHE: LazyLock<Mutex<FileCache>> = LazyLock::new(|| {
         .unwrap_or_default();
     Mutex::new(cache)
 });
+
+static IN_FLIGHT: LazyLock<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn in_flight_lock(path: &Path) -> Arc<Mutex<()>> {
+    let mut map = IN_FLIGHT.lock().expect("in_flight map mutex poisoned");
+    map.entry(path.to_path_buf())
+        .or_insert_with(|| Arc::new(Mutex::new(())))
+        .clone()
+}
 
 pub fn set_global_cache(file_cache: FileCache) {
     *GLOBAL_CACHE.lock().unwrap() = file_cache;
@@ -70,27 +82,29 @@ impl FileCache {
     /// Local URIs are returned unchanged. Cloud URIs are downloaded atomically
     /// into the cache directory and the resulting local URI is returned.
     /// If the cache file already exists it is reused without re-downloading.
+    /// Concurrent calls for the same URI within a process are coalesced:
+    /// only one download runs while the others wait and reuse the result.
     pub fn cache(&self, uri: impl Into<Uri>) -> Result<Uri, CacheError> {
-        match &self.dir {
-            Some(dir) => {
-                let uri = uri.into();
-                if uri.is_local() {
-                    return Ok(uri);
-                }
-                let key = uri.key().ok_or(UriError::InvalidUri(uri.clone()))?;
-                let cache_path = dir.join(key);
-                if cache_path.exists() {
-                    Ok(Uri::from(cache_path))
-                } else {
-                    let tmp_path = dir.join(format!("{}.tmp", key));
-                    let obj = CloudObject::new(uri)?;
-                    obj.download_to(&tmp_path)?;
-                    std::fs::rename(&tmp_path, &cache_path)?;
-                    Ok(Uri::from(cache_path))
-                }
-            },
-            None => Err(CacheError::NoCacheDirectory),
+        let dir = self.dir.as_ref().ok_or(CacheError::NoCacheDirectory)?;
+        let uri = uri.into();
+        if uri.is_local() {
+            return Ok(uri);
         }
+        let key = uri.key().ok_or(UriError::InvalidUri(uri.clone()))?;
+        let cache_path = dir.join(key);
+        if cache_path.exists() {
+            return Ok(Uri::from(cache_path));
+        }
+        let lock = in_flight_lock(&cache_path);
+        let _guard = lock.lock().expect("in_flight per-key mutex poisoned");
+        if cache_path.exists() {
+            return Ok(Uri::from(cache_path));
+        }
+        let tmp_path = dir.join(format!("{}.tmp", key));
+        let obj = CloudObject::new(uri)?;
+        obj.download_to(&tmp_path)?;
+        std::fs::rename(&tmp_path, &cache_path)?;
+        Ok(Uri::from(cache_path))
     }
 
     /// Returns the local cache URI for `uri` iff a cache file already exists.
