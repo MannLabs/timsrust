@@ -2437,6 +2437,7 @@ dependencies = [
  "thiserror",
  "timsrust-centroid",
  "timsrust-core",
+ "timsrust-mgf",
  "timsrust-minitdf",
  "timsrust-parquet-spectra",
  "timsrust-patched",

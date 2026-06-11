@@ -24,9 +24,20 @@ timsrust-tdf = { workspace = true }
 thiserror = { workspace = true }
 rayon = { workspace = true }
 
+[dev-dependencies]
+timsrust-mgf = { workspace = true }
+
 [lints]
 workspace = true
 
 [features]
 sdk = ["timsrust-sdk"]
 patched = ["timsrust-patched"]
+
+[[example]]
+name = "with_sdk"
+required-features = ["sdk"]
+
+[[example]]
+name = "with_patched"
+required-features = ["patched"]
