@@ -15,9 +15,7 @@ impl ParquetSpectrumPath {
         let uri = Uri::from(path.as_ref());
         let fragment_uri = uri.join("fragments.parquet");
         let precursor_uri = uri.join("precursors.parquet");
-        if fragment_uri.exists().unwrap_or(false)
-            && precursor_uri.exists().unwrap_or(false)
-        {
+        if fragment_uri.probe_is_file() && precursor_uri.probe_is_file() {
             return Ok(Self {
                 uri,
                 fragment_path: fragment_uri.as_ref().to_string(),

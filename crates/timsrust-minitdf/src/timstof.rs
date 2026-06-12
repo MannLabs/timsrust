@@ -17,9 +17,7 @@ impl MiniTDFPath {
         let uri = Uri::from(path.as_ref());
         let bin_uri = uri.join("ms2spectrum.bin");
         let parquet_uri = uri.join("ms2spectrum.parquet");
-        if bin_uri.is_file().unwrap_or(false)
-            && parquet_uri.is_file().unwrap_or(false)
-        {
+        if bin_uri.probe_is_file() && parquet_uri.probe_is_file() {
             return Ok(Self {
                 uri,
                 bin: bin_uri.to_string(),
