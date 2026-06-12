@@ -118,6 +118,9 @@ impl PrecursorReaderBuilder {
             TimsTofFileType::Parquet(parquet_path) => Inner::ParquetSpectra(
                 ParquetPrecursorReader::new(parquet_path.precursor_path()),
             ),
+            TimsTofFileType::Tsf(_) => {
+                return Err(PrecursorReaderError::TsfNotSupported);
+            },
         };
         let reader = PrecursorReader { precursor_reader };
         Ok(reader)
@@ -137,4 +140,6 @@ pub enum PrecursorReaderError {
     NoPath,
     #[error("{0}")]
     TimsTofPathError(#[from] TimsTofPathError),
+    #[error("TSF datasets do not provide precursor information")]
+    TsfNotSupported,
 }

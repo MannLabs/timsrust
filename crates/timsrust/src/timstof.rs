@@ -4,6 +4,7 @@ use timsrust_core::io::Uri;
 use timsrust_minitdf::MiniTDFPath;
 use timsrust_parquet_spectra::parquet_path::ParquetSpectrumPath;
 use timsrust_tdf::{FrameReaderError, TDFPath, TdfFrameReader};
+use timsrust_tsf::TSFPath;
 
 use crate::{
     ImConverter, MzConverter, RtConverter,
@@ -19,8 +20,8 @@ use crate::{
 pub(crate) enum TimsTofFileType {
     MiniTdf(MiniTDFPath),
     Tdf(TDFPath),
-
     Parquet(ParquetSpectrumPath),
+    Tsf(TSFPath),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -48,6 +49,12 @@ impl TimsTofPath {
             return Ok(Self {
                 uri: parquet.uri().clone(),
                 file_type: TimsTofFileType::Parquet(parquet),
+            });
+        }
+        if let Ok(tsf) = TSFPath::new(&path) {
+            return Ok(Self {
+                uri: tsf.uri().clone(),
+                file_type: TimsTofFileType::Tsf(tsf),
             });
         }
         Err(TimsTofPathError::UnknownType(PathBuf::from(path.as_ref())))

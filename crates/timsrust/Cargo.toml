@@ -21,6 +21,7 @@ timsrust-core = { workspace = true, features = ["io"] }
 timsrust-minitdf = { workspace = true }
 timsrust-parquet-spectra = { workspace = true }
 timsrust-tdf = { workspace = true }
+timsrust-tsf = { workspace = true }
 thiserror = { workspace = true }
 rayon = { workspace = true }
 

@@ -3,8 +3,8 @@ use timsrust_core::io::Uri;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TSFPath {
     uri: Uri,
-    tsf: String,
-    tsf_bin: String,
+    tsf: Uri,
+    tsf_bin: Uri,
 }
 
 impl TSFPath {
@@ -12,12 +12,8 @@ impl TSFPath {
         let uri = Uri::from(path.as_ref());
         let tsf = uri.join("analysis.tsf");
         let tsf_bin = uri.join("analysis.tsf_bin");
-        if tsf.is_file().unwrap_or(false) && tsf_bin.is_file().unwrap_or(false) {
-            return Ok(Self {
-                uri,
-                tsf: tsf.to_string(),
-                tsf_bin: tsf_bin.to_string(),
-            });
+        if tsf.probe_is_file() && tsf_bin.probe_is_file() {
+            return Ok(Self { uri, tsf, tsf_bin });
         }
         match uri.parent() {
             Some(parent) => Self::new(parent.as_ref())
@@ -26,11 +22,11 @@ impl TSFPath {
         }
     }
 
-    pub fn tsf(&self) -> &String {
+    pub fn tsf(&self) -> &Uri {
         &self.tsf
     }
 
-    pub fn tsf_bin(&self) -> &String {
+    pub fn tsf_bin(&self) -> &Uri {
         &self.tsf_bin
     }
 

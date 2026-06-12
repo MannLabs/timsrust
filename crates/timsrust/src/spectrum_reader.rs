@@ -8,6 +8,7 @@ use timsrust_tdf::{FrameInfoReader, Metadata, TdfIonReader};
 use timsrust_tdf::{
     SpectrumReaderConfig, TDFSpectrumReader, TDFSpectrumReaderError,
 };
+use timsrust_tsf::{TSFSpectrumReader, TSFSpectrumReaderError};
 
 use crate::{
     ImConverter, TimsTofPath, TimsTofPathLike, converters::MzConverter,
@@ -30,6 +31,7 @@ enum Inner {
     ParquetSpectra(
         timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
+    Tsf(TSFSpectrumReader),
 }
 
 impl Inner {
@@ -44,6 +46,7 @@ impl Inner {
             Inner::Tdf(reader) => Ok(reader.get(index)?),
             Inner::MiniTdf(reader) => Ok(reader.get(index)?),
             Inner::ParquetSpectra(reader) => Ok(reader.get(index)?),
+            Inner::Tsf(reader) => Ok(reader.get(index)?),
         }
     }
 
@@ -53,6 +56,7 @@ impl Inner {
             Inner::MiniTdf(reader) => reader.len(),
             Inner::Centroider(reader) => reader.len(),
             Inner::ParquetSpectra(reader) => reader.len(),
+            Inner::Tsf(reader) => reader.len(),
         }
     }
 
@@ -70,6 +74,7 @@ impl Inner {
             Inner::Tdf(reader) => A::Tdf(reader),
             Inner::MiniTdf(reader) => A::MiniTdf(reader),
             Inner::ParquetSpectra(reader) => A::ParquetSpectra(reader),
+            Inner::Tsf(reader) => A::Tsf(reader),
         }
     }
 }
@@ -88,6 +93,7 @@ enum A<'a> {
     ParquetSpectra(
         &'a timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
+    Tsf(&'a TSFSpectrumReader),
 }
 
 impl<'a> ParallelIterator for A<'a> {
@@ -119,6 +125,11 @@ impl<'a> ParallelIterator for A<'a> {
                 )
                 .drive_unindexed(consumer)
             },
+            Self::Tsf(reader) => rayon::iter::ParallelIterator::filter_map(
+                reader.par_iter(),
+                |s| s.ok(),
+            )
+            .drive_unindexed(consumer),
         }
     }
 }
@@ -234,6 +245,8 @@ pub enum SpectrumReaderError {
         #[from]
         timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReaderError,
     ),
+    #[error("{0}")]
+    TSFSpectrumReaderError(#[from] TSFSpectrumReaderError),
     #[error("No path provided")]
     NoPath,
     #[error("Centroider is not supported")]
@@ -326,6 +339,9 @@ impl SpectrumReaderBuilder {
                         parquet_path.fragment_path(),
                     ),
                 )
+            },
+            TimsTofFileType::Tsf(tsf_path) => {
+                Inner::Tsf(TSFSpectrumReader::new(tsf_path)?)
             },
         };
         let mz_converter = Arc::new(MzConverter::new(&path).unwrap());

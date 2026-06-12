@@ -2,9 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use serde::Deserialize;
 use timsrust_core::{
-    Converter, Mz, TofIndex,
-    io::formats::sql::SqlReader,
-    utils::simple_error,
+    Converter, Mz, TofIndex, io::formats::sql::SqlReader, utils::simple_error,
 };
 
 use crate::TSFPathLike;
@@ -38,7 +36,7 @@ impl Tof2MzConverter {
 
     pub fn new(path: impl TSFPathLike) -> Self {
         let timstof_path = path.to_timstof_path().unwrap();
-        let reader = SqlReader::from(timstof_path.tsf().as_str()).unwrap();
+        let reader = SqlReader::from(timstof_path.tsf().as_ref()).unwrap();
         let hash_map: HashMap<String, String> = reader
             .from_table::<KvRow>("GlobalMetadata")
             .unwrap()
