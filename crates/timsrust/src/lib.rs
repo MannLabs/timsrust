@@ -19,4 +19,9 @@ pub use timstof::{
 pub use timsrust_centroid as centroid;
 pub use timsrust_core as core;
 pub use timsrust_minitdf as minidf;
+#[cfg(feature = "patched")]
+pub use timsrust_patched as patched;
+#[cfg(feature = "sdk")]
+pub use timsrust_sdk as sdk;
 pub use timsrust_tdf as tdf;
+pub use timsrust_tsf as tsf;

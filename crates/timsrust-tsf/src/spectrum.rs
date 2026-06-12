@@ -45,7 +45,7 @@ impl TSFSpectrumReader {
         let blob_reader = TsfBlobReader::new(&path)?;
         let timstof_path = path.to_timstof_path()?;
         let mz_converter = Tof2MzConverter::new(timstof_path.as_ref());
-        let reader = SqlReader::from(timstof_path.tsf().as_str())?;
+        let reader = SqlReader::from(timstof_path.tsf().as_ref())?;
         let metadata: HashMap<String, String> = reader
             .from_table::<KvRow>("GlobalMetadata")?
             .read_all()?

@@ -19,7 +19,7 @@ impl MiniTDFPrecursorReader {
     pub fn new(path: &MiniTDFPath) -> Result<Self, MiniTDFError> {
         let minitdf_path = path.ms2_parquet().clone();
         let parquet_precursors =
-            ParquetReader::<ParquetPrecursor>::from(minitdf_path.as_str())
+            ParquetReader::<ParquetPrecursor>::from(minitdf_path.as_ref())
                 .map_err(MiniTDFPrecursorReaderError::from)?
                 .read_all()
                 .map_err(MiniTDFPrecursorReaderError::from)?;

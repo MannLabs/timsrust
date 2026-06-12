@@ -20,7 +20,7 @@ impl TsfBlobReader {
     ) -> Result<Self, TsfBlobReaderError> {
         let path = path.to_timstof_path()?;
         let bin_path = path.tsf_bin();
-        let binary_file = BinaryReader::from(bin_path.as_str())?;
+        let binary_file = BinaryReader::from(bin_path.as_ref())?;
         let reader = Self { binary_file };
         Ok(reader)
     }

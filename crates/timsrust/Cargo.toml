@@ -1,6 +1,6 @@
 [package]
 name = "timsrust"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2024"
 description = "A crate to read Bruker timsTOF data"
 license = "Apache-2.0"
@@ -21,6 +21,7 @@ timsrust-core = { workspace = true, features = ["io"] }
 timsrust-minitdf = { workspace = true }
 timsrust-parquet-spectra = { workspace = true }
 timsrust-tdf = { workspace = true }
+timsrust-tsf = { workspace = true }
 thiserror = { workspace = true }
 rayon = { workspace = true }
 

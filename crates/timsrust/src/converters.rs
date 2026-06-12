@@ -12,6 +12,7 @@ pub enum MzConverter {
     Bps(timsrust_patched::Tof2MzConverter),
     Bit(timsrust_core::BitConverter),
     Tdf(timsrust_tdf::Tof2MzConverter),
+    TSF(timsrust_tsf::Tof2MzConverter),
     MiniTdf,
 }
 
@@ -41,6 +42,9 @@ impl MzConverter {
             TimsTofFileType::Parquet(_) => {
                 Some(MzConverter::Bit(timsrust_core::BitConverter()))
             },
+            TimsTofFileType::Tsf(_) => Some(MzConverter::TSF(
+                timsrust_tsf::Tof2MzConverter::new(timstof.as_ref()),
+            )),
         }
     }
 }
@@ -54,6 +58,7 @@ impl Converter<TofIndex, Mz> for MzConverter {
             Self::Sdk(converter) => converter.convert(tof_index),
             Self::Bit(converter) => converter.convert(tof_index),
             Self::Tdf(converter) => converter.convert(tof_index),
+            Self::TSF(converter) => converter.convert(tof_index),
             Self::MiniTdf => timsrust_core::BitConverter().convert(tof_index),
         }
     }
@@ -68,6 +73,7 @@ impl Converter<Mz, TofIndex> for MzConverter {
             Self::Sdk(converter) => converter.convert(mz),
             Self::Bit(converter) => converter.convert(mz),
             Self::Tdf(converter) => converter.convert(mz),
+            Self::TSF(converter) => converter.convert(mz),
             Self::MiniTdf => timsrust_core::BitConverter().convert(mz),
         }
     }
@@ -108,6 +114,9 @@ impl ImConverter {
             },
             TimsTofFileType::MiniTdf(_) => Some(ImConverter::MiniTdf),
             TimsTofFileType::Parquet(_) => {
+                Some(ImConverter::Bit(timsrust_core::BitConverter()))
+            },
+            TimsTofFileType::Tsf(_) => {
                 Some(ImConverter::Bit(timsrust_core::BitConverter()))
             },
         }
@@ -158,6 +167,9 @@ impl RtConverter {
             )),
             TimsTofFileType::MiniTdf(_) => Some(RtConverter::MiniTdf),
             TimsTofFileType::Parquet(_) => {
+                Some(RtConverter::Bit(timsrust_core::BitConverter()))
+            },
+            TimsTofFileType::Tsf(_) => {
                 Some(RtConverter::Bit(timsrust_core::BitConverter()))
             },
         }

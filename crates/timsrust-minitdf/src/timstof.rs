@@ -8,8 +8,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MiniTDFPath {
     uri: Uri,
-    bin: String,
-    parquet: String,
+    bin: Uri,
+    parquet: Uri,
 }
 
 impl MiniTDFPath {
@@ -17,13 +17,11 @@ impl MiniTDFPath {
         let uri = Uri::from(path.as_ref());
         let bin_uri = uri.join("ms2spectrum.bin");
         let parquet_uri = uri.join("ms2spectrum.parquet");
-        if bin_uri.is_file().unwrap_or(false)
-            && parquet_uri.is_file().unwrap_or(false)
-        {
+        if bin_uri.probe_is_file() && parquet_uri.probe_is_file() {
             return Ok(Self {
                 uri,
-                bin: bin_uri.to_string(),
-                parquet: parquet_uri.to_string(),
+                bin: bin_uri,
+                parquet: parquet_uri,
             });
         }
         match uri.parent() {
@@ -33,11 +31,11 @@ impl MiniTDFPath {
         }
     }
 
-    pub fn ms2_bin(&self) -> &String {
+    pub fn ms2_bin(&self) -> &Uri {
         &self.bin
     }
 
-    pub fn ms2_parquet(&self) -> &String {
+    pub fn ms2_parquet(&self) -> &Uri {
         &self.parquet
     }
 
