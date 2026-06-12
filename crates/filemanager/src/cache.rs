@@ -132,6 +132,23 @@ impl FileCache {
         }
     }
 
+    /// Returns the local cache URI for `uri` without checking existence.
+    ///
+    /// Like [`cached_local`](Self::cached_local) but never touches the
+    /// filesystem. Local URIs pass through unchanged. For cloud URIs,
+    /// returns the path the file *would* live at inside the cache
+    /// directory (whether or not it has been downloaded yet), or `None`
+    /// when the URI has no key or no cache directory is configured.
+    pub fn local_path(&self, uri: impl Into<Uri>) -> Option<Uri> {
+        let uri = uri.into();
+        if uri.is_local() {
+            return Some(uri);
+        }
+        let dir = self.dir.as_ref()?;
+        let key = uri.key()?;
+        Some(Uri::from(dir.join(key)))
+    }
+
     pub fn invalidate(&self, uri: impl Into<Uri>) -> Result<(), CacheError> {
         match &self.dir {
             Some(dir) => {
@@ -185,5 +202,23 @@ impl Uri {
     /// when the cache file already exists; otherwise returns `None`.
     pub fn cached_local(&self) -> Option<Uri> {
         crate::global_cache().cached_local(self.clone())
+    }
+
+    /// Returns the local-filesystem representation of this URI, without
+    /// performing any network or existence checks.
+    ///
+    /// Local URIs are returned unchanged. Cloud URIs are mapped to the
+    /// path they would occupy inside the configured cache directory
+    /// (regardless of whether the file has been downloaded). If no cache
+    /// directory is configured or the URI has no key, the URI is returned
+    /// unchanged.
+    ///
+    /// Useful as a fast pre-check: callers can probe the returned URI
+    /// with local filesystem operations and only fall back to network
+    /// access if those probes fail.
+    pub fn local_representation(&self) -> Uri {
+        crate::global_cache()
+            .local_path(self.clone())
+            .unwrap_or_else(|| self.clone())
     }
 }

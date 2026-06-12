@@ -32,30 +32,33 @@ pub struct TimsTofPath {
 
 impl TimsTofPath {
     pub fn new(path: impl AsRef<str>) -> Result<Self, TimsTofPathError> {
-        if let Ok(tdf) = TDFPath::new(&path) {
-            return Ok(Self {
-                uri: tdf.uri().clone(),
-                file_type: TimsTofFileType::Tdf(tdf),
-            });
-        }
-        if let Ok(tsf) = TSFPath::new(&path) {
-            return Ok(Self {
-                uri: tsf.uri().clone(),
-                file_type: TimsTofFileType::Tsf(tsf),
-            });
-        }
-        if let Ok(minitdf) = MiniTDFPath::new(&path) {
-            return Ok(Self {
-                uri: minitdf.uri().clone(),
-                file_type: TimsTofFileType::MiniTdf(minitdf),
-            });
-        }
+        let uri = Uri::from(path.as_ref()).local_representation();
+        for path in [uri.as_ref(), path.as_ref()] {
+            if let Ok(tdf) = TDFPath::new(path) {
+                return Ok(Self {
+                    uri: tdf.uri().clone(),
+                    file_type: TimsTofFileType::Tdf(tdf),
+                });
+            }
+            if let Ok(tsf) = TSFPath::new(path) {
+                return Ok(Self {
+                    uri: tsf.uri().clone(),
+                    file_type: TimsTofFileType::Tsf(tsf),
+                });
+            }
+            if let Ok(minitdf) = MiniTDFPath::new(path) {
+                return Ok(Self {
+                    uri: minitdf.uri().clone(),
+                    file_type: TimsTofFileType::MiniTdf(minitdf),
+                });
+            }
 
-        if let Ok(parquet) = ParquetSpectrumPath::new(&path) {
-            return Ok(Self {
-                uri: parquet.uri().clone(),
-                file_type: TimsTofFileType::Parquet(parquet),
-            });
+            if let Ok(parquet) = ParquetSpectrumPath::new(path) {
+                return Ok(Self {
+                    uri: parquet.uri().clone(),
+                    file_type: TimsTofFileType::Parquet(parquet),
+                });
+            }
         }
         Err(TimsTofPathError::UnknownType(PathBuf::from(path.as_ref())))
     }
