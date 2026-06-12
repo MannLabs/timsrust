@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
 
 use object_store::{path::Path as ObjectPath, ObjectStore};
 use url::Url;
@@ -6,6 +7,69 @@ use url::Url;
 use crate::{
     cloud_store::CloudProvider, uri::URI_SCHEME_SEPARATOR, CloudError,
 };
+
+/// Process-wide cache of authenticated [`ObjectStore`] instances.
+///
+/// Building an `ObjectStore` involves env-var lookups and constructing an
+/// HTTP client, both of which are needlessly repeated when many URIs under
+/// the same bucket/container are accessed. The cache is keyed by the parts
+/// of the URI that determine store identity (scheme, host, and — for
+/// virtual-hosted Azure HTTPS URLs — the container path segment).
+fn store_cache() -> &'static RwLock<HashMap<String, Arc<dyn ObjectStore>>> {
+    static CACHE: OnceLock<RwLock<HashMap<String, Arc<dyn ObjectStore>>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+/// Computes the cache key for a parsed URL + provider.
+///
+/// For Azure HTTPS URLs the container is encoded into the bound store, so
+/// it must be part of the key; for every other case `scheme://host` is
+/// sufficient.
+fn store_cache_key(url: &Url, provider: CloudProvider) -> String {
+    let scheme = url.scheme();
+    let host = url.host_str().unwrap_or("");
+    if provider == CloudProvider::Azure && scheme == "https" {
+        let container =
+            url.path_segments().and_then(|mut s| s.next()).unwrap_or("");
+        format!("{scheme}://{host}/{container}")
+    } else {
+        format!("{scheme}://{host}")
+    }
+}
+
+fn build_store(
+    url: &Url,
+    host: &str,
+    provider: CloudProvider,
+) -> Result<Arc<dyn ObjectStore>, CloudError> {
+    match provider {
+        CloudProvider::S3 => build_s3(url, host),
+        CloudProvider::Azure => build_azure(url, host),
+        CloudProvider::Gcs => build_gcs(url, host),
+    }
+}
+
+fn cached_or_build_store(
+    url: &Url,
+    host: &str,
+    provider: CloudProvider,
+) -> Result<Arc<dyn ObjectStore>, CloudError> {
+    let key = store_cache_key(url, provider);
+    let cache = store_cache();
+    if let Some(store) = cache
+        .read()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(&key)
+    {
+        return Ok(store.clone());
+    }
+    let store = build_store(url, host, provider)?;
+    let mut guard = cache
+        .write()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    Ok(guard.entry(key).or_insert(store).clone())
+}
 
 // --- credential detection ---
 
@@ -169,18 +233,14 @@ impl CloudProvider {
         let url =
             Url::parse(raw).map_err(|e| CloudError::ThirdParty(Box::new(e)))?;
         let host = url.host_str().unwrap_or("");
-        let provider = CloudProvider::parse(&url);
-        let store = match provider {
-            Some(CloudProvider::S3) => build_s3(&url, host),
-            Some(CloudProvider::Azure) => build_azure(&url, host),
-            Some(CloudProvider::Gcs) => build_gcs(&url, host),
-            None => Err(CloudError::NotACloudUri(url.to_string())),
-        }?;
+        let provider = CloudProvider::parse(&url)
+            .ok_or_else(|| CloudError::NotACloudUri(url.to_string()))?;
+        let store = cached_or_build_store(&url, host, provider)?;
         // For HTTPS Azure URLs the first path segment is the container, already baked into the
         // ObjectStore. Strip it so the resulting path is relative to the container.
         let path_str = url.path().strip_prefix('/').unwrap_or("");
         let path_str = if url.scheme() == "https"
-            && matches!(provider, Some(CloudProvider::Azure))
+            && matches!(provider, CloudProvider::Azure)
         {
             path_str.split_once('/').map(|(_, rest)| rest).unwrap_or("")
         } else {

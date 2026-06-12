@@ -38,6 +38,12 @@ impl TimsTofPath {
                 file_type: TimsTofFileType::Tdf(tdf),
             });
         }
+        if let Ok(tsf) = TSFPath::new(&path) {
+            return Ok(Self {
+                uri: tsf.uri().clone(),
+                file_type: TimsTofFileType::Tsf(tsf),
+            });
+        }
         if let Ok(minitdf) = MiniTDFPath::new(&path) {
             return Ok(Self {
                 uri: minitdf.uri().clone(),
@@ -49,12 +55,6 @@ impl TimsTofPath {
             return Ok(Self {
                 uri: parquet.uri().clone(),
                 file_type: TimsTofFileType::Parquet(parquet),
-            });
-        }
-        if let Ok(tsf) = TSFPath::new(&path) {
-            return Ok(Self {
-                uri: tsf.uri().clone(),
-                file_type: TimsTofFileType::Tsf(tsf),
             });
         }
         Err(TimsTofPathError::UnknownType(PathBuf::from(path.as_ref())))
