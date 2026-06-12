@@ -49,7 +49,7 @@ struct TdfBinFileReader {
 impl TdfBinFileReader {
     fn new(path: &MiniTDFPath) -> Result<Self, TdfBlobReaderError> {
         let bin_path = path.ms2_bin();
-        let binary_file = BinaryReader::from(bin_path.as_str())?;
+        let binary_file = BinaryReader::from(bin_path.as_ref())?;
         let reader = Self {
             binary_file,
             global_file_offset: 0,

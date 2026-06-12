@@ -8,8 +8,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MiniTDFPath {
     uri: Uri,
-    bin: String,
-    parquet: String,
+    bin: Uri,
+    parquet: Uri,
 }
 
 impl MiniTDFPath {
@@ -20,8 +20,8 @@ impl MiniTDFPath {
         if bin_uri.probe_is_file() && parquet_uri.probe_is_file() {
             return Ok(Self {
                 uri,
-                bin: bin_uri.to_string(),
-                parquet: parquet_uri.to_string(),
+                bin: bin_uri,
+                parquet: parquet_uri,
             });
         }
         match uri.parent() {
@@ -31,11 +31,11 @@ impl MiniTDFPath {
         }
     }
 
-    pub fn ms2_bin(&self) -> &String {
+    pub fn ms2_bin(&self) -> &Uri {
         &self.bin
     }
 
-    pub fn ms2_parquet(&self) -> &String {
+    pub fn ms2_parquet(&self) -> &Uri {
         &self.parquet
     }
 

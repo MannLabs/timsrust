@@ -4,8 +4,8 @@ use timsrust_core::utils::custom_error;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ParquetSpectrumPath {
     uri: Uri,
-    fragment_path: String,
-    precursor_path: String,
+    fragment_path: Uri,
+    precursor_path: Uri,
 }
 
 impl ParquetSpectrumPath {
@@ -18,8 +18,8 @@ impl ParquetSpectrumPath {
         if fragment_uri.probe_is_file() && precursor_uri.probe_is_file() {
             return Ok(Self {
                 uri,
-                fragment_path: fragment_uri.as_ref().to_string(),
-                precursor_path: precursor_uri.as_ref().to_string(),
+                fragment_path: fragment_uri,
+                precursor_path: precursor_uri,
             });
         }
         match uri.parent() {
@@ -32,11 +32,11 @@ impl ParquetSpectrumPath {
         }
     }
 
-    pub fn fragment_path(&self) -> &String {
+    pub fn fragment_path(&self) -> &Uri {
         &self.fragment_path
     }
 
-    pub fn precursor_path(&self) -> &String {
+    pub fn precursor_path(&self) -> &Uri {
         &self.precursor_path
     }
 

@@ -23,7 +23,7 @@ impl MiniTDFSpectrumReader {
         let precursor_reader = MiniTDFPrecursorReader::new(path)?;
         let minitdf_path = path.ms2_parquet().clone();
         let all_precursors =
-            ParquetReader::<ParquetPrecursor>::from(minitdf_path.as_str())
+            ParquetReader::<ParquetPrecursor>::from(minitdf_path.as_ref())
                 .map_err(MiniTDFSpectrumReaderError::from)?
                 .read_all()
                 .map_err(MiniTDFSpectrumReaderError::from)?;
