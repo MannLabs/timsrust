@@ -8,6 +8,8 @@ target/
 *.ipynb
 *.svg
 *libtimsdata.so
+*timsdata.dll
+*timsdata.lib
 *timsdata*/
 *.tdf*
 *.a
