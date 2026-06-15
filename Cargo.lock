@@ -2431,7 +2431,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "rayon",
  "thiserror",
@@ -2557,7 +2557,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-sdk"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "libc",
  "serde",
