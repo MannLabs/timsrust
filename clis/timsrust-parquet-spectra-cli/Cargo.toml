@@ -2,6 +2,7 @@
 name = "timsrust-parquet-spectra-cli"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
 publish = false
 
 [dependencies]

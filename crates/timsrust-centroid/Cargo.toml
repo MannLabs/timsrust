@@ -2,6 +2,7 @@
 name = "timsrust-centroid"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
 description = "Centroiding algorithms for timsTOF ion mobility spectra"
 license = "Apache-2.0"
 

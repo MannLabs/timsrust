@@ -2,6 +2,7 @@
 name = "timsrust-core"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
 description = "Core data types and abstractions for timsTOF data"
 license = "Apache-2.0"
 

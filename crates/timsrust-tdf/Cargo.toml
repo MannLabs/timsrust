@@ -2,6 +2,7 @@
 name = "timsrust-tdf"
 version.workspace = true
 edition.workspace = true
+repository.workspace = true
 description = "Reader for the Bruker TDF timsTOF file format (.d folders)"
 license = "Apache-2.0"
 
