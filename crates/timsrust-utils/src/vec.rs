@@ -328,10 +328,10 @@ impl<T> SparseVec<T> {
                 let mut result = Vec::with_capacity(self.len());
                 for (i, pos) in indices.iter().enumerate() {
                     let mut offset = offsets[*pos];
-                    for _ in offsets[i]..offsets[i + 1] {
+                    (offsets[i]..offsets[i + 1]).for_each(|_| {
                         result.push(offset);
                         offset += 1;
-                    }
+                    });
                 }
                 result
             },
