@@ -54,7 +54,16 @@ jobs:
       - name: Verify the workspace builds before releasing
         run: cargo build --release --workspace --all-targets --exclude timsrust-sdk
 
-      - name: Bump shared version, commit, tag and push
+      - name: Bump shared version, publish to crates.io, commit, tag and push
+        env:
+          # Token used by `cargo publish`; create it on crates.io and store it as
+          # a repository Actions secret (Settings > Secrets and variables > Actions).
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          cargo release patch --workspace --no-publish --no-confirm
-          cargo release patch --workspace --no-publish --no-confirm --execute
+          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
+            echo "Missing CARGO_REGISTRY_TOKEN secret; required to publish to crates.io." >&2
+            exit 1
+          fi
+          # Dry-run first to surface problems before anything is published or pushed.
+          cargo release patch --workspace --no-confirm
+          cargo release patch --workspace --no-confirm --execute
