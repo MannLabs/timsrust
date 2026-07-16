@@ -1,7 +1,7 @@
 [package]
 name = "timsrust-sdk"
-version = "0.1.5"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 build = "build.rs"
 description = "Bruker TimsData SDK bindings for native timsTOF data access"
 license = "Apache-2.0"
