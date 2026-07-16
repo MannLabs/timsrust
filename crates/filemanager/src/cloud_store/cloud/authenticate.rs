@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
-use object_store::{path::Path as ObjectPath, ObjectStore};
+use object_store::{ObjectStore, path::Path as ObjectPath};
 use url::Url;
 
 use crate::{
-    cloud_store::CloudProvider, uri::URI_SCHEME_SEPARATOR, CloudError,
+    CloudError, cloud_store::CloudProvider, uri::URI_SCHEME_SEPARATOR,
 };
 
 /// Process-wide cache of authenticated [`ObjectStore`] instances.

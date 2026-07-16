@@ -1,6 +1,6 @@
 use memmap2::Mmap;
 
-use crate::{cloud_store::CloudObject, Uri};
+use crate::{Uri, cloud_store::CloudObject};
 
 /// Errors from binary read/write operations.
 #[non_exhaustive]

@@ -1,7 +1,7 @@
 [package]
 name = "timsrust-mgf"
-version = "0.1.4"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "MGF (Mascot Generic Format) writer for timsTOF spectra"
 license = "Apache-2.0"
 

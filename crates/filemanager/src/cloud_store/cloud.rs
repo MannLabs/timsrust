@@ -1,6 +1,6 @@
 mod authenticate;
 
-use crate::{cloud_store::CloudProvider, runtime::block_on, CloudError};
+use crate::{CloudError, cloud_store::CloudProvider, runtime::block_on};
 
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;

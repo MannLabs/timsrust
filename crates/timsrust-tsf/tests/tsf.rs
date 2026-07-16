@@ -13,6 +13,7 @@ fn get_test_folder(file_name: &str) -> String {
 }
 
 #[test]
+#[ignore = "TODO: This test is ignored because the test data is not included in the repository. It can be run locally if the test data is available."]
 fn tsf_reader() {
     let file_dir = get_test_folder("test_tsf.d");
     let file_path =

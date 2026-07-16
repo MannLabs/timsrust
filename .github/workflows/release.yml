@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  # Allow manual runs from the Actions tab for quicker testing.
+  workflow_dispatch:
+  
+
+# Prevent overlapping releases from racing on tags/commits.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# Needed so the workflow can push the version-bump commit and tags.
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    name: cargo release (patch)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history is required for cargo-release to inspect tags/commits.
+          fetch-depth: 0
+          # Use the default GITHUB_TOKEN to push the version-bump commit/tag
+          # back to origin. This requires the repo's Actions "Workflow
+          # permissions" to be set to "Read and write permissions"
+          # (Settings > Actions > General).
+          persist-credentials: true
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-release
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-release
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify the workspace builds before releasing
+        run: cargo build --release --workspace --all-targets --exclude timsrust-sdk
+
+      - name: Bump shared version, commit, tag and push
+        run: |
+          cargo release patch --workspace --no-publish --no-confirm
+          cargo release patch --workspace --no-publish --no-confirm --execute

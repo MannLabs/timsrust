@@ -6,7 +6,7 @@ mod uri;
 
 pub mod formats;
 
-pub use cache::{global_cache, set_global_cache, CacheError, FileCache};
+pub use cache::{CacheError, FileCache, global_cache, set_global_cache};
 pub use cloud_store::CloudError;
 pub use uri::{Uri, UriError};
 
