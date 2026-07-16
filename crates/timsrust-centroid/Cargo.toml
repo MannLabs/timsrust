@@ -1,7 +1,7 @@
 [package]
 name = "timsrust-centroid"
-version = "0.1.4"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "Centroiding algorithms for timsTOF ion mobility spectra"
 license = "Apache-2.0"
 

@@ -110,7 +110,7 @@ fn peaks_to_spectra(
     min_spectrum_size: usize,
 ) -> Vec<timsrust_core::Spectrum> {
     let mut id = frame.info().index() << 32;
-    peaks.sort_by(|a, b| a.scan.cmp(&b.scan));
+    peaks.sort_by_key(|a| a.scan);
     split_peaks(&peaks, scan_fwhm)
         .filter_map(|(subpeaks, scan)| {
             if subpeaks.len() < min_spectrum_size {
@@ -214,7 +214,7 @@ fn split_peaks(
             }
             if left < right {
                 let mut chunk = subpeaks[left..right].to_vec();
-                chunk.sort_by(|a, b| a.tof.cmp(&b.tof));
+                chunk.sort_by_key(|a| a.tof);
                 let avg_scan = start + step;
                 results.push((chunk, avg_scan));
             }

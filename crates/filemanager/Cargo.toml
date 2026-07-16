@@ -1,7 +1,7 @@
 [package]
 name = "filemanager"
-version = "0.1.4"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "Unified file abstraction for local and cloud files with caching options and support for multiple formats."
 license = "Apache-2.0"
 

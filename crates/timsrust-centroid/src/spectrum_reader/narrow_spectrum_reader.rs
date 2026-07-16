@@ -133,7 +133,7 @@ impl<
                         if ms2_peaks.is_empty() {
                             continue;
                         }
-                        ms2_peaks.sort_by(|a, b| a.scan.cmp(&b.scan));
+                        ms2_peaks.sort_by_key(|a| a.scan);
                         spectral_chunk.peaks.insert(ms2_frame_index, ms2_peaks);
                     }
                 }
@@ -379,7 +379,7 @@ fn to_spectrum(
         return None;
     }
     let mut subpeaks = subpeaks.to_vec();
-    subpeaks.sort_by(|a, b| a.tof.cmp(&b.tof));
+    subpeaks.sort_by_key(|a| a.tof);
     let intensity_values = subpeaks
         .iter()
         .map(|p| p.apex_intensity as f32)
