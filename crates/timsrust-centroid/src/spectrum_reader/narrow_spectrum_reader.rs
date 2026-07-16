@@ -164,6 +164,7 @@ impl<
                             .expect("Known to exist")
                             .info()
                             .quadrupole_settings(),
+                        *ms2_frame_index,
                     )
                 })
                 .collect(),
@@ -241,6 +242,7 @@ fn deisotope(
     highest_charge_state_only: bool,
     charges: &[u8],
 ) -> Vec<timsrust_core::Precursor> {
+    let mut id = frame.info().index() << 32;
     peaks.sort_by_key(|p| p.scan);
     // const PROTON_MASS: f64 = 1.007276466812;
     const ISOTOPE_MASS: f64 = 1.0033548378;
@@ -279,8 +281,9 @@ fn deisotope(
                 .iter()
                 .any(|&x| (f64::from(x) - next_isotope_mz).abs() < MAX_DELTA_MZ)
             {
+                id += 1;
                 // found isotope peak
-                let id = precursor_id.fetch_add(1, atomic::Ordering::Relaxed);
+                _ = precursor_id.fetch_add(1, atomic::Ordering::Relaxed);
                 let scan = ScanIndex::try_from(peak.scan).unwrap();
                 let precursor = timsrust_core::Precursor::new(
                     Mz::from(mz as f32),
@@ -325,18 +328,27 @@ fn create_spectra_from_ms2_peaks(
     spectrum_id: &atomic::AtomicUsize,
     min_spectrum_size: usize,
     quadrupole_settings: &timsrust_core::QuadrupoleSettings,
+    ms2_frame_index: usize,
 ) -> Vec<timsrust_core::Spectrum> {
     assert!(precursors.is_sorted_by(|a, b| a.scan_index() <= b.scan_index()));
     assert!(peaks.is_sorted_by(|a, b| a.scan <= b.scan));
+    // Deterministic spectrum index: the MS2 frame index (which belongs to a
+    // single MS1 frame) in the high bits, and the position within this frame's
+    // precursor split in the low bits. This is independent of the (parallel,
+    // non-deterministic) order in which frames are processed, so the same
+    // physical spectrum always receives the same index across runs.
+    let base_index = ms2_frame_index << 32;
     split_peaks(peaks, scan_fwhm, precursors)
-        .map(|(_precursor_id, lower_id, upper_id, scan)| {
+        .enumerate()
+        .map(|(local_index, (_precursor_id, lower_id, upper_id, scan))| {
             (
+                local_index,
                 precursors[_precursor_id].clone(),
                 &peaks[lower_id..upper_id],
                 scan,
             )
         })
-        .filter_map(|(precursor, subpeaks, scan)| {
+        .filter_map(|(local_index, precursor, subpeaks, scan)| {
             to_spectrum(
                 &precursor,
                 subpeaks,
@@ -344,6 +356,7 @@ fn create_spectra_from_ms2_peaks(
                 min_spectrum_size,
                 scan,
                 spectrum_id,
+                base_index + local_index,
             )
         })
         .collect()
@@ -356,6 +369,7 @@ fn to_spectrum(
     min_spectrum_size: usize,
     scan: usize,
     spectrum_id: &atomic::AtomicUsize,
+    index: usize,
 ) -> Option<timsrust_core::Spectrum> {
     if subpeaks.len() < min_spectrum_size {
         return None;
@@ -370,7 +384,9 @@ fn to_spectrum(
         .iter()
         .map(|p| p.apex_intensity as f32)
         .collect::<Vec<_>>();
-    let id = spectrum_id.fetch_add(1, atomic::Ordering::Relaxed);
+    // Keep the atomic only for `len()`; the spectrum index itself is the
+    // deterministic `index` derived from the MS2 frame (see caller).
+    _ = spectrum_id.fetch_add(1, atomic::Ordering::Relaxed);
     let isolation_window = timsrust_core::IsolationWindow::new_from_center(
         Mz::from(quad_info.isolation_mz),
         Mz::from(quad_info.isolation_width),
@@ -378,7 +394,7 @@ fn to_spectrum(
     );
     let spectrum = timsrust_core::Spectrum::new(
         intensity_values.into_iter().map(|x| x.into()).collect(),
-        id,
+        index,
         Some(precursor.clone()),
         subpeaks
             .iter()

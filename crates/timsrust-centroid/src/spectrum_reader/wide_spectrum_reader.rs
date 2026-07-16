@@ -109,6 +109,7 @@ fn peaks_to_spectra(
     spec_id: &atomic::AtomicUsize,
     min_spectrum_size: usize,
 ) -> Vec<timsrust_core::Spectrum> {
+    let mut id = frame.info().index() << 32;
     peaks.sort_by_key(|a| a.scan);
     split_peaks(&peaks, scan_fwhm)
         .filter_map(|(subpeaks, scan)| {
@@ -136,7 +137,8 @@ fn peaks_to_spectra(
                 .iter()
                 .map(|p| p.apex_intensity as f32)
                 .collect::<Vec<_>>();
-            let id = spec_id.fetch_add(1, atomic::Ordering::Relaxed);
+            id += 1;
+            _ = spec_id.fetch_add(1, atomic::Ordering::Relaxed);
             let scan = ScanIndex::try_from(scan as u32).unwrap();
             let precursor = timsrust_core::Precursor::new(
                 isolation_mz,
