@@ -20,6 +20,8 @@ use crate::{
 pub(crate) enum TimsTofFileType {
     MiniTdf(MiniTDFPath),
     Tdf(TDFPath),
+    #[cfg(feature = "patched")]
+    Patched(TDFPath),
     Parquet(ParquetSpectrumPath),
     Tsf(TSFPath),
 }
@@ -35,6 +37,12 @@ impl TimsTofPath {
         let uri = Uri::from(path.as_ref()).local_representation();
         for path in [uri.as_ref(), path.as_ref()] {
             if let Ok(tdf) = TDFPath::new(path) {
+                #[cfg(feature = "patched")]
+                return Ok(Self {
+                    uri: tdf.uri().clone(),
+                    file_type: TimsTofFileType::Patched(tdf),
+                });
+                #[cfg(not(feature = "patched"))]
                 return Ok(Self {
                     uri: tdf.uri().clone(),
                     file_type: TimsTofFileType::Tdf(tdf),
@@ -90,6 +98,10 @@ impl TimsTofPath {
     ) -> Result<TdfFrameReader, TimsTofFrameReaderError> {
         match &self.file_type {
             TimsTofFileType::Tdf(tdf_path) => {
+                Ok(TdfFrameReader::new(tdf_path)?)
+            },
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(tdf_path) => {
                 Ok(TdfFrameReader::new(tdf_path)?)
             },
             _ => Err(TimsTofFrameReaderError::NotSupported),
