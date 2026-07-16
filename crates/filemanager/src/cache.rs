@@ -4,7 +4,7 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 
 use tempfile::TempDir;
 
-use crate::{cloud_store::CloudObject, CloudError, Uri, UriError};
+use crate::{CloudError, Uri, UriError, cloud_store::CloudObject};
 
 static TEMP_DIR: OnceLock<TempDir> = OnceLock::new();
 
