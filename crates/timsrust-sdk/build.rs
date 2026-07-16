@@ -53,18 +53,34 @@ fn main() {
 
     // Source file you want to copy
     let source = lib_path.join(&runtime_lib_name);
-    // Destination in the target folder
-    let destination = target_dir.join(&runtime_lib_name);
-    // Create directory if missing
-    fs::create_dir_all(&target_dir).unwrap();
-    // Copy the file
-    fs::copy(&source, &destination).unwrap_or_else(|e| {
-        panic!("Failed to copy {:?} to {:?}: {}", source, destination, e)
-    });
 
-    // Logging
-    println!("cargo:warning=Target dir: {}", target_dir.display());
-    println!("cargo:warning=Source dir: {}", source.display());
+    // The runtime library is gitignored and absent when the crate is built
+    // without the proprietary Bruker SDK (e.g. `cargo publish --no-verify`,
+    // docs.rs, or a plain `cargo build` by a downstream user). Skip the copy
+    // instead of failing; real usage requires the library to be present in
+    // `lib/` or pointed at by TIMSDATA_LIB_DIR.
+    if source.exists() {
+        // Destination in the target folder
+        let destination = target_dir.join(&runtime_lib_name);
+        // Create directory if missing
+        fs::create_dir_all(&target_dir).unwrap();
+        // Copy the file
+        fs::copy(&source, &destination).unwrap_or_else(|e| {
+            panic!("Failed to copy {:?} to {:?}: {}", source, destination, e)
+        });
+
+        // Logging
+        println!("cargo:warning=Target dir: {}", target_dir.display());
+        println!("cargo:warning=Source dir: {}", source.display());
+    } else {
+        println!(
+            "cargo:warning=timsrust-sdk: {} not found in {}; skipping runtime library copy. \
+             Set TIMSDATA_LIB_DIR to the directory containing the Bruker timsdata library to link against it.",
+            runtime_lib_name,
+            lib_path.display()
+        );
+    }
+
     // Re-run this script if the file changes
     println!("cargo:rerun-if-changed={}", source.display());
     println!("cargo:rerun-if-env-changed=TIMSDATA_LIB_DIR");

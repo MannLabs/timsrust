@@ -6,6 +6,14 @@ build = "build.rs"
 description = "Bruker TimsData SDK bindings for native timsTOF data access"
 license = "Apache-2.0"
 
+[package.metadata.release]
+# The proprietary Bruker native SDK is not available on the CI runners, so this
+# crate cannot be built there. Publish the source without a verification build
+# (`cargo publish --no-verify`). Consumers link the real library themselves via
+# the crate's `lib/` directory or the TIMSDATA_LIB_DIR env var; build.rs
+# tolerates a missing library so docs.rs and plain `cargo build` still succeed.
+verify = false
+
 [dependencies]
 timsrust-core = { workspace = true, features = ["io"] }
 serde = { workspace = true, features = ["derive"] }
