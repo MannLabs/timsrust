@@ -712,7 +712,7 @@ checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
 name = "filemanager"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "arrow",
  "futures",
@@ -2431,7 +2431,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "rayon",
  "thiserror",
@@ -2448,7 +2448,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-centroid"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "rayon",
  "rustc-hash",
@@ -2458,7 +2458,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-centroid-cli"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -2475,7 +2475,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-cli-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -2485,7 +2485,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "filemanager",
  "rayon",
@@ -2494,14 +2494,14 @@ dependencies = [
 
 [[package]]
 name = "timsrust-mgf"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "timsrust-core",
 ]
 
 [[package]]
 name = "timsrust-mgf-cli"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "timsrust",
  "timsrust-cli-core",
@@ -2510,7 +2510,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-minitdf"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "bytemuck",
  "serde",
@@ -2521,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-parquet-spectra"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "serde",
  "timsrust-core",
@@ -2529,7 +2529,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-parquet-spectra-cli"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -2548,7 +2548,7 @@ checksum = "a549f6a10c5b02f1c890e5cd622d36dab36bc8bd8bf076abbc6e1990a046e21d"
 
 [[package]]
 name = "timsrust-pyo3"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "pyo3",
  "rayon",
@@ -2557,7 +2557,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-sdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "libc",
  "serde",
@@ -2566,7 +2566,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-tdf"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "lzf",
  "rayon",
@@ -2578,7 +2578,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-tsf"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "serde",
  "thiserror",
@@ -2588,7 +2588,7 @@ dependencies = [
 
 [[package]]
 name = "timsrust-utils"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "rayon",
 ]
