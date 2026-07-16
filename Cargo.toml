@@ -9,6 +9,8 @@ resolver = "3"
 [workspace.package]
 version = "0.6.1"
 edition = "2024"
+repository = "https://github.com/MannLabs/timsrust"
+
 [workspace.metadata.release]
 # Bump every crate together to one shared version and emit a single tag.
 shared-version = true
