@@ -146,6 +146,7 @@ pub enum PrecursorReaderError {
     TimsTofPathError(#[from] TimsTofPathError),
     #[error("TSF datasets do not provide precursor information")]
     TsfNotSupported,
+    #[cfg(feature = "patched")]
     #[error("Patched datasets are not supported")]
     PatchedNotSupported,
 }
