@@ -270,7 +270,7 @@ pub enum SpectrumReaderError {
     #[error("Centroider is not supported")]
     CentroiderNotSupported,
     #[cfg(feature = "patched")]
-    #[error("Random access is not supported for the patched (NATS) reader")]
+    #[error("Random access is not supported for patched datasets")]
     PatchedRandomAccessNotSupported,
 }
 
