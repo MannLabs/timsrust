@@ -22,6 +22,8 @@ pub(crate) enum TimsTofFileType {
     Tdf(TDFPath),
     Parquet(ParquetSpectrumPath),
     Tsf(TSFPath),
+    #[cfg(feature = "patched")]
+    Patched(timsrust_patched::PatchedTimsTofPath),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -34,6 +36,15 @@ impl TimsTofPath {
     pub fn new(path: impl AsRef<str>) -> Result<Self, TimsTofPathError> {
         let uri = Uri::from(path.as_ref()).local_representation();
         for path in [uri.as_ref(), path.as_ref()] {
+            #[cfg(feature = "patched")]
+            if let Ok(patched_path) =
+                timsrust_patched::PatchedTimsTofPath::new(path)
+            {
+                return Ok(Self {
+                    uri: uri.clone(),
+                    file_type: TimsTofFileType::Patched(patched_path),
+                });
+            }
             if let Ok(tdf) = TDFPath::new(path) {
                 return Ok(Self {
                     uri: tdf.uri().clone(),

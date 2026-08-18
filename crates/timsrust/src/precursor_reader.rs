@@ -103,6 +103,10 @@ impl PrecursorReaderBuilder {
             Some(path) => path,
         };
         let precursor_reader = match path.file_type() {
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(_) => {
+                return Err(PrecursorReaderError::PatchedNotSupported);
+            },
             TimsTofFileType::MiniTdf(mini_path) => {
                 Inner::MiniTDF(mini_path.precursor_reader()?)
             },
@@ -142,4 +146,7 @@ pub enum PrecursorReaderError {
     TimsTofPathError(#[from] TimsTofPathError),
     #[error("TSF datasets do not provide precursor information")]
     TsfNotSupported,
+    #[cfg(feature = "patched")]
+    #[error("Patched datasets are not supported")]
+    PatchedNotSupported,
 }

@@ -21,28 +21,32 @@ impl MzConverter {
         let timstof = TimsTofPath::new(path.as_ref()).ok()?;
         #[allow(unreachable_code)]
         match timstof.file_type() {
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(_) => {
+                Some(Self::Bit(timsrust_core::BitConverter()))
+            },
             TimsTofFileType::Tdf(tdf_path) => {
                 #[cfg(feature = "sdk")]
-                return Some(MzConverter::Sdk(
+                return Some(Self::Sdk(
                     timsrust_sdk::WrappedTof2MzConverterSDK::new(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
                 #[cfg(feature = "patched")]
-                return Some(MzConverter::Bps(
+                return Some(Self::Bps(
                     timsrust_patched::Tof2MzConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
-                Some(MzConverter::Tdf(timsrust_tdf::Tof2MzConverter::new(
+                Some(Self::Tdf(timsrust_tdf::Tof2MzConverter::new(
                     tdf_path.tdf().as_ref(),
                 )))
             },
-            TimsTofFileType::MiniTdf(_) => Some(MzConverter::MiniTdf),
+            TimsTofFileType::MiniTdf(_) => Some(Self::MiniTdf),
             TimsTofFileType::Parquet(_) => {
-                Some(MzConverter::Bit(timsrust_core::BitConverter()))
+                Some(Self::Bit(timsrust_core::BitConverter()))
             },
-            TimsTofFileType::Tsf(_) => Some(MzConverter::TSF(
+            TimsTofFileType::Tsf(_) => Some(Self::TSF(
                 timsrust_tsf::Tof2MzConverter::new(timstof.as_ref()),
             )),
         }
@@ -95,29 +99,33 @@ impl ImConverter {
         let timstof = TimsTofPath::new(path.as_ref()).ok()?;
         #[allow(unreachable_code)]
         match timstof.file_type() {
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(_) => {
+                Some(Self::Bit(timsrust_core::BitConverter()))
+            },
             TimsTofFileType::Tdf(tdf_path) => {
                 #[cfg(feature = "sdk")]
-                return Some(ImConverter::Sdk(
+                return Some(Self::Sdk(
                     timsrust_sdk::WrappedScan2ImConverterSDK::new(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
                 #[cfg(feature = "patched")]
-                return Some(ImConverter::Bps(
+                return Some(Self::Bps(
                     timsrust_patched::Scan2ImConverter::from_tdf(
                         tdf_path.tdf().as_ref(),
                     )?,
                 ));
-                Some(ImConverter::Tdf(timsrust_tdf::Scan2ImConverter::new(
+                Some(Self::Tdf(timsrust_tdf::Scan2ImConverter::new(
                     tdf_path.tdf().as_ref(),
                 )))
             },
-            TimsTofFileType::MiniTdf(_) => Some(ImConverter::MiniTdf),
+            TimsTofFileType::MiniTdf(_) => Some(Self::MiniTdf),
             TimsTofFileType::Parquet(_) => {
-                Some(ImConverter::Bit(timsrust_core::BitConverter()))
+                Some(Self::Bit(timsrust_core::BitConverter()))
             },
             TimsTofFileType::Tsf(_) => {
-                Some(ImConverter::Bit(timsrust_core::BitConverter()))
+                Some(Self::Bit(timsrust_core::BitConverter()))
             },
         }
     }
@@ -162,15 +170,19 @@ impl RtConverter {
     pub fn new(path: impl AsRef<str>) -> Option<Self> {
         let timstof = TimsTofPath::new(path.as_ref()).ok()?;
         match timstof.file_type() {
-            TimsTofFileType::Tdf(tdf_path) => Some(RtConverter::Tdf(
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(_) => {
+                Some(Self::Bit(timsrust_core::BitConverter()))
+            },
+            TimsTofFileType::Tdf(tdf_path) => Some(Self::Tdf(
                 timsrust_tdf::Frame2RtConverter::new(tdf_path.tdf().as_ref()),
             )),
-            TimsTofFileType::MiniTdf(_) => Some(RtConverter::MiniTdf),
+            TimsTofFileType::MiniTdf(_) => Some(Self::MiniTdf),
             TimsTofFileType::Parquet(_) => {
-                Some(RtConverter::Bit(timsrust_core::BitConverter()))
+                Some(Self::Bit(timsrust_core::BitConverter()))
             },
             TimsTofFileType::Tsf(_) => {
-                Some(RtConverter::Bit(timsrust_core::BitConverter()))
+                Some(Self::Bit(timsrust_core::BitConverter()))
             },
         }
     }

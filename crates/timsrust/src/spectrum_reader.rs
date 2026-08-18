@@ -32,6 +32,8 @@ enum Inner {
         timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
     Tsf(TSFSpectrumReader),
+    #[cfg(feature = "patched")]
+    Patched(timsrust_patched::PatchedSpectrumReader),
 }
 
 impl Inner {
@@ -47,6 +49,10 @@ impl Inner {
             Inner::MiniTdf(reader) => Ok(reader.get(index)?),
             Inner::ParquetSpectra(reader) => Ok(reader.get(index)?),
             Inner::Tsf(reader) => Ok(reader.get(index)?),
+            #[cfg(feature = "patched")]
+            Inner::Patched(_) => {
+                Err(SpectrumReaderError::PatchedRandomAccessNotSupported)
+            },
         }
     }
 
@@ -57,6 +63,8 @@ impl Inner {
             Inner::Centroider(reader) => reader.len(),
             Inner::ParquetSpectra(reader) => reader.len(),
             Inner::Tsf(reader) => reader.len(),
+            #[cfg(feature = "patched")]
+            Inner::Patched(reader) => reader.len(),
         }
     }
 
@@ -75,6 +83,8 @@ impl Inner {
             Inner::MiniTdf(reader) => A::MiniTdf(reader),
             Inner::ParquetSpectra(reader) => A::ParquetSpectra(reader),
             Inner::Tsf(reader) => A::Tsf(reader),
+            #[cfg(feature = "patched")]
+            Inner::Patched(reader) => A::Patched(reader),
         }
     }
 }
@@ -94,6 +104,8 @@ enum A<'a> {
         &'a timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
     Tsf(&'a TSFSpectrumReader),
+    #[cfg(feature = "patched")]
+    Patched(&'a timsrust_patched::PatchedSpectrumReader),
 }
 
 impl<'a> ParallelIterator for A<'a> {
@@ -126,6 +138,12 @@ impl<'a> ParallelIterator for A<'a> {
                 .drive_unindexed(consumer)
             },
             Self::Tsf(reader) => rayon::iter::ParallelIterator::filter_map(
+                reader.par_iter(),
+                |s| s.ok(),
+            )
+            .drive_unindexed(consumer),
+            #[cfg(feature = "patched")]
+            Self::Patched(reader) => rayon::iter::ParallelIterator::filter_map(
                 reader.par_iter(),
                 |s| s.ok(),
             )
@@ -251,6 +269,9 @@ pub enum SpectrumReaderError {
     NoPath,
     #[error("Centroider is not supported")]
     CentroiderNotSupported,
+    #[cfg(feature = "patched")]
+    #[error("Random access is not supported for patched datasets")]
+    PatchedRandomAccessNotSupported,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -285,6 +306,20 @@ impl SpectrumReaderBuilder {
             Some(path) => path,
         };
         let spectrum_reader = match path.file_type() {
+            #[cfg(feature = "patched")]
+            TimsTofFileType::Patched(_) => {
+                if let Ok(reader) = timsrust_patched::PatchedSpectrumReader::from_file(path.as_ref()) {
+                    let spectrum_reader = Inner::Patched(reader);
+                    let mz_converter =
+                        Arc::new(MzConverter::Bit(timsrust_core::BitConverter()));
+                    return Ok(SpectrumReader {
+                        spectrum_reader,
+                        mz_converter,
+                    });
+                } else {
+                    return Err(SpectrumReaderError::PatchedRandomAccessNotSupported);
+                }
+            },
             TimsTofFileType::Tdf(tdf_path) => {
                 if Metadata::new(tdf_path.as_ref()).unwrap().acquisition_type()
                     == AcquisitionType::DIAPASEF
