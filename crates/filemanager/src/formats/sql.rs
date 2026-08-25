@@ -119,7 +119,7 @@ impl SqlReader {
         )
         .map_err(|e| SqlError::Sql(Box::new(e)))?;
         let mut stmt = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            .prepare("SELECT name FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY name")
             .map_err(|e| SqlError::Sql(Box::new(e)))?;
         let names = stmt
             .query_map([], |row| row.get::<_, String>(0))
@@ -159,10 +159,10 @@ impl SqlReader {
         )
         .map_err(|e| SqlError::Sql(Box::new(e)))?;
 
-        // Check table exists
+        // Check table or view exists (TDF v5 exposes Precursors etc. as views)
         let exists: bool = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type IN ('table', 'view') AND name=?1",
                 rusqlite::params![name],
                 |row| row.get::<_, i64>(0),
             )
