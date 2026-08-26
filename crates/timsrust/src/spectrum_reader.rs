@@ -32,6 +32,8 @@ enum Inner {
         timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
     Tsf(TSFSpectrumReader),
+    #[cfg(feature = "sdk")]
+    Sdk(crate::sdk_spectrum_reader::SdkSpectrumReader),
     #[cfg(feature = "patched")]
     Patched(timsrust_patched::PatchedSpectrumReader),
 }
@@ -49,6 +51,8 @@ impl Inner {
             Inner::MiniTdf(reader) => Ok(reader.get(index)?),
             Inner::ParquetSpectra(reader) => Ok(reader.get(index)?),
             Inner::Tsf(reader) => Ok(reader.get(index)?),
+            #[cfg(feature = "sdk")]
+            Inner::Sdk(reader) => Ok(reader.get(index)?),
             #[cfg(feature = "patched")]
             Inner::Patched(_) => {
                 Err(SpectrumReaderError::PatchedRandomAccessNotSupported)
@@ -63,6 +67,8 @@ impl Inner {
             Inner::Centroider(reader) => reader.len(),
             Inner::ParquetSpectra(reader) => reader.len(),
             Inner::Tsf(reader) => reader.len(),
+            #[cfg(feature = "sdk")]
+            Inner::Sdk(reader) => reader.len(),
             #[cfg(feature = "patched")]
             Inner::Patched(reader) => reader.len(),
         }
@@ -83,6 +89,8 @@ impl Inner {
             Inner::MiniTdf(reader) => A::MiniTdf(reader),
             Inner::ParquetSpectra(reader) => A::ParquetSpectra(reader),
             Inner::Tsf(reader) => A::Tsf(reader),
+            #[cfg(feature = "sdk")]
+            Inner::Sdk(reader) => A::Sdk(reader),
             #[cfg(feature = "patched")]
             Inner::Patched(reader) => A::Patched(reader),
         }
@@ -104,6 +112,8 @@ enum A<'a> {
         &'a timsrust_parquet_spectra::spectrum_reader::ParquetSpectrumReader,
     ),
     Tsf(&'a TSFSpectrumReader),
+    #[cfg(feature = "sdk")]
+    Sdk(&'a crate::sdk_spectrum_reader::SdkSpectrumReader),
     #[cfg(feature = "patched")]
     Patched(&'a timsrust_patched::PatchedSpectrumReader),
 }
@@ -138,6 +148,12 @@ impl<'a> ParallelIterator for A<'a> {
                 .drive_unindexed(consumer)
             },
             Self::Tsf(reader) => rayon::iter::ParallelIterator::filter_map(
+                reader.par_iter(),
+                |s| s.ok(),
+            )
+            .drive_unindexed(consumer),
+            #[cfg(feature = "sdk")]
+            Self::Sdk(reader) => rayon::iter::ParallelIterator::filter_map(
                 reader.par_iter(),
                 |s| s.ok(),
             )
@@ -269,6 +285,11 @@ pub enum SpectrumReaderError {
     NoPath,
     #[error("Centroider is not supported")]
     CentroiderNotSupported,
+    #[cfg(feature = "sdk")]
+    #[error("{0}")]
+    SdkSpectrumReaderError(
+        #[from] crate::sdk_spectrum_reader::SdkSpectrumReaderError,
+    ),
     #[cfg(feature = "patched")]
     #[error("Random access is not supported for patched datasets")]
     PatchedRandomAccessNotSupported,
@@ -353,13 +374,25 @@ impl SpectrumReaderBuilder {
                         mz_converter,
                     });
                 }
-                let im_converter =
-                    Arc::new(ImConverter::new(&path).unwrap());
-                Inner::Tdf(TDFSpectrumReader::new(
-                    tdf_path,
-                    self.config.clone(),
-                    im_converter,
-                )?)
+                #[cfg(feature = "sdk")]
+                {
+                    Inner::Sdk(
+                        crate::sdk_spectrum_reader::SdkSpectrumReader::new(
+                            tdf_path.tdf().as_ref(),
+                            path.as_ref(),
+                        )?,
+                    )
+                }
+                #[cfg(not(feature = "sdk"))]
+                {
+                    let im_converter =
+                        Arc::new(ImConverter::new(&path).unwrap());
+                    Inner::Tdf(TDFSpectrumReader::new(
+                        tdf_path,
+                        self.config.clone(),
+                        im_converter,
+                    )?)
+                }
             },
             // TimsTofFileType::Tdf(tdf_path) => {
             //     Inner::Tdf(TDFSpectrumReader::new(tdf_path, self.config.clone())?)
@@ -379,7 +412,13 @@ impl SpectrumReaderBuilder {
                 Inner::Tsf(TSFSpectrumReader::new(tsf_path)?)
             },
         };
-        let mz_converter = Arc::new(MzConverter::new(&path).unwrap());
+        let mz_converter = match &spectrum_reader {
+            #[cfg(feature = "sdk")]
+            Inner::Sdk(_) => {
+                Arc::new(MzConverter::Bit(timsrust_core::BitConverter()))
+            },
+            _ => Arc::new(MzConverter::new(&path).unwrap()),
+        };
         let mut reader = SpectrumReader {
             spectrum_reader,
             mz_converter,

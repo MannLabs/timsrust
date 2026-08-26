@@ -1,6 +1,8 @@
 mod converters;
 mod errors;
 mod precursor_reader;
+#[cfg(feature = "sdk")]
+mod sdk_spectrum_reader;
 mod spectrum_reader;
 mod timstof;
 
@@ -9,6 +11,8 @@ pub use errors::TimsRustError;
 pub use precursor_reader::{
     PrecursorReader, PrecursorReaderBuilder, PrecursorReaderError,
 };
+#[cfg(feature = "sdk")]
+pub use sdk_spectrum_reader::{SdkSpectrumReader, SdkSpectrumReaderError};
 pub use spectrum_reader::{
     SpectrumReader, SpectrumReaderBuilder, SpectrumReaderError,
 };
