@@ -24,6 +24,7 @@ timsrust-tdf = { workspace = true }
 timsrust-tsf = { workspace = true }
 thiserror = { workspace = true }
 rayon = { workspace = true }
+serde = { workspace = true, features = ["derive"], optional = true }
 
 [dev-dependencies]
 timsrust-mgf = { workspace = true }
@@ -32,7 +33,7 @@ timsrust-mgf = { workspace = true }
 workspace = true
 
 [features]
-sdk = ["timsrust-sdk"]
+sdk = ["timsrust-sdk", "serde"]
 patched = ["timsrust-patched"]
 
 [[example]]

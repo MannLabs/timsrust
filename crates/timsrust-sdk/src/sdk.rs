@@ -418,6 +418,443 @@ impl TimsData {
     pub fn set_num_threads(self, num_threads: u32) {
         unsafe { tims_set_num_threads(num_threads) }
     }
+
+    /// Opens a data set using a specific re-calibration identified by its UUID.
+    pub fn open_recalibration_id(
+        analysis_directory_name: PathBuf,
+        use_calibration_id: &str,
+    ) -> Self {
+        let input_analysis = CString::new(
+            analysis_directory_name
+                .clone()
+                .into_os_string()
+                .into_string()
+                .unwrap(),
+        )
+        .unwrap();
+        let calibration_id = CString::new(use_calibration_id).unwrap();
+        let handle = unsafe {
+            tims_open_recalibration_id(
+                input_analysis.as_ptr(),
+                calibration_id.as_ptr(),
+            )
+        };
+        if handle == 0 {
+            panic!("{}", get_last_error());
+        }
+        TimsData {
+            analysis_directory_name,
+            use_recalibrated_state: true,
+            pressure_compensation_strategy:
+                PressureCompensationStrategy::default(),
+            handle,
+        }
+    }
+
+    /// Returns `true` if a re-calibrated state is present and currently in use.
+    pub fn has_recalibrated_state(&self) -> bool {
+        unsafe { tims_has_recalibrated_state(self.handle) != 0 }
+    }
+
+    /// Returns the UUID of the active re-calibration, or `None` when the raw
+    /// instrument calibration is in use.
+    pub fn get_calibration_id(&self) -> Option<String> {
+        let mut buffer = vec![0u8; 256];
+        let len = unsafe {
+            tims_get_calibration_id(
+                self.handle,
+                buffer.as_mut_ptr() as *mut c_char,
+                buffer.len() as u32,
+            )
+        };
+        if len == 0 {
+            return None;
+        }
+        let end = (len as usize).min(buffer.len()).saturating_sub(1);
+        Some(String::from_utf8_lossy(&buffer[..end]).into_owned())
+    }
+
+    /// Reads centroided MS/MS spectra for a list of PASEF precursor IDs.
+    pub fn read_pasef_msms(
+        &mut self,
+        precursors: &[i64],
+    ) -> HashMap<i64, (Vec<f64>, Vec<f32>)> {
+        let results: HashMap<i64, (Vec<f64>, Vec<f32>)> = HashMap::new();
+        let pointer_to_results = Box::into_raw(Box::new(results));
+        let r = unsafe {
+            tims_read_pasef_msms_v2(
+                self.handle,
+                precursors.as_ptr(),
+                precursors.len() as u32,
+                Some(collect_centroided_into_map),
+                pointer_to_results as *mut c_void,
+            )
+        };
+        if r == 0 {
+            drop(unsafe { Box::from_raw(pointer_to_results) });
+            panic!(
+                "Could not read PASEF MS/MS spectra. Error: {}",
+                get_last_error()
+            );
+        }
+        *unsafe { Box::from_raw(pointer_to_results) }
+    }
+
+    /// Reads "quasi profile" MS/MS spectra for a list of PASEF precursor IDs.
+    pub fn read_pasef_profile_msms(
+        &mut self,
+        precursors: &[i64],
+    ) -> HashMap<i64, Vec<i32>> {
+        let results: HashMap<i64, Vec<i32>> = HashMap::new();
+        let pointer_to_results = Box::into_raw(Box::new(results));
+        let r = unsafe {
+            tims_read_pasef_profile_msms_v2(
+                self.handle,
+                precursors.as_ptr(),
+                precursors.len() as u32,
+                Some(collect_profile_into_map),
+                pointer_to_results as *mut c_void,
+            )
+        };
+        if r == 0 {
+            drop(unsafe { Box::from_raw(pointer_to_results) });
+            panic!(
+                "Could not read PASEF profile MS/MS spectra. Error: {}",
+                get_last_error()
+            );
+        }
+        *unsafe { Box::from_raw(pointer_to_results) }
+    }
+
+    /// Reads "quasi profile" MS/MS spectra for all PASEF precursors in a frame.
+    pub fn read_pasef_profile_msms_for_frame(
+        &mut self,
+        frame_id: i64,
+    ) -> HashMap<i64, Vec<i32>> {
+        let results: HashMap<i64, Vec<i32>> = HashMap::new();
+        let pointer_to_results = Box::into_raw(Box::new(results));
+        let r = unsafe {
+            tims_read_pasef_profile_msms_for_frame_v2(
+                self.handle,
+                frame_id,
+                Some(collect_profile_into_map),
+                pointer_to_results as *mut c_void,
+            )
+        };
+        if r == 0 {
+            drop(unsafe { Box::from_raw(pointer_to_results) });
+            panic!(
+                "Could not read PASEF profile MS/MS spectra for frame {}. Error: {}",
+                frame_id,
+                get_last_error()
+            );
+        }
+        *unsafe { Box::from_raw(pointer_to_results) }
+    }
+
+    /// Extracts a single centroided spectrum for a frame (Bruker default resolution).
+    pub fn extract_centroided_spectrum_for_frame(
+        &mut self,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+    ) -> CentroidedSpectrum {
+        let handle = self.handle;
+        collect_single_centroided(frame_id, |user_data| unsafe {
+            tims_extract_centroided_spectrum_for_frame_v2(
+                handle,
+                frame_id,
+                scan_begin,
+                scan_end,
+                Some(collect_centroided_into_map),
+                user_data,
+            )
+        })
+    }
+
+    /// Same as [`Self::extract_centroided_spectrum_for_frame`], using the v3
+    /// implementation (optimized for sparse data).
+    pub fn extract_centroided_spectrum_for_frame_v3(
+        &mut self,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+    ) -> CentroidedSpectrum {
+        let handle = self.handle;
+        collect_single_centroided(frame_id, |user_data| unsafe {
+            tims_extract_centroided_spectrum_for_frame_v3(
+                handle,
+                frame_id,
+                scan_begin,
+                scan_end,
+                Some(collect_centroided_into_map),
+                user_data,
+            )
+        })
+    }
+
+    /// Extracts a single centroided spectrum with a custom peak-picker resolution.
+    pub fn extract_centroided_spectrum_for_frame_ext(
+        &mut self,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+        peak_finder_resolution: f64,
+    ) -> CentroidedSpectrum {
+        let handle = self.handle;
+        collect_single_centroided(frame_id, |user_data| unsafe {
+            tims_extract_centroided_spectrum_for_frame_ext(
+                handle,
+                frame_id,
+                scan_begin,
+                scan_end,
+                peak_finder_resolution,
+                Some(collect_centroided_into_map),
+                user_data,
+            )
+        })
+    }
+
+    /// Same as [`Self::extract_centroided_spectrum_for_frame_ext`], v3 (sparse-optimized).
+    pub fn extract_centroided_spectrum_for_frame_ext_v3(
+        &mut self,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+        peak_finder_resolution: f64,
+    ) -> CentroidedSpectrum {
+        let handle = self.handle;
+        collect_single_centroided(frame_id, |user_data| unsafe {
+            tims_extract_centroided_spectrum_for_frame_ext_v3(
+                handle,
+                frame_id,
+                scan_begin,
+                scan_end,
+                peak_finder_resolution,
+                Some(collect_centroided_into_map),
+                user_data,
+            )
+        })
+    }
+
+    /// Extracts a single "quasi profile" spectrum for a frame.
+    pub fn extract_profile_for_frame(
+        &mut self,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+    ) -> Vec<i32> {
+        let handle = self.handle;
+        collect_single_profile(frame_id, |user_data| unsafe {
+            tims_extract_profile_for_frame(
+                handle,
+                frame_id,
+                scan_begin,
+                scan_end,
+                Some(collect_profile_into_map),
+                user_data,
+            )
+        })
+    }
+
+    /// Converts scan numbers to TIMS voltages for the given frame.
+    pub fn scan_num_to_voltage(
+        &self,
+        frame_id: i64,
+        in_: Vec<f64>,
+    ) -> Vec<f64> {
+        convert_values(
+            self.handle,
+            frame_id,
+            in_,
+            tims_scannum_to_voltage,
+            "voltage",
+        )
+    }
+
+    /// Converts TIMS voltages to scan numbers for the given frame.
+    pub fn voltage_to_scan_num(
+        &self,
+        frame_id: i64,
+        in_: Vec<f64>,
+    ) -> Vec<f64> {
+        convert_values(
+            self.handle,
+            frame_id,
+            in_,
+            tims_voltage_to_scannum,
+            "scan number",
+        )
+    }
+
+    /// Number of fragmentation experiments defined for a frame.
+    pub fn number_of_fragmentation_experiments(&self, frame_id: i64) -> i64 {
+        let n = unsafe {
+            tims_get_number_of_fragmentation_experiments(self.handle, frame_id)
+        };
+        if n < 0 {
+            panic!(
+                "Could not get number of fragmentation experiments for frame {}. Error: {}",
+                frame_id,
+                get_last_error()
+            );
+        }
+        n
+    }
+
+    /// Number of steps in a given fragmentation experiment of a frame.
+    pub fn number_of_fragmentation_experiment_steps(
+        &self,
+        frame_id: i64,
+        experiment_index: i32,
+    ) -> i64 {
+        let n = unsafe {
+            tims_get_number_of_fragmentation_experiment_steps(
+                self.handle,
+                frame_id,
+                experiment_index,
+            )
+        };
+        if n < 0 {
+            panic!(
+                "Could not get number of fragmentation steps for frame {} experiment {}. Error: {}",
+                frame_id,
+                experiment_index,
+                get_last_error()
+            );
+        }
+        n
+    }
+
+    /// Details of a single fragmentation step.
+    pub fn fragmentation_experiment_step(
+        &self,
+        frame_id: i64,
+        experiment_index: i32,
+        step_index: i32,
+    ) -> FragmentationStep {
+        let mut raw: IsolationFragmentationStep = unsafe { std::mem::zeroed() };
+        let ok = unsafe {
+            tims_get_fragmentation_experiment_step(
+                self.handle,
+                frame_id,
+                experiment_index,
+                step_index,
+                &mut raw,
+            )
+        };
+        if ok == 0 {
+            panic!(
+                "Could not get fragmentation step ({}, {}) for frame {}. Error: {}",
+                experiment_index,
+                step_index,
+                frame_id,
+                get_last_error()
+            );
+        }
+        FragmentationStep::from(raw)
+    }
+
+    /// Reads all fragmentation experiments of a frame, each as its list of steps.
+    pub fn read_fragmentation_experiments(
+        &self,
+        frame_id: i64,
+    ) -> Vec<Vec<FragmentationStep>> {
+        let num_experiments =
+            self.number_of_fragmentation_experiments(frame_id);
+        let mut experiments = Vec::with_capacity(num_experiments as usize);
+        for experiment_index in 0..num_experiments as i32 {
+            let num_steps = self.number_of_fragmentation_experiment_steps(
+                frame_id,
+                experiment_index,
+            );
+            let mut steps = Vec::with_capacity(num_steps as usize);
+            for step_index in 0..num_steps as i32 {
+                steps.push(self.fragmentation_experiment_step(
+                    frame_id,
+                    experiment_index,
+                    step_index,
+                ));
+            }
+            experiments.push(steps);
+        }
+        experiments
+    }
+
+    /// Extracts MS1-only chromatograms for the given jobs. Jobs must be ordered
+    /// by ascending `time_begin`.
+    pub fn extract_chromatograms(
+        &mut self,
+        jobs: Vec<TimsChromatogramJob>,
+    ) -> Vec<ChromatogramTrace> {
+        struct ChromCtx {
+            jobs: std::vec::IntoIter<TimsChromatogramJob>,
+            traces: Vec<ChromatogramTrace>,
+        }
+
+        unsafe extern "C" fn generate_job(
+            job: *mut TimsChromatogramJob,
+            user_data: *mut c_void,
+        ) -> u32 {
+            let ctx = unsafe { &mut *(user_data as *mut ChromCtx) };
+            match ctx.jobs.next() {
+                Some(next_job) => {
+                    unsafe { *job = next_job };
+                    1
+                },
+                None => 2,
+            }
+        }
+
+        unsafe extern "C" fn deliver_trace(
+            id: i64,
+            num_points: u32,
+            frame_ids: *const i64,
+            values: *const u64,
+            user_data: *mut c_void,
+        ) -> u32 {
+            let ctx = unsafe { &mut *(user_data as *mut ChromCtx) };
+            let frame_ids = if num_points != 0 && !frame_ids.is_null() {
+                unsafe { slice::from_raw_parts(frame_ids, num_points as usize) }
+                    .to_vec()
+            } else {
+                Vec::new()
+            };
+            let values = if num_points != 0 && !values.is_null() {
+                unsafe { slice::from_raw_parts(values, num_points as usize) }
+                    .to_vec()
+            } else {
+                Vec::new()
+            };
+            ctx.traces.push(ChromatogramTrace {
+                id,
+                frame_ids,
+                values,
+            });
+            1
+        }
+
+        let ctx = Box::into_raw(Box::new(ChromCtx {
+            jobs: jobs.into_iter(),
+            traces: Vec::new(),
+        }));
+        let r = unsafe {
+            tims_extract_chromatograms(
+                self.handle,
+                Some(generate_job),
+                Some(deliver_trace),
+                ctx as *mut c_void,
+            )
+        };
+        let ctx = *unsafe { Box::from_raw(ctx) };
+        if r == 0 {
+            panic!(
+                "Could not extract chromatograms. Error: {}",
+                get_last_error()
+            );
+        }
+        ctx.traces
+    }
 }
 
 /// Gets the last error from the native library as a String.
@@ -435,6 +872,392 @@ fn get_last_error() -> String {
             Err(e) => panic!("{}", e.to_string()),
         }
     }
+}
+
+// -------------------------------------------------------------------------
+// Fragmentation experiment types (raw FFI layout, mirrors timsdata_common.h)
+// -------------------------------------------------------------------------
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FragmentationSettingsCollisionEnergy {
+    pub ev: f64,
+    pub percent: f64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FragmentationSettingsCcid {
+    pub collision_energy: f64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FragmentationSettingsIscid {
+    pub collision_energy: f64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct FragmentationSettingsCcidSweep {
+    pub collision_energy: f64,
+    pub sweep_energies: *mut FragmentationSettingsCollisionEnergy,
+    pub nr_sweep_energies: usize,
+    pub first_sweep_energy: FragmentationSettingsCollisionEnergy,
+    pub last_sweep_energy: FragmentationSettingsCollisionEnergy,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FragmentationSettingsEtd {
+    pub reaction_time_ms: i64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FragmentationSettingsExd {
+    pub reaction_time_ms: i64,
+    pub electron_energy: f64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union FragmentationSettingsUnion {
+    pub ccid: FragmentationSettingsCcid,
+    pub ccid_sweep: FragmentationSettingsCcidSweep,
+    pub etd: FragmentationSettingsEtd,
+    pub exd: FragmentationSettingsExd,
+    pub iscid: FragmentationSettingsIscid,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FragmentationSettings {
+    pub type_: ::std::os::raw::c_int,
+    pub settings: FragmentationSettingsUnion,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TimsIsolation {
+    pub scan_begin: ::std::os::raw::c_int,
+    pub scan_end: ::std::os::raw::c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct IsolationSetting {
+    pub mz: f64,
+    pub width: f64,
+    pub optional_tims_isolation: TimsIsolation,
+    pub has_tims_isolation: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct IsolationFragmentationStep {
+    pub optional_isolation: IsolationSetting,
+    pub has_isolation: bool,
+    pub fragmentation: FragmentationSettings,
+    pub optional_precursor_id: i64,
+    pub has_precursor_id: bool,
+    pub optional_prm_target_id: i64,
+    pub has_prm_target_id: bool,
+}
+
+pub const FRAGMENTATION_TYPE_NONE: i32 = 0;
+pub const FRAGMENTATION_TYPE_CCID: i32 = 1;
+pub const FRAGMENTATION_TYPE_CCID_SWEEPING: i32 = 2;
+pub const FRAGMENTATION_TYPE_ETD: i32 = 3;
+pub const FRAGMENTATION_TYPE_EXD: i32 = 4;
+pub const FRAGMENTATION_TYPE_ISCID: i32 = 5;
+pub const FRAGMENTATION_TYPE_UNKNOWN: i32 = 100;
+
+// -------------------------------------------------------------------------
+// Safe, owned result types
+// -------------------------------------------------------------------------
+
+/// A centroided (peak-picked) spectrum returned by the extract/read functions.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CentroidedSpectrum {
+    pub mz_values: Vec<f64>,
+    pub area_values: Vec<f32>,
+}
+
+/// A finished chromatogram trace produced by [`TimsData::extract_chromatograms`].
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChromatogramTrace {
+    pub id: i64,
+    pub frame_ids: Vec<i64>,
+    pub values: Vec<u64>,
+}
+
+/// Isolation settings of a fragmentation step.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Isolation {
+    pub mz: f64,
+    pub width: f64,
+    /// `(scan_begin, scan_end)` (end exclusive) when TIMS isolation is defined.
+    pub tims_isolation: Option<(i32, i32)>,
+}
+
+/// Fragmentation method and its settings for a single step.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Fragmentation {
+    None,
+    Ccid {
+        collision_energy: f64,
+    },
+    CcidSweeping {
+        collision_energy: f64,
+        first_sweep_energy: (f64, f64),
+        last_sweep_energy: (f64, f64),
+    },
+    Etd {
+        reaction_time_ms: i64,
+    },
+    Exd {
+        reaction_time_ms: i64,
+        electron_energy: f64,
+    },
+    Iscid {
+        collision_energy: f64,
+    },
+    Unknown,
+}
+
+/// A single fragmentation step of a fragmentation experiment.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FragmentationStep {
+    pub isolation: Option<Isolation>,
+    pub fragmentation: Fragmentation,
+    pub precursor_id: Option<i64>,
+    pub prm_target_id: Option<i64>,
+}
+
+impl From<IsolationFragmentationStep> for FragmentationStep {
+    fn from(raw: IsolationFragmentationStep) -> Self {
+        let isolation = if raw.has_isolation {
+            let iso = raw.optional_isolation;
+            Some(Isolation {
+                mz: iso.mz,
+                width: iso.width,
+                tims_isolation: if iso.has_tims_isolation {
+                    Some((
+                        iso.optional_tims_isolation.scan_begin,
+                        iso.optional_tims_isolation.scan_end,
+                    ))
+                } else {
+                    None
+                },
+            })
+        } else {
+            None
+        };
+
+        // Reading the union is sound: the active variant is selected by `type_`.
+        let fragmentation = unsafe {
+            let s = &raw.fragmentation.settings;
+            match raw.fragmentation.type_ {
+                FRAGMENTATION_TYPE_NONE => Fragmentation::None,
+                FRAGMENTATION_TYPE_CCID => Fragmentation::Ccid {
+                    collision_energy: s.ccid.collision_energy,
+                },
+                FRAGMENTATION_TYPE_ISCID => Fragmentation::Iscid {
+                    collision_energy: s.iscid.collision_energy,
+                },
+                FRAGMENTATION_TYPE_ETD => Fragmentation::Etd {
+                    reaction_time_ms: s.etd.reaction_time_ms,
+                },
+                FRAGMENTATION_TYPE_EXD => Fragmentation::Exd {
+                    reaction_time_ms: s.exd.reaction_time_ms,
+                    electron_energy: s.exd.electron_energy,
+                },
+                FRAGMENTATION_TYPE_CCID_SWEEPING => {
+                    let sw = s.ccid_sweep;
+                    Fragmentation::CcidSweeping {
+                        collision_energy: sw.collision_energy,
+                        first_sweep_energy: (
+                            sw.first_sweep_energy.ev,
+                            sw.first_sweep_energy.percent,
+                        ),
+                        last_sweep_energy: (
+                            sw.last_sweep_energy.ev,
+                            sw.last_sweep_energy.percent,
+                        ),
+                    }
+                },
+                _ => Fragmentation::Unknown,
+            }
+        };
+
+        FragmentationStep {
+            isolation,
+            fragmentation,
+            precursor_id: raw
+                .has_precursor_id
+                .then_some(raw.optional_precursor_id),
+            prm_target_id: raw
+                .has_prm_target_id
+                .then_some(raw.optional_prm_target_id),
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// Shared callbacks and helpers
+// -------------------------------------------------------------------------
+
+/// Callback that stores a centroided spectrum into a `HashMap<i64, (Vec<f64>, Vec<f32>)>`.
+unsafe extern "C" fn collect_centroided_into_map(
+    id: i64,
+    num_peaks: u32,
+    mz_values: *const f64,
+    area_values: *const f32,
+    user_data: *mut c_void,
+) {
+    let map =
+        unsafe { &mut *(user_data as *mut HashMap<i64, (Vec<f64>, Vec<f32>)>) };
+    let (mz, area) = if num_peaks != 0
+        && !mz_values.is_null()
+        && !area_values.is_null()
+    {
+        (
+            unsafe { slice::from_raw_parts(mz_values, num_peaks as usize) }
+                .to_vec(),
+            unsafe { slice::from_raw_parts(area_values, num_peaks as usize) }
+                .to_vec(),
+        )
+    } else {
+        (Vec::new(), Vec::new())
+    };
+    map.insert(id, (mz, area));
+}
+
+/// Callback that stores a profile spectrum into a `HashMap<i64, Vec<i32>>`.
+unsafe extern "C" fn collect_profile_into_map(
+    id: i64,
+    num_points: u32,
+    intensity_values: *const i32,
+    user_data: *mut c_void,
+) {
+    let map = unsafe { &mut *(user_data as *mut HashMap<i64, Vec<i32>>) };
+    let values = if num_points != 0 && !intensity_values.is_null() {
+        unsafe { slice::from_raw_parts(intensity_values, num_points as usize) }
+            .to_vec()
+    } else {
+        Vec::new()
+    };
+    map.insert(id, values);
+}
+
+/// Runs a single-frame centroided extraction and returns the produced spectrum.
+fn collect_single_centroided(
+    frame_id: i64,
+    call: impl FnOnce(*mut c_void) -> u32,
+) -> CentroidedSpectrum {
+    let results: HashMap<i64, (Vec<f64>, Vec<f32>)> = HashMap::new();
+    let pointer_to_results = Box::into_raw(Box::new(results));
+    let r = call(pointer_to_results as *mut c_void);
+    if r == 0 {
+        drop(unsafe { Box::from_raw(pointer_to_results) });
+        panic!(
+            "Could not extract centroided spectrum for frame {}. Error: {}",
+            frame_id,
+            get_last_error()
+        );
+    }
+    let mut map = *unsafe { Box::from_raw(pointer_to_results) };
+    let (mz_values, area_values) = map.remove(&frame_id).unwrap_or_default();
+    CentroidedSpectrum {
+        mz_values,
+        area_values,
+    }
+}
+
+/// Runs a single-frame profile extraction and returns the produced spectrum.
+fn collect_single_profile(
+    frame_id: i64,
+    call: impl FnOnce(*mut c_void) -> u32,
+) -> Vec<i32> {
+    let results: HashMap<i64, Vec<i32>> = HashMap::new();
+    let pointer_to_results = Box::into_raw(Box::new(results));
+    let r = call(pointer_to_results as *mut c_void);
+    if r == 0 {
+        drop(unsafe { Box::from_raw(pointer_to_results) });
+        panic!(
+            "Could not extract profile spectrum for frame {}. Error: {}",
+            frame_id,
+            get_last_error()
+        );
+    }
+    let mut map = *unsafe { Box::from_raw(pointer_to_results) };
+    map.remove(&frame_id).unwrap_or_default()
+}
+
+/// Shared implementation for the frame-dependent coordinate conversions.
+fn convert_values(
+    handle: u64,
+    frame_id: i64,
+    in_: Vec<f64>,
+    func: unsafe extern "C" fn(u64, i64, *const f64, *mut f64, u32) -> u32,
+    what: &str,
+) -> Vec<f64> {
+    let input_count = in_.len() as u32;
+    let mut output_values = vec![0.0f64; input_count as usize];
+    let result = unsafe {
+        func(
+            handle,
+            frame_id,
+            in_.as_ptr(),
+            output_values.as_mut_ptr(),
+            input_count,
+        )
+    };
+    if result == 0 {
+        panic!(
+            "Could not get {} from frame {}. Error: {}",
+            what,
+            frame_id,
+            get_last_error()
+        );
+    }
+    output_values
+}
+
+// -------------------------------------------------------------------------
+// Standalone (handle-less) functions
+// -------------------------------------------------------------------------
+
+/// Converts a 1/K0 value to CCS (Å²) using the Mason-Schamp equation.
+pub fn one_over_k0_to_ccs_for_mz(ook0: f64, charge: i32, mz: f64) -> f64 {
+    unsafe {
+        tims_oneoverk0_to_ccs_for_mz(ook0, charge as ::std::os::raw::c_int, mz)
+    }
+}
+
+/// Converts a CCS (Å²) value to 1/K0 using the Mason-Schamp equation.
+pub fn ccs_to_one_over_k0_for_mz(ccs: f64, charge: i32, mz: f64) -> f64 {
+    unsafe {
+        tims_ccs_to_oneoverk0_for_mz(ccs, charge as ::std::os::raw::c_int, mz)
+    }
+}
+
+/// Calculates a mass axis from a transformator string. Returns `None` on failure.
+pub fn get_mass_axis_from_trafo_string(
+    trafo_string: &str,
+    num_values: usize,
+) -> Option<Vec<f64>> {
+    let c_trafo = CString::new(trafo_string).ok()?;
+    let mut buffer = vec![0.0f64; num_values];
+    let code = unsafe {
+        getMassAxisFromTrafoString(
+            c_trafo.as_ptr(),
+            buffer.as_mut_ptr(),
+            num_values as ::std::os::raw::c_int,
+        )
+    };
+    if code == 0 { Some(buffer) } else { None }
 }
 
 #[doc = " Function type that takes a centroided peak list."]
@@ -869,6 +1692,70 @@ unsafe extern "C" {
         charge: ::std::os::raw::c_int,
         mz: f64,
     ) -> f64;
+
+    #[doc = " Open data set using a specific re-calibration identified by UUID."]
+    pub fn tims_open_recalibration_id(
+        analysis_directory_name: *const c_char,
+        use_calibration_id: *const c_char,
+    ) -> u64;
+
+    #[doc = " Provides access to the current (re-)calibration id."]
+    pub fn tims_get_calibration_id(
+        handle: u64,
+        buffer: *mut c_char,
+        length: u32,
+    ) -> u32;
+
+    #[doc = " Read peak-picked spectra for a tims frame (v3, optimized for sparse data)."]
+    pub fn tims_extract_centroided_spectrum_for_frame_v3(
+        handle: u64,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+        callback: MsmsSpectrumFunction,
+        user_data: *mut c_void,
+    ) -> u32;
+
+    #[doc = " Read peak-picked spectra for a tims frame with a custom peak picker resolution (v3)."]
+    pub fn tims_extract_centroided_spectrum_for_frame_ext_v3(
+        handle: u64,
+        frame_id: i64,
+        scan_begin: u32,
+        scan_end: u32,
+        peakFinderResolution: f64,
+        callback: MsmsSpectrumFunction,
+        user_data: *mut c_void,
+    ) -> u32;
+
+    #[doc = " Get number of fragmentation experiments for a frame. Returns -1 on error."]
+    pub fn tims_get_number_of_fragmentation_experiments(
+        handle: u64,
+        frame_id: i64,
+    ) -> i64;
+
+    #[doc = " Get number of steps in a fragmentation experiment. Returns -1 on error."]
+    pub fn tims_get_number_of_fragmentation_experiment_steps(
+        handle: u64,
+        frame_id: i64,
+        experiment_index: i32,
+    ) -> i64;
+
+    #[doc = " Get a single fragmentation step. Returns 0 on error, 1 on success."]
+    pub fn tims_get_fragmentation_experiment_step(
+        handle: u64,
+        frame_id: i64,
+        experiment_index: i32,
+        step_index: i32,
+        step: *mut IsolationFragmentationStep,
+    ) -> u32;
+
+    #[doc = " Calculate a mass axis from a transformator string. Returns 0 (CALRDR_SUCCESS) on success."]
+    #[allow(non_snake_case)]
+    pub fn getMassAxisFromTrafoString(
+        trafo_string: *const c_char,
+        buffer: *mut f64,
+        num_values: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int;
 }
 
 #[cfg(test)]
