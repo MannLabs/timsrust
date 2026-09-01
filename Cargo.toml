@@ -7,7 +7,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.6.4"
+version = "0.6.5"
 edition = "2024"
 repository = "https://github.com/MannLabs/timsrust"
 
@@ -25,20 +25,20 @@ unreachable_pub = "warn"
 
 [workspace.dependencies]
 # crates
-filemanager = { path = "crates/filemanager", version = "0.6.4", default-features = false }
-timsrust = { path = "crates/timsrust", version = "0.6.4", default-features = false }
-timsrust-centroid = { path = "crates/timsrust-centroid", version = "0.6.4", default-features = false }
-timsrust-core = { path = "crates/timsrust-core", version = "0.6.4", default-features = false }
-timsrust-mgf = { path = "crates/timsrust-mgf", version = "0.6.4", default-features = false }
-timsrust-minitdf = { path = "crates/timsrust-minitdf", version = "0.6.4", default-features = false }
-timsrust-parquet-spectra = { path = "crates/timsrust-parquet-spectra", version = "0.6.4", default-features = false }
-timsrust-sdk = { path = "crates/timsrust-sdk", version = "0.6.4", default-features = false }
-timsrust-tdf = { path = "crates/timsrust-tdf", version = "0.6.4", default-features = false }
-timsrust-tsf = { path = "crates/timsrust-tsf", version = "0.6.4", default-features = false }
-timsrust-utils = { path = "crates/timsrust-utils", version = "0.6.4", default-features = false }
+filemanager = { path = "crates/filemanager", version = "0.6.5", default-features = false }
+timsrust = { path = "crates/timsrust", version = "0.6.5", default-features = false }
+timsrust-centroid = { path = "crates/timsrust-centroid", version = "0.6.5", default-features = false }
+timsrust-core = { path = "crates/timsrust-core", version = "0.6.5", default-features = false }
+timsrust-mgf = { path = "crates/timsrust-mgf", version = "0.6.5", default-features = false }
+timsrust-minitdf = { path = "crates/timsrust-minitdf", version = "0.6.5", default-features = false }
+timsrust-parquet-spectra = { path = "crates/timsrust-parquet-spectra", version = "0.6.5", default-features = false }
+timsrust-sdk = { path = "crates/timsrust-sdk", version = "0.6.5", default-features = false }
+timsrust-tdf = { path = "crates/timsrust-tdf", version = "0.6.5", default-features = false }
+timsrust-tsf = { path = "crates/timsrust-tsf", version = "0.6.5", default-features = false }
+timsrust-utils = { path = "crates/timsrust-utils", version = "0.6.5", default-features = false }
 timsrust-patched = { version = "0.1.1", default-features = false }
 # clis
-timsrust-cli-core = { path = "clis/timsrust-cli-core", version = "0.6.4", default-features = false }
+timsrust-cli-core = { path = "clis/timsrust-cli-core", version = "0.6.5", default-features = false }
 # external
 arrow = { version = "57", default-features = false }
 bytemuck = { version = "1", default-features = false }
