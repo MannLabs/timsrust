@@ -114,9 +114,8 @@ pub struct UncalibratedScan2ImConverter {
 
 impl UncalibratedScan2ImConverter {
     fn from_boundaries(im_min: f64, im_max: f64, scan_max_index: u32) -> Self {
-        let scan_intercept: f64 = im_max.sqrt();
-        let scan_slope: f64 =
-            (im_min.sqrt() - scan_intercept) / scan_max_index as f64;
+        let scan_intercept: f64 = im_max;
+        let scan_slope: f64 = (im_min - scan_intercept) / scan_max_index as f64;
         Self {
             scan_intercept,
             scan_slope,
@@ -146,15 +145,14 @@ impl Converter<ScanIndex, Im> for UncalibratedScan2ImConverter {
     fn convert(&self, value: ScanIndex) -> Im {
         let value = f64::from(value);
         let im = self.scan_intercept + self.scan_slope * value;
-        let result = im * im;
-        Im::from(result)
+        Im::from(im)
     }
 }
 
 impl Converter<Im, ScanIndex> for UncalibratedScan2ImConverter {
     fn convert(&self, value: Im) -> ScanIndex {
         let value = f64::from(value);
-        let result = (value.sqrt() - self.scan_intercept) / self.scan_slope;
+        let result = (value - self.scan_intercept) / self.scan_slope;
         ScanIndex::try_from(result as u32)
             .expect("ScanIndex conversion out of bounds")
     }
