@@ -137,7 +137,7 @@ impl UncalibratedScan2ImConverter {
             .max()
             .expect("SqlReader cannot return empty vecs, so there is always a max scan index");
         let (im_min, im_max) = get_im_bounds(&sql_metadata).unwrap();
-        Self::from_boundaries(im_min, im_max, scan_max_index)
+        Self::from_boundaries(im_min, im_max, scan_max_index - 1)
     }
 }
 
