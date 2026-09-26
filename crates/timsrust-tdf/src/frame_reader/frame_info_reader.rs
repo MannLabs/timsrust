@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use timsrust_core::{
     AcquisitionType, FrameInfo, MSLevel, QuadrupoleSettings,
@@ -17,6 +20,7 @@ use crate::{
 pub struct FrameInfoReader {
     frame_infos: HashMap<usize, FrameInfo>,
     offsets: HashMap<usize, usize>,
+    empty_frames: HashSet<usize>,
     acquisition: AcquisitionType,
 }
 
@@ -26,6 +30,11 @@ impl FrameInfoReader {
     ) -> Result<Self, FrameReaderErrorInternal> {
         let tdf_sql_reader = SqlReader::open(&path)?;
         let sql_frames = SqlFrame::from_sql_reader(&tdf_sql_reader)?;
+        let empty_frames = sql_frames
+            .iter()
+            .filter(|frame| frame.peak_count == 0)
+            .map(|frame| frame.id)
+            .collect();
         let acquisition = if sql_frames.iter().any(|x| x.msms_type == 8) {
             AcquisitionType::DDAPASEF
         } else if sql_frames.iter().any(|x| x.msms_type == 9) {
@@ -94,6 +103,7 @@ impl FrameInfoReader {
         let reader = Self {
             frame_infos,
             offsets,
+            empty_frames,
             acquisition,
         };
         Ok(reader)
@@ -148,6 +158,10 @@ impl FrameInfoReader {
         &self,
     ) -> std::collections::HashMap<usize, usize> {
         self.offsets.clone()
+    }
+
+    pub(crate) fn empty_frames(&self) -> HashSet<usize> {
+        self.empty_frames.clone()
     }
 }
 
