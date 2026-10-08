@@ -389,7 +389,7 @@ fn to_spectrum(
     _ = spectrum_id.fetch_add(1, atomic::Ordering::Relaxed);
     let isolation_window = timsrust_core::IsolationWindow::new_from_center(
         Mz::from(quad_info.isolation_mz),
-        Mz::from(quad_info.isolation_width),
+        Mz::from(2.0 * quad_info.isolation_width),
         quad_info.ce,
     );
     let spectrum = timsrust_core::Spectrum::new(
@@ -419,6 +419,7 @@ fn to_spectrum(
 #[derive(Debug)]
 pub struct QuadInfo {
     pub isolation_mz: f64,
+    /// Half-width used to check precursor eligibility.
     pub isolation_width: f64,
     pub ce: f64,
 }
@@ -482,4 +483,158 @@ pub fn split_peaks<'a>(
         }
     }
     results.into_iter()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use timsrust_core::{IsolationWindow, QuadrupoleSettings};
+
+    fn precursor(mz: f64, scan: u32, id: usize) -> Precursor {
+        Precursor::new(
+            Mz::from(mz),
+            Im::from(1.0),
+            Rt::from(1.0),
+            ScanIndex::try_from(scan).unwrap(),
+            Some(Charge::try_from(2_usize).unwrap()),
+            Some(1000.0),
+            id,
+            FrameIndex::try_from(1_u32).unwrap(),
+        )
+    }
+
+    fn settings() -> QuadrupoleSettings {
+        QuadrupoleSettings {
+            index: 0,
+            scan_starts: vec![10, 20],
+            scan_ends: vec![20, 30],
+            isolation_windows: vec![
+                IsolationWindow::new_from_center(
+                    Mz::from(500.0),
+                    Mz::from(25.0),
+                    30.0,
+                ),
+                IsolationWindow::new_from_bounds(
+                    Mz::from(600.0),
+                    Mz::from(640.0),
+                    40.0,
+                ),
+            ],
+        }
+    }
+
+    fn peaks() -> Vec<Peak> {
+        vec![
+            Peak {
+                frame: 2,
+                scan: 14,
+                tof: 200,
+                apex_intensity: 20,
+            },
+            Peak {
+                frame: 2,
+                scan: 15,
+                tof: 100,
+                apex_intensity: 10,
+            },
+            Peak {
+                frame: 2,
+                scan: 20,
+                tof: 300,
+                apex_intensity: 30,
+            },
+        ]
+    }
+
+    #[test]
+    fn emitted_spectra_preserve_full_physical_windows_and_observations() {
+        let settings = settings();
+        let precursors = vec![precursor(508.0, 15, 7), precursor(601.0, 20, 8)];
+        let count = atomic::AtomicUsize::new(0);
+        let spectra = create_spectra_from_ms2_peaks(
+            &peaks(),
+            &precursors,
+            4,
+            &count,
+            1,
+            &settings,
+            2,
+        );
+        assert_eq!(spectra.len(), 2);
+        assert_eq!(count.load(atomic::Ordering::Relaxed), 2);
+        for (index, spectrum) in spectra.iter().enumerate() {
+            assert_eq!(
+                spectrum.isolation_window(),
+                &settings.isolation_windows[index]
+            );
+            assert_eq!(spectrum.precursor().as_ref(), Some(&precursors[index]));
+            assert_eq!(spectrum.index(), (2_usize << 32) + index);
+        }
+        assert_eq!(f64::from(spectra[0].isolation_window().width()), 25.0);
+        assert_eq!(f64::from(spectra[0].isolation_window().lower()), 487.5);
+        assert_eq!(f64::from(spectra[0].isolation_window().upper()), 512.5);
+        assert_eq!(
+            spectra[0]
+                .tof_indices()
+                .iter()
+                .copied()
+                .map(u32::from)
+                .collect::<Vec<_>>(),
+            [100, 200]
+        );
+        assert_eq!(spectra[0].intensities(), &[10.0, 20.0]);
+        assert_eq!(
+            spectra[1]
+                .tof_indices()
+                .iter()
+                .copied()
+                .map(u32::from)
+                .collect::<Vec<_>>(),
+            [300]
+        );
+        assert_eq!(spectra[1].intensities(), &[30.0]);
+    }
+
+    #[test]
+    fn precursor_eligibility_retains_physical_endpoints_without_widening() {
+        let settings = settings();
+        let quad = QuadInfo::new(&settings, 15);
+        assert_eq!(quad.isolation_width, 12.5);
+        let count = atomic::AtomicUsize::new(0);
+        for mz in [487.5, 500.0, 512.5] {
+            let precursor = precursor(mz, 15, 7);
+            assert!(quad.is_valid_for_precursor(&precursor));
+            assert!(
+                to_spectrum(&precursor, &peaks(), &settings, 1, 15, &count, 9)
+                    .is_some()
+            );
+        }
+        for mz in [487.49, 512.51] {
+            let precursor = precursor(mz, 15, 7);
+            assert!(!quad.is_valid_for_precursor(&precursor));
+            assert!(
+                to_spectrum(&precursor, &peaks(), &settings, 1, 15, &count, 9)
+                    .is_none()
+            );
+        }
+        assert_eq!(count.load(atomic::Ordering::Relaxed), 3);
+    }
+
+    #[test]
+    fn minimum_size_filter_and_spectrum_indices_are_unchanged() {
+        let precursors = vec![precursor(508.0, 15, 7), precursor(601.0, 20, 8)];
+        let count = atomic::AtomicUsize::new(0);
+        let spectra = create_spectra_from_ms2_peaks(
+            &peaks(),
+            &precursors,
+            4,
+            &count,
+            2,
+            &settings(),
+            2,
+        );
+        assert_eq!(spectra.len(), 1);
+        assert_eq!(spectra[0].index(), 2_usize << 32);
+        assert_eq!(count.load(atomic::Ordering::Relaxed), 1);
+    }
 }

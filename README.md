@@ -5,6 +5,22 @@
 
 # TimsRust
 
+### Centroided DIA isolation windows
+
+The precursor-seeded (`NarrowSpectrumReader`) DIA path emits the full
+quadrupole isolation window, independently of the assigned precursor m/z.
+For example, a window centered at 500 m/z with width 25 m/z has bounds
+487.5-512.5 m/z, including when the picked precursor is off-center.
+`QuadInfo::isolation_width` remains a half-width for precursor eligibility;
+the emitted `IsolationWindow` constructor receives the full width.
+
+This corrects previously half-sized emitted window metadata. It does not
+change precursor picking, charge/isotope policies, mobility apertures,
+fragment membership or intensities, minimum-spectrum-size filtering, spectrum
+indices, or the precursor-independent wide reader. Downstream consumers of
+isolation bounds may intentionally retrieve a different candidate population
+once they receive the corrected metadata.
+
 A high-performance Rust ecosystem for reading and preprocessing Bruker timsTOF mass spectrometry data. TimsRust provides type-safe, composable abstractions for working with liquid chromatography coupled to trapped ion mobility spectrometry (LC-TIMS-TOF) data in multiple formats.
 
 **Status**: Actively developed and production-ready. Used in the [Sage](https://github.com/lazear/sage) proteomics search engine and other mass spectrometry workflows.
