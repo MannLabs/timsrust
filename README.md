@@ -11,8 +11,9 @@ The precursor-seeded (`NarrowSpectrumReader`) DIA path emits the full
 quadrupole isolation window, independently of the assigned precursor m/z.
 For example, a window centered at 500 m/z with width 25 m/z has bounds
 487.5-512.5 m/z, including when the picked precursor is off-center.
-`QuadInfo::isolation_width` remains a half-width for precursor eligibility;
-the emitted `IsolationWindow` constructor receives the full width.
+`QuadInfo::isolation_width` now consistently stores the full physical width.
+Precursor eligibility derives its half-width locally; spectrum construction
+and the centroid CLI's direct Parquet export use the full width unchanged.
 
 This corrects previously half-sized emitted window metadata. It does not
 change precursor picking, charge/isotope policies, mobility apertures,
@@ -20,6 +21,13 @@ fragment membership or intensities, minimum-spectrum-size filtering, spectrum
 indices, or the precursor-independent wide reader. Downstream consumers of
 isolation bounds may intentionally retrieve a different candidate population
 once they receive the corrected metadata.
+
+Consumers of the public `QuadInfo::isolation_width` field must treat it as a
+full width, rather than the previous half-width. Remove any compensating
+doubling when adopting this correction. The in-repository MGF/Parquet exporters
+and Python bindings do not apply such compensation. Existing files containing
+half-sized exported windows are not automatically repaired; re-export from
+the original acquisition to obtain corrected metadata.
 
 A high-performance Rust ecosystem for reading and preprocessing Bruker timsTOF mass spectrometry data. TimsRust provides type-safe, composable abstractions for working with liquid chromatography coupled to trapped ion mobility spectrometry (LC-TIMS-TOF) data in multiple formats.
 

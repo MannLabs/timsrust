@@ -389,7 +389,7 @@ fn to_spectrum(
     _ = spectrum_id.fetch_add(1, atomic::Ordering::Relaxed);
     let isolation_window = timsrust_core::IsolationWindow::new_from_center(
         Mz::from(quad_info.isolation_mz),
-        Mz::from(2.0 * quad_info.isolation_width),
+        Mz::from(quad_info.isolation_width),
         quad_info.ce,
     );
     let spectrum = timsrust_core::Spectrum::new(
@@ -419,7 +419,7 @@ fn to_spectrum(
 #[derive(Debug)]
 pub struct QuadInfo {
     pub isolation_mz: f64,
-    /// Half-width used to check precursor eligibility.
+    /// Full physical isolation width in m/z.
     pub isolation_width: f64,
     pub ce: f64,
 }
@@ -439,8 +439,7 @@ impl QuadInfo {
         let isolation_mz =
             f64::from(quadrupole_settings.isolation_windows[index].center());
         let isolation_width =
-            f64::from(quadrupole_settings.isolation_windows[index].width())
-                / 2.0;
+            f64::from(quadrupole_settings.isolation_windows[index].width());
         let ce =
             quadrupole_settings.isolation_windows[index].collision_energy();
         Self {
@@ -451,9 +450,9 @@ impl QuadInfo {
     }
 
     pub fn is_valid_for_precursor(&self, precursor: &Precursor) -> bool {
-        (f64::from(precursor.mz()) >= self.isolation_mz - self.isolation_width)
-            && (f64::from(precursor.mz())
-                <= self.isolation_mz + self.isolation_width)
+        let half_width = self.isolation_width / 2.0;
+        (f64::from(precursor.mz()) >= self.isolation_mz - half_width)
+            && (f64::from(precursor.mz()) <= self.isolation_mz + half_width)
     }
 }
 
@@ -599,7 +598,7 @@ mod tests {
     fn precursor_eligibility_retains_physical_endpoints_without_widening() {
         let settings = settings();
         let quad = QuadInfo::new(&settings, 15);
-        assert_eq!(quad.isolation_width, 12.5);
+        assert_eq!(quad.isolation_width, 25.0);
         let count = atomic::AtomicUsize::new(0);
         for mz in [487.5, 500.0, 512.5] {
             let precursor = precursor(mz, 15, 7);
@@ -636,5 +635,23 @@ mod tests {
         assert_eq!(spectra.len(), 1);
         assert_eq!(spectra[0].index(), 2_usize << 32);
         assert_eq!(count.load(atomic::Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn quad_info_full_width_survives_direct_export_and_reconstruction() {
+        let settings = settings();
+        for (ordinal, scan) in [(0, 15), (1, 20)] {
+            let quad = QuadInfo::new(&settings, scan);
+            let expected = &settings.isolation_windows[ordinal];
+            assert_eq!(quad.isolation_width, f64::from(expected.width()));
+            // The centroid CLI exports these fields directly; the Parquet reader
+            // reconstructs them using the full-width constructor.
+            let reconstructed = IsolationWindow::new_from_center(
+                Mz::from(quad.isolation_mz),
+                Mz::from(quad.isolation_width),
+                quad.ce,
+            );
+            assert_eq!(&reconstructed, expected);
+        }
     }
 }
