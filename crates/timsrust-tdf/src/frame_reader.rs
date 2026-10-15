@@ -2,7 +2,7 @@ pub(crate) mod compression1;
 pub(crate) mod compression2;
 pub(crate) mod frame_info_reader;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use timsrust_core::{FrameIons, utils::reader::Reader};
 
@@ -31,13 +31,19 @@ use super::{
 struct TdfOffsetIonReader<B> {
     blob_reader: B,
     offsets: HashMap<usize, usize>,
+    empty_frames: HashSet<usize>,
 }
 
 impl<B> TdfOffsetIonReader<B> {
-    fn new(blob_reader: B, offsets: HashMap<usize, usize>) -> Self {
+    fn new(
+        blob_reader: B,
+        offsets: HashMap<usize, usize>,
+        empty_frames: HashSet<usize>,
+    ) -> Self {
         Self {
             blob_reader,
             offsets,
+            empty_frames,
         }
     }
 }
@@ -54,6 +60,9 @@ where
             .get(&index)
             .copied()
             .ok_or(FrameReaderError::IndexOutOfBounds)?;
+        if self.empty_frames.contains(&index) {
+            return Ok(FrameIons::default());
+        }
         self.blob_reader.get(offset).map_err(FrameReaderError::from)
     }
 }
@@ -113,19 +122,24 @@ impl TdfFrameReader {
     ) -> Result<Self, FrameReaderError> {
         let info_reader = FrameInfoReader::new(&path)?;
         let offsets = info_reader.offsets_map();
+        let empty_frames = info_reader.empty_frames();
         let ion_reader = match compression_type {
             1 => {
                 let mut blob =
                     TdfBlobReaderCompression1::new(path.to_timstof_path())?;
                 blob.set_max_peaks_per_scan(max_peaks_per_scan);
                 TdfIonReader::Compression1(TdfOffsetIonReader::new(
-                    blob, offsets,
+                    blob,
+                    offsets,
+                    empty_frames,
                 ))
             },
             2 => {
                 let blob = TdfBlobReader::new(path.to_timstof_path())?;
                 TdfIonReader::Compression2(TdfOffsetIonReader::new(
-                    blob, offsets,
+                    blob,
+                    offsets,
+                    empty_frames,
                 ))
             },
             _ => {
@@ -185,4 +199,51 @@ pub enum FrameReaderError {
     FrameInfoReaderError(#[from] frame_info_reader::FrameReaderErrorInternal),
     #[error("{0}")]
     CoreFrameReaderError(#[from] timsrust_core::FrameReaderError),
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        cell::Cell,
+        collections::{HashMap, HashSet},
+    };
+
+    use timsrust_core::{FrameIons, utils::reader::Reader};
+
+    use super::{FrameReaderError, TdfOffsetIonReader};
+    use crate::frame_reader::compression2::TdfBlobReaderError;
+
+    struct FailingBlobReader(Cell<usize>);
+
+    impl Reader<FrameIons> for FailingBlobReader {
+        type Error = TdfBlobReaderError;
+
+        fn get(&self, _offset: usize) -> Result<FrameIons, Self::Error> {
+            self.0.set(self.0.get() + 1);
+            Err(TdfBlobReaderError::CorruptFrame)
+        }
+    }
+
+    #[test]
+    fn zero_peak_frame_skips_the_binary_reader_without_masking_other_errors() {
+        let reader = TdfOffsetIonReader::new(
+            FailingBlobReader(Cell::new(0)),
+            HashMap::from([(1, 0), (2, 8)]),
+            HashSet::from([1]),
+        );
+
+        assert_eq!(reader.get(1).unwrap(), FrameIons::default());
+        assert_eq!(reader.blob_reader.0.get(), 0);
+        assert!(matches!(
+            reader.get(2),
+            Err(FrameReaderError::TdfBlobReaderError(
+                TdfBlobReaderError::CorruptFrame
+            ))
+        ));
+        assert_eq!(reader.blob_reader.0.get(), 1);
+        assert!(matches!(
+            reader.get(3),
+            Err(FrameReaderError::IndexOutOfBounds)
+        ));
+    }
 }
