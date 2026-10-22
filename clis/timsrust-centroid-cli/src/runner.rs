@@ -6,7 +6,7 @@ use timsrust::{ImConverter, MzConverter, RtConverter};
 use timsrust_centroid::{
     PeakReader, TimsError, TimsResult,
     spectrum_reader::{
-        NarrowSpectrumReader, SpectrumReader,
+        NarrowSpectrumReader, SpectrumReader, isolated_peak_range,
         narrow_spectrum_reader::{QuadInfo, SpectralChunk, split_peaks},
     },
 };
@@ -344,11 +344,18 @@ fn write_spectrum_parquet_chunk(
                 &chunk.precursors,
             )
             .filter_map(|(p_id, start, end, scan)| {
+                let range = isolated_peak_range(
+                    &ms2_peaks[start..end],
+                    &quad_info,
+                    scan,
+                )?;
+                let end = start + range.end;
+                let start = start + range.start;
                 if (end - start) < spectrum_reader.min_spectrum_size() {
                     return None;
                 }
                 let precursor = &chunk.precursors[p_id];
-                let q = QuadInfo::new(&quad_info, scan);
+                let q = QuadInfo::try_new(&quad_info, scan)?;
                 if !q.is_valid_for_precursor(precursor) {
                     return None;
                 }

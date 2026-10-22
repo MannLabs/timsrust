@@ -138,6 +138,10 @@ where
 
     /// Extracts centroided peaks from the specified frame index.
     ///
+    /// Equal-response candidates are resolved per connected plateau in the
+    /// scan/TOF grid, including diagonal adjacency. The representative is an
+    /// actual candidate nearest the plateau's integer mean position.
+    ///
     /// # Arguments
     /// * `index` - Frame index.
     ///

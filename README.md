@@ -5,6 +5,55 @@
 
 # TimsRust
 
+### Centroid peak handling and frame iteration
+
+Equal-response peak candidates are resolved separately for each connected
+plateau in the scan/TOF grid (including diagonal adjacency). Each plateau
+emits an actual maximum nearest its integer mean position, with deterministic
+tie-breaking. Disconnected peaks no longer acquire an averaged position
+between their components. The frame ID and filtered apex intensity are
+preserved; this does not turn intensities into integrated raw abundance.
+
+Centroiding processes the complete trailing TOF smoothing context and
+finalizes terminal plateaus. A peak no longer requires a distant, higher-TOF
+raw observation to be emitted. The precursor-independent wide reader also
+enumerates the source's actual frame IDs, including one-based and gapped IDs,
+rather than assuming IDs are `0..frame_count`.
+
+These correctness fixes intentionally change affected peak counts and
+coordinates, and can consequently change spectrum membership and top-N
+selection. They do not add RT smoothing or change support thresholds,
+precursor association, isolation-boundary conventions, or peak budgets.
+Reprocess raw acquisitions to obtain corrected centroids and wide-reader
+outputs; previously exported data is not repaired automatically.
+
+### Acquisition-aware spectrum membership
+
+Quadrupole scan intervals use zero-based, half-open bounds: `[start, end)`.
+Both centroid spectrum readers restrict each mobility neighborhood to the
+same declared interval as its representative scan. Scans before, between,
+or after those intervals do not inherit a neighboring window. This is a
+scan-membership rule, not an m/z filter on fragments.
+
+The minimum-spectrum-size gate is applied to the retained peaks. Surviving
+slices retain their previous spectrum IDs, with gaps where slices are
+rejected. The centroid CLI's direct Parquet precursor ranges use the same
+clipping rule and retain offsets into the original fragment table. Raw
+fragment exports and detected frame centroids are not removed or rewritten
+just because a scan is outside declared quadrupole coverage.
+
+For fallible window lookup, use `QuadInfo::try_new`, which returns `None`
+for uncovered scans and empty settings. `QuadInfo::new` retains its return
+type for covered scans, but now explicitly panics for an uncovered scan
+instead of fabricating a window. The shared core lookup is
+`QuadrupoleSettings::get_isolation_window_index`.
+
+This correction intentionally changes affected spectra and may move them
+below downstream peak-count gates. It does not mask centroid smoothing
+kernels at acquisition transitions: a centroid near a transition can still
+include raw support from both sides. Kernel-level acquisition isolation
+remains a separate algorithmic change.
+
 ### Centroided DIA isolation windows
 
 The precursor-seeded (`NarrowSpectrumReader`) DIA path emits the full
@@ -15,7 +64,8 @@ For example, a window centered at 500 m/z with width 25 m/z has bounds
 Precursor eligibility derives its half-width locally; spectrum construction
 and the centroid CLI's direct Parquet export use the full width unchanged.
 
-This corrects previously half-sized emitted window metadata. It does not
+This corrects previously half-sized emitted window metadata. The width
+correction itself does not
 change precursor picking, charge/isotope policies, mobility apertures,
 fragment membership or intensities, minimum-spectrum-size filtering, spectrum
 indices, or the precursor-independent wide reader. Downstream consumers of

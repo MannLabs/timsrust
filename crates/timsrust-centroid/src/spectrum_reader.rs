@@ -6,7 +6,7 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use timsrust_core::{
     Converter, FrameInfo, FrameIons, FrameReader, Im, InvertibleConverter, Mz,
-    ScanIndex, Spectrum, TofIndex,
+    QuadrupoleSettings, ScanIndex, Spectrum, TofIndex,
 };
 
 pub use narrow_spectrum_reader::NarrowSpectrumReader;
@@ -14,6 +14,24 @@ use timsrust_core::utils::reader::{IndexedReader, ParIterableReader};
 pub use wide_spectrum_reader::WideSpectrumReader;
 
 use crate::{PeakReader, error::TimsResult};
+
+/// Restricts scan-sorted peaks to the acquisition interval containing `scan`.
+///
+/// The returned range indexes `peaks`. An uncovered representative scan or
+/// an interval without peaks returns `None`; neighboring windows are not used.
+pub fn isolated_peak_range(
+    peaks: &[crate::Peak],
+    settings: &QuadrupoleSettings,
+    scan: usize,
+) -> Option<std::ops::Range<usize>> {
+    assert!(peaks.is_sorted_by(|a, b| a.scan <= b.scan));
+    let index = settings.get_isolation_window_index(scan)?;
+    let start = settings.scan_starts[index];
+    let end = settings.scan_ends[index];
+    let lower = peaks.partition_point(|peak| (peak.scan as usize) < start);
+    let upper = peaks.partition_point(|peak| (peak.scan as usize) < end);
+    (lower < upper).then_some(lower..upper)
+}
 
 /// Reads and extracts spectra from frames.
 pub enum SpectrumReader<
@@ -209,5 +227,49 @@ impl<
             },
             Self::Wide(reader) => reader._par_iter().drive_unindexed(consumer),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Peak;
+    use timsrust_core::IsolationWindow;
+
+    #[test]
+    fn isolated_ranges_preserve_source_offsets_and_interval_identity() {
+        let window = IsolationWindow::new_from_center(
+            Mz::from(500.0),
+            Mz::from(20.0),
+            30.0,
+        );
+        let settings = QuadrupoleSettings {
+            index: 1,
+            scan_starts: vec![10, 30],
+            scan_ends: vec![20, 40],
+            isolation_windows: vec![window.clone(), window],
+        };
+        let peaks: Vec<_> = [9, 10, 19, 20, 29, 30, 39, 40]
+            .into_iter()
+            .map(|scan| Peak {
+                scan,
+                ..Peak::default()
+            })
+            .collect();
+        assert_eq!(isolated_peak_range(&peaks, &settings, 19), Some(1..3));
+        assert_eq!(isolated_peak_range(&peaks, &settings, 30), Some(5..7));
+        for scan in [9, 20, 25, 40] {
+            assert_eq!(isolated_peak_range(&peaks, &settings, scan), None);
+        }
+        assert_eq!(isolated_peak_range(&peaks[5..7], &settings, 19), None);
+        assert_eq!(isolated_peak_range(&[], &settings, 19), None);
+        let original_start = 1;
+        let clipped = isolated_peak_range(&peaks[1..7], &settings, 30).unwrap();
+        let fragment_offset = 1000;
+        assert_eq!(
+            (fragment_offset + original_start + clipped.start)
+                ..(fragment_offset + original_start + clipped.end),
+            1005..1007
+        );
     }
 }
