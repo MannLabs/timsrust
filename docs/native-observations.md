@@ -6,6 +6,9 @@ This branch adds an opt-in observation API for raw dia-PASEF acquisitions,
 including experimental scan-wise transmission handling for diagonal isolation
 trajectories. It does not replace the ordinary spectrum reader.
 
+Build from `feat/native-observation-context`; these new APIs are not part of a
+released package. Python installation from this checkout is described below.
+
 The implementation provides:
 
 - Native centroid measurements with exact source identities and integer responses.
@@ -264,6 +267,39 @@ Native Python installation and the directly callable API are documented in
 [the Python package guide](../python/timsrust-pyo3/README.md).
 Python integer responses preserve values above the exact float64 integer
 range. Neither a Python environment nor a raw acquisition is bundled.
+
+```python
+from tims_pyo3 import (
+    NativeNeighborhoodConfig,
+    NativeNeighborhoodReader,
+    ParquetNeighborhoodReader,
+    RtConsistencyConfig,
+)
+
+config = NativeNeighborhoodConfig(
+    acquisition="experimental_trajectory",
+    peak_cap=300,
+    rt_consistency=RtConsistencyConfig(),
+)
+reader = NativeNeighborhoodReader("example.d", config)
+bundle = reader.read_at(100, 2, 500, precursor_mz=650.25)
+reader.export(
+    "native-observations",
+    [(100, 2, 500)],
+    precursor_mzs=[650.25],
+)
+stored = ParquetNeighborhoodReader("native-observations")
+assert stored[0] == bundle
+```
+
+As in the Rust example, supply real acquisition coordinates and use a fresh
+output directory. Omit `rt_consistency` for native-only observations.
+`read_many` and `export` accept 1..1,024 explicit anchors, with one optional
+precursor mass per anchor. Returned mappings retain separate focal/context
+slots, exact integer measurements and RT support, physical domains, and
+missingness. Configuration objects expose `to_dict()`; readers expose
+`resolved_config()` and acquisition metadata. Type declarations ship with
+the extension.
 
 ## How to assess the feature
 

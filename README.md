@@ -69,6 +69,18 @@ A high-performance Rust ecosystem for reading and preprocessing Bruker timsTOF m
 - **Python support**: Bindings via PyO3 for scientific Python workflows
 - **CLI tools**: Centroiding, MGF export, and format conversion utilities
 
+## Native observation context (feature branch)
+
+This branch adds an opt-in API for separate native RT/IM observations,
+acquisition-aware transmission handling, and optional native-preserving
+RT-supported weak-peak admission. Experimental scan-wise trajectory handling
+is explicit; the ordinary spectrum reader and its defaults are unchanged.
+
+See the [native observation guide](docs/native-observations.md) for measurement
+contracts, configuration, Rust and CLI usage, Parquet storage, assessment,
+regression tests, and limitations. The [Python guide](python/timsrust-pyo3/README.md)
+documents installation and native Python access.
+
 ## Quick Start
 
 ### Installation
@@ -146,6 +158,7 @@ Runnable examples live in [crates/timsrust/examples/](crates/timsrust/examples/)
 | [read_spectra_parallel](crates/timsrust/examples/read_spectra_parallel.rs) | Iterate spectra in parallel via `SpectrumReader::par_iter` |
 | [read_precursors](crates/timsrust/examples/read_precursors.rs) | Print the precursor table (m/z, charge, RT, IM) |
 | [read_frames](crates/timsrust/examples/read_frames.rs) | Read raw 2D frame data and convert TOF/scan indices to m/z and ion mobility (TDF only) |
+| [native_observations](crates/timsrust/examples/native_observations.rs) | Query bounded acquisition-aware native observations at explicit coordinates, optionally with RT-supported admission |
 | [auto_detect_format](crates/timsrust/examples/auto_detect_format.rs) | Open any supported format through `TimsTofPath` and report capabilities |
 | [convert_to_mgf](crates/timsrust/examples/convert_to_mgf.rs) | Export spectra to a Mascot Generic Format file using `timsrust-mgf` |
 | [with_sdk](crates/timsrust/examples/with_sdk.rs) | Use the Bruker SDK calibration backend (requires `--features sdk`) |
@@ -543,7 +556,7 @@ We welcome contributions! Please follow these principles:
 ### API Stability
 - Never break public APIs without discussion
 - Deprecate before removing
-- Consider downstream users (e.g., Hermes, other search engines)
+- Consider downstream applications and search engines
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) (if present) for detailed workflow.
 
