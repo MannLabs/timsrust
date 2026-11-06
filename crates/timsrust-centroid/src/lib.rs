@@ -48,6 +48,7 @@
 mod buffer;
 mod centroider;
 mod error;
+pub mod neighborhood;
 mod peakbuffer;
 mod peaks;
 // mod runner;

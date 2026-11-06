@@ -16,6 +16,12 @@ const SCAN_WIDTH: usize = 256;
 
 type Grid2D = NDArray<u64, 2>;
 type TOFMap = Vec<FxHashMap<u32, u64>>;
+type FootprintVerifier<F> =
+    fn(
+        &Frame,
+        &mut [Peak],
+        &FrameCentroider,
+    ) -> TimsResult<std::collections::BTreeMap<(u32, u32), F>>;
 
 /// Represents a centroided peak in a frame.
 ///
@@ -156,8 +162,16 @@ where
     /// let peaks = reader.get_peaks_from_frame(0).unwrap();
     /// ```
     pub fn get_peaks_from_frame(&self, index: usize) -> TimsResult<Vec<Peak>> {
-        let tofs = self.get_transposed_tofs(index)?;
-        let frame = self.frame_reader().get_frame(index).unwrap();
+        let frame = self
+            .frame_reader()
+            .get_frame(index)
+            .map_err(|e| TimsError::new(e.to_string()))?;
+        self.centroid_frame(&frame)
+    }
+
+    /// Centroids an already loaded frame with the same native kernels.
+    pub fn centroid_frame(&self, frame: &Frame) -> TimsResult<Vec<Peak>> {
+        let tofs = transpose_tofs(frame);
         let peaks = if frame.info().ms_level() == MSLevel::MS1 {
             self.centroider_ms1.centroid(tofs, frame.index()).collect()
         } else if frame.info().ms_level() == MSLevel::MS2 {
@@ -165,10 +179,131 @@ where
         } else {
             return Err(TimsError::new(format!(
                 "Unsupported MS level for frame {}",
-                index
+                frame.index()
             )));
         };
         Ok(peaks)
+    }
+
+    /// Measures isolated weak candidates in this frame, without pooling RT intensities.
+    pub fn rt_consistency_frame(
+        &self,
+        frame: &Frame,
+    ) -> TimsResult<crate::neighborhood::RtCandidateFrame> {
+        Ok(self
+            .detect_candidates(
+                frame,
+                true,
+                false,
+                crate::neighborhood::raw_support::verified_footprints,
+            )?
+            .candidates)
+    }
+
+    /// Raw-verified transmission footprints; native measurements are unchanged.
+    pub fn transmission_candidates(
+        &self,
+        frame: &Frame,
+        include_weak: bool,
+    ) -> TimsResult<crate::neighborhood::TransmissionFrame> {
+        self.detect_candidates(
+            frame,
+            include_weak,
+            true,
+            crate::neighborhood::raw_support::verified_footprints,
+        )
+    }
+
+    /// Experimental mass-only footprints, with exact native response verification.
+    pub fn trajectory_candidates(
+        &self,
+        frame: &Frame,
+        include_weak: bool,
+    ) -> TimsResult<
+        crate::neighborhood::TransmissionFrame<
+            crate::neighborhood::MassTransmissionFootprint,
+        >,
+    > {
+        self.detect_candidates(
+            frame,
+            include_weak,
+            true,
+            crate::neighborhood::raw_support::verified_mass_footprints,
+        )
+    }
+
+    fn detect_candidates<F>(
+        &self,
+        frame: &Frame,
+        include_weak: bool,
+        shared: bool,
+        verify: FootprintVerifier<F>,
+    ) -> TimsResult<crate::neighborhood::TransmissionFrame<F>> {
+        use crate::neighborhood::raw_support::{
+            validate_frame, verified_support,
+        };
+        validate_frame(frame)?;
+        let mut native = self.centroid_frame(frame)?;
+        let mut footprints = if shared {
+            verify(frame, &mut native, &self.centroider_ms2)?
+        } else {
+            Default::default()
+        };
+        let mut eligible = if shared {
+            footprints.keys().copied().collect()
+        } else {
+            verified_support(frame, &mut native, &self.centroider_ms2)?
+        };
+        let low = self.centroider_ms2.with_min_count(1);
+        let mut expanded: Vec<_> = if include_weak {
+            low.centroid(transpose_tofs(frame), frame.index()).collect()
+        } else {
+            Vec::new()
+        };
+        let expanded_eligible = if shared {
+            let extra = verify(frame, &mut expanded, &low)?;
+            let ids = extra.keys().copied().collect();
+            footprints.extend(extra);
+            ids
+        } else {
+            verified_support(frame, &mut expanded, &low)?
+        };
+        let near = |peaks: &[Peak], peak: &Peak, exclude_self: bool| {
+            let first = peaks.partition_point(|p| {
+                u64::from(p.tof) + self.tof_fwhm() as u64 <= u64::from(peak.tof)
+            });
+            peaks[first..]
+                .iter()
+                .take_while(|p| {
+                    u64::from(p.tof)
+                        < u64::from(peak.tof) + self.tof_fwhm() as u64
+                })
+                .any(|p| {
+                    (!exclude_self || p.scan != peak.scan || p.tof != peak.tof)
+                        && peak.tof.abs_diff(p.tof) < self.tof_fwhm() as u32
+                        && peak.scan.abs_diff(p.scan) < self.scan_fwhm() as u32
+                })
+        };
+        let weak: Vec<_> = expanded
+            .iter()
+            .filter(|p| {
+                expanded_eligible.contains(&(p.scan, p.tof))
+                    && !near(&native, p, false)
+                    && !near(&expanded, p, true)
+            })
+            .cloned()
+            .collect();
+        eligible.extend(weak.iter().map(|p| (p.scan, p.tof)));
+        footprints.retain(|id, _| eligible.contains(id));
+        Ok(crate::neighborhood::TransmissionFrame {
+            candidates: crate::neighborhood::RtCandidateFrame {
+                native,
+                weak,
+                eligible,
+                scan_count: frame.ions().scan_count(),
+            },
+            footprints,
+        })
     }
 
     // pub fn get_frame(&self, index: usize) -> TimsResult<Frame> {
@@ -220,14 +355,10 @@ where
 }
 
 fn transpose_tofs(frame: &Frame) -> TOFMap {
-    let max_tof = usize::from(
-        *frame
-            .ions()
-            .tof_indices()
-            .iter()
-            .max()
-            .expect("Failed to find max TOF"),
-    ) + 1;
+    let Some(&max_tof) = frame.ions().tof_indices().iter().max() else {
+        return Vec::new();
+    };
+    let max_tof = usize::from(max_tof) + 1;
     let mut tofs = vec![FxHashMap::default(); max_tof];
     frame.ions().scan_offsets().windows(2).enumerate().for_each(
         |(scan_index, s)| {
@@ -249,8 +380,6 @@ pub fn get_average_ms1_peak<IR, InfoR>(
 where
     IR: Reader<FrameIons> + Sync + Send,
     InfoR: Reader<FrameInfo> + IndexedReader<FrameInfo> + Sync + Send,
-    // R: FrameReader<IR, InfoR> + Sync + Send,
-    // <R as FrameReader<IR, InfoR>>::Error: Sync + Send,
 {
     let synced_summed_grid =
         Synced::from(Grid2D::empty([TOF_WIDTH * 2 + 1, SCAN_WIDTH * 2 + 1]));
@@ -367,5 +496,167 @@ mod iteration_tests {
             actual.sort_unstable();
             assert_eq!(actual, indices);
         }
+    }
+}
+
+#[cfg(test)]
+mod rt_raw_tests {
+    use super::*;
+    use std::sync::Arc;
+    use timsrust_core::{AcquisitionType, IsolationWindow, QuadrupoleSettings};
+
+    struct Unused;
+    impl<T> Reader<T> for Unused {
+        type Error = std::io::Error;
+        fn get(&self, _: usize) -> Result<T, Self::Error> {
+            Err(std::io::Error::other("unexpected fixture read"))
+        }
+    }
+    impl<T> IndexedReader<T> for Unused {
+        type Iter = std::iter::Empty<usize>;
+        fn iter(&self) -> Self::Iter {
+            std::iter::empty()
+        }
+    }
+    fn reader() -> PeakReader<Unused, Unused> {
+        PeakReader {
+            frame_reader: FrameReader::new(Unused, Unused),
+            centroider_ms1: FrameCentroider::new(
+                &[0.5, 1.0, 0.5],
+                &[0.2, 1.0, 0.2],
+                2,
+            ),
+            centroider_ms2: FrameCentroider::new(
+                &[0.5, 1.0, 0.5],
+                &[0.2, 1.0, 0.2],
+                2,
+            ),
+            average_peak: Grid2D::empty([3, 3]),
+        }
+    }
+    fn frame(bins: &[(usize, u32, u32)], split: bool) -> Frame {
+        let (mut offsets, mut tofs, mut intensities) =
+            (vec![0], vec![], vec![]);
+        for scan in 0..40 {
+            for &(_, tof, intensity) in bins.iter().filter(|b| b.0 == scan) {
+                tofs.push(tof.try_into().unwrap());
+                intensities.push(intensity.try_into().unwrap());
+            }
+            offsets.push(tofs.len());
+        }
+        let q = QuadrupoleSettings {
+            index: 1,
+            scan_starts: if split { vec![0, 20] } else { vec![0] },
+            scan_ends: if split { vec![20, 40] } else { vec![40] },
+            isolation_windows: (0..if split { 2 } else { 1 })
+                .map(|i| {
+                    IsolationWindow::new_from_bounds(
+                        400.0.into(),
+                        600.0.into(),
+                        30.0 + i as f64,
+                    )
+                })
+                .collect(),
+        };
+        FrameIons::new(offsets, tofs, intensities).add_info(FrameInfo::new(
+            Arc::new(q),
+            17,
+            12.0,
+            1.0,
+            AcquisitionType::DIAPASEF,
+            MSLevel::MS2,
+            1,
+            None,
+        ))
+    }
+    #[test]
+    fn weak_response_is_measured_in_the_focal_frame() {
+        let reader = reader();
+        let frame = frame(&[(20, 100, 7)], false);
+        assert!(reader.centroid_frame(&frame).unwrap().is_empty());
+        let candidates = reader.rt_consistency_frame(&frame).unwrap();
+        assert_eq!(candidates.weak.len(), 1);
+        assert_eq!(candidates.weak[0].apex_intensity, 7 * 255);
+        assert!(candidates.eligible.contains(&(20, 100)));
+    }
+    #[test]
+    fn trajectory_verifies_actual_native_responses_and_empty_interior_scans() {
+        let mut reader = reader();
+        reader.centroider_ms2 = FrameCentroider::new(
+            &[0.5, 0.75, 1., 0.75, 0.5],
+            &[0.2, 1., 0.2],
+            2,
+        );
+        let mut raw = frame(&[(18, 100, 7), (20, 100, 9), (22, 100, 7)], true);
+        let native = reader.centroid_frame(&raw).unwrap();
+        assert!(!native.is_empty());
+        assert!(
+            reader
+                .transmission_candidates(&raw, false)
+                .unwrap()
+                .footprints
+                .is_empty()
+        );
+        let output = reader.trajectory_candidates(&raw, true).unwrap();
+        assert_eq!(output.candidates.native, native);
+        assert!(!output.footprints.is_empty());
+        let mut tampered = native.clone();
+        tampered[0].apex_intensity += 1;
+        assert!(
+            crate::neighborhood::raw_support::verified_mass_footprints(
+                &raw,
+                &mut tampered,
+                &reader.centroider_ms2,
+            )
+            .is_err()
+        );
+        let q = QuadrupoleSettings {
+            index: 2,
+            scan_starts: vec![0, 19, 20],
+            scan_ends: vec![19, 20, 40],
+            isolation_windows: [
+                (400., 600., 30.),
+                (600., 700., 30.),
+                (400., 600., 31.),
+            ]
+            .into_iter()
+            .map(|(a, b, ce)| {
+                IsolationWindow::new_from_bounds(a.into(), b.into(), ce)
+            })
+            .collect(),
+        };
+        raw.set_info(FrameInfo::new(
+            Arc::new(q),
+            17,
+            12.,
+            1.,
+            AcquisitionType::DIAPASEF,
+            MSLevel::MS2,
+            1,
+            None,
+        ));
+        let output = reader.trajectory_candidates(&raw, false).unwrap();
+        assert_eq!(output.candidates.native, native);
+        assert!(output.footprints.is_empty());
+    }
+    #[test]
+    fn native_values_are_preserved_and_cross_interval_support_is_ineligible() {
+        let reader = reader();
+        let raw = frame(&[(20, 100, 7), (20, 101, 9)], false);
+        let candidates = reader.rt_consistency_frame(&raw).unwrap();
+        assert_eq!(candidates.native, reader.centroid_frame(&raw).unwrap());
+        assert!(candidates.weak.is_empty());
+        let crossed = reader
+            .rt_consistency_frame(&frame(&[(19, 100, 7), (20, 100, 9)], true))
+            .unwrap();
+        assert!(!crossed.native.is_empty());
+        assert!(crossed.eligible.is_empty());
+        assert!(
+            reader
+                .rt_consistency_frame(&frame(&[], false))
+                .unwrap()
+                .weak
+                .is_empty()
+        );
     }
 }

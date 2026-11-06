@@ -11,6 +11,10 @@ timsrust-core = { workspace = true }
 rayon = { workspace = true }
 thiserror = { workspace = true }
 rustc-hash = { workspace = true, features = ["std"] }
+serde = { workspace = true, features = ["derive", "std"] }
+
+[dev-dependencies]
+serde_json = { workspace = true, features = ["std", "float_roundtrip"] }
 
 [lints]
 workspace = true

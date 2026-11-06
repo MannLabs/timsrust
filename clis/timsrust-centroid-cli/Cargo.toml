@@ -17,6 +17,10 @@ indicatif = { workspace = true, features = ["rayon"] }
 log = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+timsrust-parquet-spectra = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,5 +1,6 @@
 mod converters;
 mod errors;
+mod native_neighborhood;
 mod precursor_reader;
 #[cfg(feature = "sdk")]
 mod sdk_spectrum_reader;
@@ -8,6 +9,7 @@ mod timstof;
 
 pub use converters::{ImConverter, MzConverter, RtConverter};
 pub use errors::TimsRustError;
+pub use native_neighborhood::NativeNeighborhoodReader;
 pub use precursor_reader::{
     PrecursorReader, PrecursorReaderBuilder, PrecursorReaderError,
 };

@@ -218,6 +218,16 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> ParquetWriter<T> {
     pub fn shape(&self) -> (usize, usize) {
         (self.rows, self.cols)
     }
+
+    /// Finalizes the file and propagates footer/write failures.
+    pub fn finish(mut self) -> Result<(), ParquetError> {
+        if let Some(writer) = self.writer.take() {
+            writer
+                .close()
+                .map_err(|e| ParquetError::Write(Box::new(e)))?;
+        }
+        Ok(())
+    }
 }
 
 impl<T> Drop for ParquetWriter<T> {
@@ -416,18 +426,80 @@ impl<T: for<'de> serde::Deserialize<'de>> ParquetReader<T> {
         &self,
         range: std::ops::Range<usize>,
     ) -> Result<Vec<T>, ParquetError> {
-        if range.end > self.rows {
+        if range.start > range.end || range.end > self.rows {
             return Err(ParquetError::OutOfBounds {
                 start: range.start,
                 end: range.end,
                 rows: self.rows,
             });
         }
-        let all = self.read_all()?;
-        Ok(all
-            .into_iter()
-            .skip(range.start)
-            .take(range.end - range.start)
-            .collect())
+        if range.is_empty() {
+            return Ok(Vec::new());
+        }
+        use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+        let reader = ParquetRecordBatchReaderBuilder::try_new(
+            std::fs::File::open(&self.path)?,
+        )
+        .map_err(|e| ParquetError::Read(Box::new(e)))?
+        .with_offset(range.start)
+        .with_limit(range.end - range.start)
+        .build()
+        .map_err(|e| ParquetError::Read(Box::new(e)))?;
+        let mut result = Vec::with_capacity(range.end - range.start);
+        for batch in reader {
+            let batch = batch.map_err(|e| ParquetError::Read(Box::new(e)))?;
+            let mut rows: Vec<T> = serde_arrow::from_record_batch(&batch)
+                .map_err(|e| ParquetError::Read(Box::new(e)))?;
+            result.append(&mut rows);
+        }
+        Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod range_tests {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn ranges_deserialize_only_requested_rows() {
+        static READS: AtomicUsize = AtomicUsize::new(0);
+        fn track<'de, D: serde::Deserializer<'de>>(
+            d: D,
+        ) -> Result<u32, D::Error> {
+            READS.fetch_add(1, Ordering::SeqCst);
+            u32::deserialize(d)
+        }
+        #[derive(Serialize, Deserialize)]
+        struct Row {
+            value: u32,
+        }
+        #[derive(Deserialize)]
+        struct Tracked {
+            #[serde(deserialize_with = "track")]
+            value: u32,
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("range.parquet");
+        let mut writer = ParquetWriter::<Row>::new(&path).unwrap();
+        writer
+            .write_batch((0..1000).map(|value| Row { value }).collect())
+            .unwrap();
+        writer.finish().unwrap();
+        let reader = ParquetReader::<Tracked>::from(&path).unwrap();
+        let rows = reader.read_range(100..103).unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.value).collect::<Vec<_>>(),
+            [100, 101, 102]
+        );
+        assert_eq!(READS.load(Ordering::SeqCst), 3);
+        assert!(
+            reader
+                .read_range(std::ops::Range { start: 10, end: 9 })
+                .is_err()
+        );
+        assert!(reader.read_range(1000..1000).unwrap().is_empty());
+        assert!(reader.read_range(0..1001).is_err());
     }
 }

@@ -7,6 +7,8 @@ use crate::{PrecursorReaderError, SpectrumReaderError, TimsTofPathError};
 /// An error that is produced by timsrust (uses [thiserror]).
 #[derive(thiserror::Error, Debug)]
 pub enum TimsRustError {
+    #[error("native neighborhood extraction: {0}")]
+    NativeNeighborhood(#[from] timsrust_centroid::TimsError),
     #[error("{0}")]
     FrameReaderError(#[from] FrameReaderError),
     #[error("{0}")]

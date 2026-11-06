@@ -9,10 +9,16 @@ publish = false
 name = "tims_pyo3"
 crate-type = ["cdylib"]
 
+[features]
+extension-module = ["pyo3/extension-module"]
+
 [dependencies]
-pyo3 = { workspace = true, default-features = true, features = ["extension-module"] }
+pyo3 = { workspace = true, default-features = true }
 timsrust = { workspace = true}
 rayon = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+timsrust-parquet-spectra = { workspace = true }
 
 [lints]
 workspace = true

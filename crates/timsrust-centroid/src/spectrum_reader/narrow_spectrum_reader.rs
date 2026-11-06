@@ -91,6 +91,34 @@ impl<
         self.min_spectrum_size
     }
 
+    /// Detects measured MS1 precursors without filtering on MS2 spectrum size.
+    pub fn try_precursors_from_frame(
+        &self,
+        index: usize,
+    ) -> TimsResult<Vec<Precursor>> {
+        let frame = self
+            .peak_reader
+            .frame_reader()
+            .get_frame(index)
+            .map_err(|e| crate::TimsError::new(e.to_string()))?;
+        if frame.info().ms_level() != timsrust_core::MSLevel::MS1 {
+            return Err(crate::TimsError::new(
+                "precursor detection requires an MS1 frame",
+            ));
+        }
+        Ok(deisotope(
+            self.peak_reader.centroid_frame(&frame)?,
+            &frame,
+            self.im_converter.as_ref(),
+            self.mz_converter.as_ref(),
+            &self.precursor_id,
+            self.peak_reader.scan_fwhm(),
+            self.monoisotopic_only,
+            self.highest_charge_state_only,
+            &self.charges,
+        ))
+    }
+
     pub fn get_spectral_chunk_from_frame(
         &self,
         index: usize,

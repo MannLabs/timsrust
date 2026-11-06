@@ -1,5 +1,6 @@
 use timsrust_core::{Converter, Mz, TofIndex};
 
+pub mod neighborhoods;
 pub mod parquet_path;
 pub mod precursor_reader;
 pub mod spectrum_reader;

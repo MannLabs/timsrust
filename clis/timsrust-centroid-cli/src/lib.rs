@@ -44,9 +44,11 @@
 
 mod cli;
 // mod parquet;
+mod neighborhood_export;
 mod runner;
 
 pub use cli::CLI;
+pub use neighborhood_export::export_neighborhoods;
 pub use runner::run;
 use serde::{Deserialize, Serialize};
 // use timsrust_centroid::Peak;

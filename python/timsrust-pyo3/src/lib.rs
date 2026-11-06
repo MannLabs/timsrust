@@ -1,3 +1,4 @@
+mod neighborhoods;
 pub mod timsrust_converters;
 pub mod timsrust_enums;
 pub mod timsrust_readers;
@@ -42,6 +43,7 @@ fn read_all_spectra(path: String) -> PyResult<Vec<PySpectrum>> {
 
 #[pymodule]
 fn tims_pyo3(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    neighborhoods::register(m)?;
     m.add_function(wrap_pyfunction!(read_all_frames, m)?)?;
     m.add_function(wrap_pyfunction!(read_all_spectra, m)?)?;
     m.add_class::<PyFrame>()?;

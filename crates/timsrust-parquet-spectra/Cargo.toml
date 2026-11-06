@@ -9,6 +9,12 @@ license = "Apache-2.0"
 [dependencies]
 timsrust-core = { workspace = true, features = ["io"] }
 serde = { workspace = true }
+timsrust-centroid = { workspace = true }
+serde_json = { workspace = true, features = ["float_roundtrip"] }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

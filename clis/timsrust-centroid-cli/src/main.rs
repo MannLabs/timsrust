@@ -1,3 +1,6 @@
 fn main() {
-    timsrust_centroid_cli::CLI::run().unwrap();
+    if let Err(error) = timsrust_centroid_cli::CLI::run() {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
 }

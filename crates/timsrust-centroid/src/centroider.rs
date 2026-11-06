@@ -47,6 +47,18 @@ impl FrameCentroider {
         &self.scan_smoother
     }
 
+    pub(crate) fn with_min_count(&self, min_count: usize) -> Self {
+        Self {
+            tof_kernel: self.tof_kernel.clone(),
+            scan_smoother: ScanSmoother::new(
+                self.scan_smoother.kernel().to_vec(),
+                min_count,
+            ),
+            tof_kernel_apex: self.tof_kernel_apex,
+            scan_kernel_apex: self.scan_kernel_apex,
+        }
+    }
+
     pub(crate) fn centroid(
         &self,
         tofs: Vec<FxHashMap<u32, u64>>,
