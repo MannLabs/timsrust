@@ -216,14 +216,10 @@ where
 }
 
 fn transpose_tofs(frame: &Frame) -> TOFMap {
-    let max_tof = usize::from(
-        *frame
-            .ions()
-            .tof_indices()
-            .iter()
-            .max()
-            .expect("Failed to find max TOF"),
-    ) + 1;
+    let Some(&last_tof) = frame.ions().tof_indices().iter().max() else {
+        return Vec::new();
+    };
+    let max_tof = usize::from(last_tof) + 1;
     let mut tofs = vec![FxHashMap::default(); max_tof];
     frame.ions().scan_offsets().windows(2).enumerate().for_each(
         |(scan_index, s)| {
@@ -237,6 +233,37 @@ fn transpose_tofs(frame: &Frame) -> TOFMap {
         },
     );
     tofs
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_frame_transposes_and_centroids_without_peaks() {
+        let mut frame = Frame::default();
+        frame.set_data(vec![0, 0, 0], vec![], vec![]);
+        let tofs = transpose_tofs(&frame);
+        assert!(tofs.is_empty());
+        let centroider =
+            FrameCentroider::new(&[0.1, 1.0, 0.1], &[0.1, 1.0, 0.1], 1);
+        assert_eq!(centroider.centroid(tofs, 1).count(), 0);
+    }
+
+    #[test]
+    fn populated_frame_preserves_tof_and_scan_coordinates() {
+        let mut frame = Frame::default();
+        frame.set_data(
+            vec![0, 1, 2],
+            vec![3_u32.try_into().unwrap(), 5_u32.try_into().unwrap()],
+            vec![10_u32.try_into().unwrap(), 20_u32.try_into().unwrap()],
+        );
+        let tofs = transpose_tofs(&frame);
+        assert_eq!(tofs.len(), 6);
+        assert_eq!(tofs[3].get(&0), Some(&10));
+        assert_eq!(tofs[5].get(&1), Some(&20));
+        assert!(tofs[0].is_empty());
+    }
 }
 
 pub fn get_average_ms1_peak<IR, InfoR>(

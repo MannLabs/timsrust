@@ -52,14 +52,19 @@ impl FrameCentroider {
         tofs: Vec<FxHashMap<u32, u64>>,
         frame_index: usize,
     ) -> impl Iterator<Item = Peak> + '_ {
-        PeakBuffer::new(
-            tofs,
-            self.scan_smoother.clone(),
-            self.tof_kernel.len(),
-            frame_index as u32,
-            self.scan_kernel_apex as u32,
-            self.tof_kernel_apex as u32,
-        )
+        (!tofs.is_empty())
+            .then(|| {
+                PeakBuffer::new(
+                    tofs,
+                    self.scan_smoother.clone(),
+                    self.tof_kernel.len(),
+                    frame_index as u32,
+                    self.scan_kernel_apex as u32,
+                    self.tof_kernel_apex as u32,
+                )
+            })
+            .into_iter()
+            .flatten()
     }
 }
 
