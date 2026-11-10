@@ -371,10 +371,13 @@ fn to_spectrum(
     spectrum_id: &atomic::AtomicUsize,
     index: usize,
 ) -> Option<timsrust_core::Spectrum> {
+    let range =
+        super::isolated_peak_range(subpeaks, quadrupole_settings, scan)?;
+    let subpeaks = &subpeaks[range];
     if subpeaks.len() < min_spectrum_size {
         return None;
     }
-    let quad_info = QuadInfo::new(quadrupole_settings, scan);
+    let quad_info = QuadInfo::try_new(quadrupole_settings, scan)?;
     if !quad_info.is_valid_for_precursor(precursor) {
         return None;
     }
@@ -425,28 +428,31 @@ pub struct QuadInfo {
 }
 
 impl QuadInfo {
+    /// Looks up a covered scan.
+    ///
+    /// # Panics
+    /// Panics if `scan` is not inside a declared acquisition interval.
+    /// Use [`Self::try_new`] when the scan may be uncovered.
     pub fn new(
         quadrupole_settings: &timsrust_core::QuadrupoleSettings,
         scan: usize,
     ) -> Self {
-        let index = quadrupole_settings
-            .scan_starts
-            .iter()
-            .position(|&s| s > scan)
-            .unwrap_or(quadrupole_settings.len())
-            .max(1)
-            - 1;
-        let isolation_mz =
-            f64::from(quadrupole_settings.isolation_windows[index].center());
-        let isolation_width =
-            f64::from(quadrupole_settings.isolation_windows[index].width());
-        let ce =
-            quadrupole_settings.isolation_windows[index].collision_energy();
-        Self {
-            isolation_mz,
-            isolation_width,
-            ce,
-        }
+        Self::try_new(quadrupole_settings, scan)
+            .expect("Scan is outside declared quadrupole isolation intervals")
+    }
+
+    /// Returns `None` for an empty acquisition or an uncovered scan.
+    pub fn try_new(
+        quadrupole_settings: &timsrust_core::QuadrupoleSettings,
+        scan: usize,
+    ) -> Option<Self> {
+        quadrupole_settings
+            .get_isolation_window(scan)
+            .map(|window| Self {
+                isolation_mz: f64::from(window.center()),
+                isolation_width: f64::from(window.width()),
+                ce: window.collision_energy(),
+            })
     }
 
     pub fn is_valid_for_precursor(&self, precursor: &Precursor) -> bool {
@@ -653,5 +659,111 @@ mod tests {
             );
             assert_eq!(&reconstructed, expected);
         }
+    }
+
+    #[test]
+    fn uncovered_scans_do_not_inherit_a_neighboring_window() {
+        let mut settings = settings();
+        settings.scan_starts[1] = 30;
+        settings.scan_ends[1] = 40;
+        let count = atomic::AtomicUsize::new(0);
+        for scan in [0, 9, 20, 25, 40, 45] {
+            let precursor = precursor(508.0, scan, 7);
+            let peaks = [Peak {
+                frame: 2,
+                scan,
+                tof: 100,
+                apex_intensity: 10,
+            }];
+            assert!(
+                to_spectrum(
+                    &precursor,
+                    &peaks,
+                    &settings,
+                    1,
+                    scan as usize,
+                    &count,
+                    9,
+                )
+                .is_none(),
+                "uncovered scan {scan}"
+            );
+        }
+        assert_eq!(count.load(atomic::Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn quad_info_handles_empty_and_uncovered_intervals_explicitly() {
+        assert!(QuadInfo::try_new(&QuadrupoleSettings::default(), 0).is_none());
+        let settings = settings();
+        assert!(QuadInfo::try_new(&settings, 9).is_none());
+        assert!(QuadInfo::try_new(&settings, 30).is_none());
+        assert_eq!(
+            QuadInfo::try_new(&settings, 20).unwrap().isolation_mz,
+            620.0
+        );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Scan is outside declared quadrupole isolation intervals"
+    )]
+    fn infallible_quad_lookup_does_not_fabricate_a_window() {
+        QuadInfo::new(&settings(), 30);
+    }
+
+    #[test]
+    fn fragments_are_clipped_before_minimum_size_filtering() {
+        let settings = settings();
+        let precursors = [precursor(508.0, 19, 7), precursor(601.0, 20, 8)];
+        let peaks: Vec<_> = (18..=21)
+            .map(|scan| Peak {
+                frame: 2,
+                scan,
+                tof: scan * 10,
+                apex_intensity: u64::from(scan),
+            })
+            .collect();
+        let count = atomic::AtomicUsize::new(0);
+        let spectra = create_spectra_from_ms2_peaks(
+            &peaks,
+            &precursors,
+            8,
+            &count,
+            1,
+            &settings,
+            2,
+        );
+        assert_eq!(spectra.len(), 2);
+        assert_eq!(
+            spectra[0]
+                .tof_indices()
+                .iter()
+                .copied()
+                .map(u32::from)
+                .collect::<Vec<_>>(),
+            [180, 190]
+        );
+        assert_eq!(
+            spectra[1]
+                .tof_indices()
+                .iter()
+                .copied()
+                .map(u32::from)
+                .collect::<Vec<_>>(),
+            [200, 210]
+        );
+        assert!(
+            create_spectra_from_ms2_peaks(
+                &peaks,
+                &precursors,
+                8,
+                &count,
+                3,
+                &settings,
+                2,
+            )
+            .is_empty()
+        );
     }
 }

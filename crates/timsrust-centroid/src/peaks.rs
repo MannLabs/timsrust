@@ -138,6 +138,10 @@ where
 
     /// Extracts centroided peaks from the specified frame index.
     ///
+    /// Equal-response candidates are resolved per connected plateau in the
+    /// scan/TOF grid, including diagonal adjacency. The representative is an
+    /// actual candidate nearest the plateau's integer mean position.
+    ///
     /// # Arguments
     /// * `index` - Frame index.
     ///
@@ -324,4 +328,71 @@ pub fn get_best_peak_for_frame(frame: Frame) -> Grid2D {
         },
     );
     grid
+}
+
+#[cfg(test)]
+mod iteration_tests {
+    use super::*;
+    use crate::spectrum_reader::WideSpectrumReader;
+    use std::convert::Infallible;
+    use std::sync::{Arc, Mutex};
+    use timsrust_core::BitConverter;
+
+    struct MockReader {
+        indices: Vec<usize>,
+        requested: Arc<Mutex<Vec<usize>>>,
+    }
+
+    impl Reader<FrameInfo> for MockReader {
+        type Error = Infallible;
+
+        fn get(&self, index: usize) -> Result<FrameInfo, Self::Error> {
+            self.requested.lock().unwrap().push(index);
+            Ok(FrameInfo::default())
+        }
+    }
+
+    impl Reader<FrameIons> for MockReader {
+        type Error = Infallible;
+
+        fn get(&self, _: usize) -> Result<FrameIons, Self::Error> {
+            unreachable!("Non-MS2 frames must not load ions")
+        }
+    }
+
+    impl IndexedReader<FrameInfo> for MockReader {
+        type Iter = std::vec::IntoIter<usize>;
+
+        fn iter(&self) -> Self::Iter {
+            self.indices.clone().into_iter()
+        }
+    }
+
+    #[test]
+    fn wide_reader_visits_actual_one_based_and_gapped_frame_ids() {
+        for indices in [vec![1, 2, 3], vec![1, 4, 9]] {
+            let requested = Arc::new(Mutex::new(Vec::new()));
+            let reader = || MockReader {
+                indices: indices.clone(),
+                requested: requested.clone(),
+            };
+            let kernel = [0.5, 1.0, 0.5];
+            let peak_reader = PeakReader {
+                frame_reader: FrameReader::new(reader(), reader()),
+                centroider_ms1: FrameCentroider::new(&kernel, &kernel, 1),
+                centroider_ms2: FrameCentroider::new(&kernel, &kernel, 1),
+                average_peak: Grid2D::new([1, 1], vec![1]).unwrap(),
+            };
+            let wide = WideSpectrumReader::new(
+                peak_reader,
+                1,
+                Arc::new(BitConverter()),
+            )
+            .unwrap();
+            assert_eq!(wide._par_iter().count(), 0);
+            let mut actual = requested.lock().unwrap().clone();
+            actual.sort_unstable();
+            assert_eq!(actual, indices);
+        }
+    }
 }

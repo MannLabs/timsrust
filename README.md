@@ -5,6 +5,31 @@
 
 # TimsRust
 
+### Centroid and acquisition membership corrections
+
+Equal-response centroid candidates are resolved per connected scan/TOF
+plateau (including diagonal adjacency). Each representative is an actual
+candidate nearest the plateau's integer mean, with deterministic tie-breaking.
+Trailing TOF smoothing context is processed completely. The wide spectrum
+reader enumerates actual frame IDs, including one-based and gapped IDs.
+
+Quadrupole scan intervals are zero-based and half-open: `[start, end)`.
+Both spectrum readers and the centroid CLI's direct Parquet precursor ranges
+retain only peaks in the representative scan's declared interval. Uncovered
+scans are rejected, and minimum spectrum size is checked after clipping.
+Surviving spectra retain their slice IDs; rejected slices can leave gaps.
+Fragment table offsets remain relative to the original exported peaks.
+
+Use `QuadInfo::try_new` for scans that may be uncovered; `QuadInfo::new`
+now explicitly panics on uncovered scans instead of assigning a neighboring
+window. `QuadrupoleSettings::get_isolation_window_index` exposes the shared
+fallible interval lookup.
+
+These corrections can change peak counts, coordinates, and spectrum membership.
+Reprocess acquisitions to obtain corrected output. They do not filter fragment
+m/z values, change support thresholds, or isolate centroid smoothing kernels at
+acquisition transitions.
+
 ### Centroided DIA isolation windows
 
 The precursor-seeded (`NarrowSpectrumReader`) DIA path emits the full
